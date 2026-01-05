@@ -4,7 +4,7 @@ This is `measure-ai-proficiency`, a CLI tool for measuring AI coding proficiency
 
 ## Overview
 
-The tool scans repositories for files like `CLAUDE.md`, `.cursorrules`, and `.github/copilot-instructions.md` to assess how effectively teams are preparing context for AI coding assistants.
+The tool scans repositories for files like `CLAUDE.md`, `.cursorrules`, `.github/copilot-instructions.md`, `.github/skills/*/SKILL.md`, and `AGENTS.md` to assess how effectively teams are preparing context for AI coding assistants.
 
 ## Architecture
 
@@ -30,6 +30,14 @@ measure_ai_proficiency/
 - Type hints throughout
 - Dataclasses for data structures
 - Exit codes: 0 = success, 1 = no repos found, 2 = all repos at Level 0
+
+## Supported Skill Locations
+
+Agent Skills follow the [Agent Skills](https://agentskills.io/) open standard:
+- Claude Code: `.claude/skills/*/SKILL.md`
+- GitHub Copilot: `.github/skills/*/SKILL.md` or `.copilot/skills/*/SKILL.md`
+- OpenAI Codex: `.codex/skills/*/SKILL.md`
+- Generic: `skills/*/SKILL.md`
 
 ## Testing
 

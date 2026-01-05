@@ -291,18 +291,34 @@ project/
 ├── TESTING.md
 ├── SECURITY.md
 ├── .github/
-│   └── agents/
-│       ├── references.md
-│       ├── pr-reviewer.agent.md
-│       ├── security-reviewer.agent.md
-│       └── test-reviewer.agent.md
+│   ├── agents/
+│   │   ├── references.md
+│   │   ├── pr-reviewer.agent.md
+│   │   ├── security-reviewer.agent.md
+│   │   └── test-reviewer.agent.md
+│   └── skills/
+│       └── custom-task/
+│           └── SKILL.md
 └── .claude/
-    └── agents/
-        ├── references.md
-        ├── code-reviewer.md
-        ├── architect.md
-        └── tester.md
+    ├── agents/
+    │   ├── references.md
+    │   ├── code-reviewer.md
+    │   ├── architect.md
+    │   └── tester.md
+    └── skills/
+        └── custom-task/
+            └── SKILL.md
 ```
+
+## Agent Skills
+
+Claude Code, GitHub Copilot, and OpenAI Codex all support the [Agent Skills](https://agentskills.io/) open standard. Skills are stored in:
+
+- **Claude Code**: `.claude/skills/*/SKILL.md`
+- **GitHub Copilot**: `.github/skills/*/SKILL.md` or `.copilot/skills/*/SKILL.md`
+- **OpenAI Codex**: `.codex/skills/*/SKILL.md`
+
+Skills are task-specific instructions that AI tools load when relevant, based on the skill's description. Unlike agent files that define roles, skills define procedures for specific tasks.
 
 ## Remember
 

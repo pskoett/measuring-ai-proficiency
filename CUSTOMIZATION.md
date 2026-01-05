@@ -204,6 +204,62 @@ file_patterns=[
 ]
 ```
 
+### We use GitHub Copilot Skills instead of Claude Skills
+
+```python
+# Level 3: Skills patterns
+file_patterns=[
+    # GitHub Copilot skills (Agent Skills standard)
+    ".github/skills/*/SKILL.md",
+    ".github/skills/*/*.md",
+    ".copilot/skills/*/SKILL.md",
+    # Remove if not using Claude
+    # ".claude/skills/*/SKILL.md",
+]
+
+directory_patterns=[
+    ".github/skills",
+    ".copilot/skills",
+]
+```
+
+### We use both Claude and GitHub Copilot Skills
+
+```python
+# Level 3: Skills patterns (default includes all three major tools)
+file_patterns=[
+    ".claude/skills/*/SKILL.md",
+    ".github/skills/*/SKILL.md",
+    ".copilot/skills/*/SKILL.md",
+    ".codex/skills/*/SKILL.md",
+    "skills/*/SKILL.md",
+]
+
+directory_patterns=[
+    ".claude/skills",
+    ".github/skills",
+    ".copilot/skills",
+    ".codex/skills",
+    "skills",
+]
+```
+
+### We only use OpenAI Codex
+
+```python
+# Level 3: Codex-only skills
+file_patterns=[
+    ".codex/skills/*/SKILL.md",
+    ".codex/skills/*/*.md",
+    "AGENTS.md",  # Codex instruction file
+]
+
+directory_patterns=[
+    ".codex/skills",
+    ".codex",
+]
+```
+
 ### Industry-specific (FinTech)
 
 ```python

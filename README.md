@@ -43,11 +43,13 @@ This tool scans repositories for context engineering artifacts and calculates a 
 Supports all major AI coding tools and scans **all directories** for context engineering artifacts:
 
 - **Claude Code**: `CLAUDE.md`, `AGENTS.md`, `.claude/agents/`, `.claude/skills/`, `.claude/hooks/`, `.claude/commands/`
-- **GitHub Copilot**: `.github/copilot-instructions.md`, `.github/AGENTS.md`, `.github/instructions/`, `.github/agents/`, `.github/*.md`
+- **GitHub Copilot**: `.github/copilot-instructions.md`, `.github/AGENTS.md`, `.github/instructions/`, `.github/agents/`, `.github/skills/`, `.github/*.md`
 - **Cursor**: `.cursorrules`, `.cursor/rules/`, `.cursor/*.md`
 - **VSCode AI**: `.vscode/*.md`
-- **OpenAI Codex CLI**: `.codex/*.md`, `AGENTS.md`
+- **OpenAI Codex CLI**: `.codex/*.md`, `.codex/skills/`, `AGENTS.md`
 - **Documentation**: `docs/`, `*/docs/` (recursively scans all subdirectories)
+
+**Agent Skills**: Claude Code, GitHub Copilot, and OpenAI Codex all support the [Agent Skills](https://agentskills.io/) open standard. Skills are stored in `.claude/skills/`, `.github/skills/`, or `.codex/skills/` directories with `SKILL.md` files containing instructions for specialized tasks.
 
 **Smart Scanning**: Automatically excludes `node_modules/`, `venv/`, `dist/`, `build/`, and other dependency folders.
 
@@ -55,10 +57,10 @@ Supports all major AI coding tools and scans **all directories** for context eng
 
 The tool comprehensively scans for .md files in:
 
-- **AI Tool Directories**: `.github/`, `.claude/`, `.cursor/`, `.vscode/`, `.codex/`
+- **AI Tool Directories**: `.github/`, `.claude/`, `.cursor/`, `.vscode/`, `.codex/`, `.copilot/`
 - **Documentation**: `docs/`, `backend/docs/`, and any `*/docs/` subdirectories
 - **Root Files**: `CLAUDE.md`, `AGENTS.md`, `ARCHITECTURE.md`, `CONTRIBUTING.md`, etc.
-- **Skills & Workflows**: `.claude/skills/`, `scripts/`, `Makefile`, hooks, commands
+- **Skills & Workflows**: `.claude/skills/`, `.github/skills/`, `.codex/skills/`, `scripts/`, `Makefile`, hooks, commands
 - **Custom Locations**: Detects files wherever you place them in your repository
 
 **Exclusions**: Automatically skips `node_modules/`, `venv/`, `.venv/`, `env/`, `dist/`, `build/`, `__pycache__/`, `.git/`, `vendor/`, `target/`, `coverage/`, and other common dependency/build directories.
@@ -81,6 +83,7 @@ pip install -e .
 
 Want AI to help improve your context engineering automatically? Add the skill to your repository:
 
+**For Claude Code:**
 ```bash
 # Create the skills directory
 mkdir -p .claude/skills/measure-ai-proficiency
@@ -90,7 +93,27 @@ curl -o .claude/skills/measure-ai-proficiency/SKILL.md \
   https://raw.githubusercontent.com/pskoett/measuring-ai-proficiency/main/skill-template/measure-ai-proficiency/SKILL.md
 ```
 
-Then ask Claude: "Assess my repository's AI proficiency" or "Help me improve my context engineering"
+**For GitHub Copilot:**
+```bash
+# Create the skills directory
+mkdir -p .github/skills/measure-ai-proficiency
+
+# Download the skill
+curl -o .github/skills/measure-ai-proficiency/SKILL.md \
+  https://raw.githubusercontent.com/pskoett/measuring-ai-proficiency/main/skill-template/measure-ai-proficiency/SKILL.md
+```
+
+**For OpenAI Codex:**
+```bash
+# Create the skills directory
+mkdir -p .codex/skills/measure-ai-proficiency
+
+# Download the skill
+curl -o .codex/skills/measure-ai-proficiency/SKILL.md \
+  https://raw.githubusercontent.com/pskoett/measuring-ai-proficiency/main/skill-template/measure-ai-proficiency/SKILL.md
+```
+
+Then ask your AI assistant: "Assess my repository's AI proficiency" or "Help me improve my context engineering"
 
 The skill will automatically scan your repo, explain your maturity level, and offer to create missing context files. See [skill-template/](skill-template/) for the full skill content.
 
@@ -283,7 +306,7 @@ measure-ai-proficiency --org /path/to/org --min-level 2
 
 | Category | Files |
 |----------|-------|
-| Skills | `SKILL.md`, `skills/`, `.claude/skills/*/SKILL.md`, `CAPABILITIES.md` |
+| Skills | `SKILL.md`, `skills/`, `.claude/skills/*/SKILL.md`, `.github/skills/*/SKILL.md`, `.copilot/skills/*/SKILL.md`, `.codex/skills/*/SKILL.md`, `CAPABILITIES.md` |
 | Agents | `.claude/agents/*.md`, `.github/agents/*.md`, `agents/*.md`, `agents/references.md` |
 | Workflows | `WORKFLOWS.md`, `.claude/commands/`, `COMMANDS.md`, `scripts/` |
 | Memory | `MEMORY.md`, `LEARNINGS.md`, `DECISIONS.md`, `.memory/` |

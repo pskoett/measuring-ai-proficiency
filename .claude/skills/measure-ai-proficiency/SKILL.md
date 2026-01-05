@@ -7,12 +7,22 @@ description: Assess and improve repository AI coding proficiency and context eng
 
 Assess repository context engineering maturity and provide actionable recommendations for improving AI collaboration.
 
+This skill works with Claude Code, GitHub Copilot, and OpenAI Codex (via the [Agent Skills](https://agentskills.io/) open standard).
+
+## Prerequisites
+
+Install the measure-ai-proficiency tool:
+
+```bash
+pip install measure-ai-proficiency
+```
+
 ## Workflow
 
 ### 1. Run Assessment
 
 ```bash
-python -m measure_ai_proficiency -v
+measure-ai-proficiency -v
 ```
 
 ### 2. Interpret Results
@@ -37,7 +47,7 @@ After assessment, offer to create missing high-priority files:
 
 **Level 2 gaps:** Create ARCHITECTURE.md, CONVENTIONS.md, or TESTING.md
 
-**Level 3 gaps:** Create .claude/commands/, MEMORY.md, or skills/
+**Level 3 gaps:** Create .claude/skills/ or .github/skills/, .claude/commands/, MEMORY.md
 
 ### 4. Create Missing Files
 
@@ -72,9 +82,7 @@ Common triggers for this skill:
 - "Check my CLAUDE.md setup"
 - "Am I ready for AI-assisted development?"
 
-## Reference
+## Customization
 
-For full documentation, see:
-- [README.md](../../../README.md) - Tool documentation
-- [CUSTOMIZATION.md](../../../CUSTOMIZATION.md) - How to customize patterns
-- [measuring-ai-proficiency-context-engineering.md](../../../measuring-ai-proficiency-context-engineering.md) - The thinking behind this tool
+For organization-specific patterns, see:
+https://github.com/pskoett/measuring-ai-proficiency/blob/main/CUSTOMIZATION.md

@@ -153,12 +153,18 @@ LEVEL_3_PATTERNS = LevelConfig(
     name="Level 3: Skills, Memory & Workflows",
     description="Skill files, memory systems, hooks, and workflow definitions",
     file_patterns=[
-        # Skill files
+        # Skill files - Claude Code, GitHub Copilot, and OpenAI Codex
         "SKILL.md",
         "skills/*.md",
         "skills/*/SKILL.md",
         ".claude/skills/*/SKILL.md",
         ".claude/skills/*/*/*.md",
+        ".github/skills/*/SKILL.md",
+        ".github/skills/*/*.md",
+        ".copilot/skills/*/SKILL.md",
+        ".copilot/skills/*/*.md",
+        ".codex/skills/*/SKILL.md",
+        ".codex/skills/*/*.md",
         "CAPABILITIES.md",
         
         # Workflow and automation
@@ -226,6 +232,9 @@ LEVEL_3_PATTERNS = LevelConfig(
         ".claude/hooks",
         ".claude/skills",
         ".claude/agents",
+        ".github/skills",
+        ".copilot/skills",
+        ".codex/skills",
         "agents",
         ".memory",
         ".context",
