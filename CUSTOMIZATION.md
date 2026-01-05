@@ -31,14 +31,14 @@ The default configuration includes hundreds of common patterns, but every organi
 Edit `measure_ai_proficiency/config.py` and add your patterns to the appropriate level:
 
 ```python
-# Level 2: Add your documentation patterns
-LEVEL_2_PATTERNS = LevelConfig(
+# Level 3: Add your documentation patterns (Comprehensive Context)
+LEVEL_3_PATTERNS = LevelConfig(
     file_patterns=[
         # Add your custom patterns at the top
         "SYSTEM_DESIGN.md",              # Your architecture file
         "eng-docs/*.md",                 # Your docs folder
         "team-standards/CODING.md",      # Your conventions
-        
+
         # ... existing patterns below
         "ARCHITECTURE.md",
         "docs/*.md",
@@ -68,16 +68,16 @@ If scores seem too strict, edit `measure_ai_proficiency/scanner.py`:
 ```python
 def _calculate_overall_level(self, level_scores: Dict[int, LevelScore]) -> int:
     # ...
-    
-    # Level 2: Change from 20% to 10%
-    level_2 = level_scores.get(2)
-    if level_2 and level_2.coverage_percent >= 10:  # Was 20
-        current_level = 2
-    
-    # Level 3: Change from 15% to 8%
+
+    # Level 3: Change from 15% to 10%
     level_3 = level_scores.get(3)
-    if level_3 and level_3.coverage_percent >= 8:   # Was 15
+    if level_3 and level_3.coverage_percent >= 10:  # Was 15
         current_level = 3
+
+    # Level 4: Change from 12% to 8%
+    level_4 = level_scores.get(4)
+    if level_4 and level_4.coverage_percent >= 8:   # Was 12
+        current_level = 4
 ```
 
 ## Examples by Organization Type
@@ -87,8 +87,8 @@ def _calculate_overall_level(self, level_scores: Dict[int, LevelScore]) -> int:
 ```python
 # You probably have fewer, more focused files
 # Lower the thresholds:
-if level_2.coverage_percent >= 5:   # Instead of 20
-    current_level = 2
+if level_3.coverage_percent >= 5:   # Instead of 15
+    current_level = 3
 ```
 
 ### Enterprise
@@ -188,7 +188,7 @@ file_patterns=[
 ### My team doesn't use CLAUDE.md
 
 ```python
-# Remove from Level 1 or add your equivalent
+# Remove from Level 2 or add your equivalent
 file_patterns=[
     "AI_INSTRUCTIONS.md",  # Your file
     # "CLAUDE.md",  # Comment out
@@ -207,7 +207,7 @@ file_patterns=[
 ### We use GitHub Copilot Skills instead of Claude Skills
 
 ```python
-# Level 3: Skills patterns
+# Level 4: Skills patterns
 file_patterns=[
     # GitHub Copilot skills (Agent Skills standard)
     ".github/skills/*/SKILL.md",
@@ -226,7 +226,7 @@ directory_patterns=[
 ### We use both Claude and GitHub Copilot Skills
 
 ```python
-# Level 3: Skills patterns (default includes all three major tools)
+# Level 4: Skills patterns (default includes all three major tools)
 file_patterns=[
     ".claude/skills/*/SKILL.md",
     ".github/skills/*/SKILL.md",
@@ -247,7 +247,7 @@ directory_patterns=[
 ### We only use OpenAI Codex
 
 ```python
-# Level 3: Codex-only skills
+# Level 4: Codex-only skills
 file_patterns=[
     ".codex/skills/*/SKILL.md",
     ".codex/skills/*/*.md",

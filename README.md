@@ -26,17 +26,20 @@ A CLI tool for measuring AI coding proficiency based on context engineering arti
 
 Measure context engineering. Look at whether teams are creating files like `CLAUDE.md`, `.cursorrules`, `.github/copilot-instructions.md`, and `AGENTS.md`. These artifacts indicate that someone has moved beyond treating AI as fancy autocomplete and started deliberately shaping how AI understands their work.
 
-This tool scans repositories for context engineering artifacts and calculates a maturity score based on a 5-level model.
+This tool scans repositories for context engineering artifacts and calculates a maturity score based on an 8-level model aligned with Steve Yegge's stages.
 
 ## Maturity Levels
 
-| Level | Name | Description |
-|-------|------|-------------|
-| 0 | No Context Engineering | Autocomplete and chat only. No AI-specific files. |
-| 1 | Basic Instructions | Basic context files exist (CLAUDE.md, .cursorrules, etc.) |
-| 2 | Comprehensive Context | Detailed architecture, conventions, patterns documented |
-| 3 | Skills, Memory & Workflows | Hooks, commands, memory files, custom workflows |
-| 4 | Multi-Agent Orchestration | Specialized agents, orchestration, shared context |
+| Level | Name | Yegge Stage | Description |
+|-------|------|-------------|-------------|
+| 1 | Zero AI | Stage 1 | Autocomplete and chat only. No AI-specific files. |
+| 2 | Basic Instructions | Stage 2 | Basic context files (CLAUDE.md, .cursorrules, etc.) |
+| 3 | Comprehensive Context | Stage 3 | Detailed architecture, conventions, patterns |
+| 4 | Skills & Automation | Stage 4 | Hooks, commands, memory files, workflows |
+| 5 | Multi-Agent Ready | Stage 5 | Multiple agents, MCP configs, handoffs |
+| 6 | Fleet Infrastructure | Stage 6 | Beads, shared context, workflow pipelines |
+| 7 | Agent Fleet | Stage 7 | Governance, scheduling, 10+ agents |
+| 8 | Custom Orchestration | Stage 8 | Gas Town, meta-automation, frontier |
 
 ## Supported Tools
 

@@ -1,7 +1,8 @@
 """
 Configuration for AI proficiency measurement.
 
-Defines the file patterns to look for at each maturity level.
+Defines the file patterns to look for at each maturity level (1-8).
+Aligned with Steve Yegge's 8-stage AI coding proficiency model.
 Focused on the big four: Claude Code, GitHub Copilot, Cursor, and OpenAI Codex.
 """
 
@@ -19,10 +20,21 @@ class LevelConfig:
     weight: float = 1.0
 
 
-# Level 0: Autocomplete and chat - no specific files to check
-# Level 1: Basic agent use with minimal context
+# Level 1: Zero or Near-Zero AI (Yegge Stage 1)
+# Baseline level - no AI-specific context files, maybe just README
 LEVEL_1_PATTERNS = LevelConfig(
-    name="Level 1: Basic Instructions",
+    name="Level 1: Zero AI",
+    description="No AI-specific context files, baseline level",
+    file_patterns=[
+        # Only generic files that don't indicate AI usage
+        "README.md",
+    ],
+    weight=0.5
+)
+
+# Level 2: Basic agent use with minimal context (Yegge Stage 2)
+LEVEL_2_PATTERNS = LevelConfig(
+    name="Level 2: Basic Instructions",
     description="Basic context files exist with minimal project information",
     file_patterns=[
         # Claude Code
@@ -33,15 +45,13 @@ LEVEL_1_PATTERNS = LevelConfig(
         ".github/AGENTS.md",
         # Cursor
         ".cursorrules",
-        # General
-        "README.md",
     ],
     weight=1.0
 )
 
-# Level 2: Trusted agent with comprehensive context
-LEVEL_2_PATTERNS = LevelConfig(
-    name="Level 2: Comprehensive Context",
+# Level 3: Trusted agent with comprehensive context (Yegge Stage 3)
+LEVEL_3_PATTERNS = LevelConfig(
+    name="Level 3: Comprehensive Context",
     description="Detailed instruction files covering architecture, conventions, and patterns",
     file_patterns=[
         # Agent instruction files (detailed versions)
@@ -56,7 +66,7 @@ LEVEL_2_PATTERNS = LevelConfig(
         ".vscode/*.md",
         # Codex CLI
         ".codex/*.md",
-        
+
         # Architecture and specification files
         "ARCHITECTURE.md",
         "docs/ARCHITECTURE.md",
@@ -80,7 +90,7 @@ LEVEL_2_PATTERNS = LevelConfig(
         "docs/SECURITY.md",
         "GLOSSARY.md",
         "DOMAIN.md",
-        
+
         # Conventions and standards
         "CONVENTIONS.md",
         "STYLE.md",
@@ -95,7 +105,7 @@ LEVEL_2_PATTERNS = LevelConfig(
         "docs/PR_REVIEW.md",
         "docs/CODE_REVIEW.md",
         "NAMING.md",
-        
+
         # Development context
         "DEVELOPMENT.md",
         "docs/DEVELOPMENT.md",
@@ -148,9 +158,9 @@ LEVEL_2_PATTERNS = LevelConfig(
     weight=1.5
 )
 
-# Level 3: Automated workflows and persistent memory
-LEVEL_3_PATTERNS = LevelConfig(
-    name="Level 3: Skills, Memory & Workflows",
+# Level 4: Skills & Automation (Yegge Stage 4)
+LEVEL_4_PATTERNS = LevelConfig(
+    name="Level 4: Skills & Automation",
     description="Skill files, memory systems, hooks, and workflow definitions",
     file_patterns=[
         # Skill files - Claude Code, GitHub Copilot, and OpenAI Codex
@@ -166,7 +176,7 @@ LEVEL_3_PATTERNS = LevelConfig(
         ".codex/skills/*/SKILL.md",
         ".codex/skills/*/*.md",
         "CAPABILITIES.md",
-        
+
         # Workflow and automation
         "WORKFLOWS.md",
         "COMMANDS.md",
@@ -177,7 +187,7 @@ LEVEL_3_PATTERNS = LevelConfig(
         "scripts/*.py",
         "scripts/*.md",
         "scripts/README.md",
-        
+
         # Memory and learning
         "MEMORY.md",
         "LEARNINGS.md",
@@ -192,35 +202,21 @@ LEVEL_3_PATTERNS = LevelConfig(
         "HISTORY.md",
         "context.yaml",
         "context.json",
-        
-        # Agent configuration
-        ".github/agents/*.agent.md",
-        ".github/agents/*.md",
-        ".claude/agents/*.md",
-        "agents/*.md",
-        # Agent reference files (agents that link to other docs)
-        ".github/agents/references.md",
-        ".claude/agents/references.md",
-        "agents/references.md",
+
         # Context files for agents
         ".context/*.md",
         ".ai/*.md",
         "PROMPTS.md",
         ".prompts/*.md",
         "personas/*.md",
-        
+
         # Hooks and automation
         ".claude/hooks/*.sh",
         ".claude/hooks/*.py",
         ".claude/settings.json",
         ".claude/settings.local.json",
         ".husky/*",
-        
-        # MCP configuration
-        "mcp.json",
-        ".mcp/*.json",
-        "mcp-config.json",
-        "mcp-server/*.md",
+
         # AI context templates
         "templates/*.md",
         "*/templates/*.md",
@@ -231,29 +227,41 @@ LEVEL_3_PATTERNS = LevelConfig(
         ".claude/commands",
         ".claude/hooks",
         ".claude/skills",
-        ".claude/agents",
         ".github/skills",
         ".copilot/skills",
         ".codex/skills",
-        "agents",
         ".memory",
         ".context",
         ".ai",
         ".prompts",
         "personas",
-        ".mcp",
-        ".github/agents",
         ".codex",
     ],
     weight=2.0
 )
 
-# Level 4: Orchestrated multi-agent systems
-LEVEL_4_PATTERNS = LevelConfig(
-    name="Level 4: Multi-Agent Orchestration",
-    description="Multiple specialized agents, shared context, and orchestration infrastructure",
+# Level 5: Multi-Agent Ready (Yegge Stage 5)
+LEVEL_5_PATTERNS = LevelConfig(
+    name="Level 5: Multi-Agent Ready",
+    description="Multiple specialized agents, MCP configs, and basic orchestration",
     file_patterns=[
-        # Multi-agent configuration (multiple agent files)
+        # Agent configuration
+        ".github/agents/*.agent.md",
+        ".github/agents/*.md",
+        ".claude/agents/*.md",
+        "agents/*.md",
+        # Agent reference files
+        ".github/agents/references.md",
+        ".claude/agents/references.md",
+        "agents/references.md",
+
+        # MCP configuration
+        "mcp.json",
+        ".mcp/*.json",
+        "mcp-config.json",
+        "mcp-server/*.md",
+
+        # Multi-agent configuration (specific agent files)
         ".github/agents/reviewer.agent.md",
         ".github/agents/pr-reviewer.agent.md",
         ".github/agents/code-reviewer.agent.md",
@@ -264,61 +272,267 @@ LEVEL_4_PATTERNS = LevelConfig(
         ".github/agents/refactorer.agent.md",
         ".github/agents/debugger.agent.md",
         ".github/agents/planner.agent.md",
+
+        # Agent handoffs and orchestration basics
         "agents/HANDOFFS.md",
         "agents/ORCHESTRATION.md",
         "agents/REFERENCES.md",
         "roles/*.md",
-        
-        # Tool and integration configs
+
+        # Tool configs
         ".mcp/servers/*.json",
         "tools/TOOLS.md",
         "tools/*.json",
-        
-        # Shared context
+    ],
+    directory_patterns=[
+        ".claude/agents",
+        ".github/agents",
+        "agents",
+        "roles",
+        ".mcp",
+        ".mcp/servers",
+        "tools",
+    ],
+    weight=2.5
+)
+
+# Level 6: Fleet Infrastructure (Yegge Stage 6)
+LEVEL_6_PATTERNS = LevelConfig(
+    name="Level 6: Fleet Infrastructure",
+    description="Advanced memory systems, shared context, and workflow pipelines",
+    file_patterns=[
+        # Beads memory system
+        ".beads/*.md",
+        ".beads/*.json",
+        ".beads/*.yaml",
+        "beads/*.md",
+        "beads/*.json",
+
+        # Agent state persistence
+        ".agent_state/*.json",
+        ".agent_state/*.yaml",
+        ".agent_state/README.md",
+        "agent_state/*.json",
+
+        # Shared context (monorepo)
         "SHARED_CONTEXT.md",
         "packages/*/CLAUDE.md",
         "packages/*/AGENTS.md",
-        
-        # Memory systems
-        ".beads/*.md",
-        ".beads/*.json",
+        "services/*/CLAUDE.md",
+        "services/*/AGENTS.md",
+        "apps/*/CLAUDE.md",
+        "apps/*/AGENTS.md",
+
+        # Advanced workflow pipelines
+        "workflows/*.yaml",
+        "workflows/*.yml",
+        "workflows/README.md",
+        "pipelines/*.yaml",
+        "pipelines/*.yml",
+        "pipelines/README.md",
+
+        # Memory systems (global)
         "memory/global/*.md",
+        "memory/global/*.json",
+        "memory/shared/*.md",
         "memory/project/*.md",
-        ".agent_state/*.json",
-        
-        # Orchestration
-        "orchestration.yaml",
-        "orchestration/*.yaml",
-        "workflows/code_review.yaml",
-        "workflows/feature_development.yaml",
-        "workflows/incident_response.yaml",
-        "GOVERNANCE.md",
+        ".memory/global/*.md",
+
+        # Fleet configuration
+        "FLEET.md",
+        "agents/FLEET.md",
+        ".fleet/*.yaml",
+        ".fleet/*.json",
+        ".fleet/README.md",
     ],
     directory_patterns=[
-        "agents",
-        "roles",
         ".beads",
-        "memory/global",
-        "memory/project",
+        "beads",
         ".agent_state",
-        "orchestration",
+        "agent_state",
         "workflows",
-        ".mcp/servers",
-        "tools",
+        "pipelines",
+        "memory/global",
+        "memory/shared",
+        "memory/project",
+        ".fleet",
     ],
     weight=3.0
 )
 
-# All levels for iteration
+# Level 7: Agent Fleet (Yegge Stage 7)
+LEVEL_7_PATTERNS = LevelConfig(
+    name="Level 7: Agent Fleet",
+    description="Large agent fleet with governance, scheduling, and multi-agent pipelines",
+    file_patterns=[
+        # Governance
+        "GOVERNANCE.md",
+        "agents/GOVERNANCE.md",
+        "AGENT_PERMISSIONS.md",
+        "agents/PERMISSIONS.md",
+        "AGENT_POLICIES.md",
+        "agents/POLICIES.md",
+
+        # Fleet-scale agent definitions
+        "agents/specialists/*.md",
+        "agents/roles/*.md",
+        ".github/agents/specialists/*.md",
+        ".claude/agents/specialists/*.md",
+
+        # Agent scheduling
+        "agents/SCHEDULING.md",
+        "agents/PRIORITY.md",
+        "AGENT_QUEUE.md",
+        ".queue/*.yaml",
+        ".queue/*.json",
+        "queue/*.yaml",
+
+        # Multi-agent pipeline definitions
+        "workflows/code_review.yaml",
+        "workflows/feature_development.yaml",
+        "workflows/incident_response.yaml",
+        "workflows/release_pipeline.yaml",
+        "workflows/security_audit.yaml",
+        "workflows/deployment.yaml",
+        "pipelines/multi_agent/*.yaml",
+        "pipelines/multi_agent/*.yml",
+
+        # Convoy/molecule patterns (Gas Town style)
+        "convoys/*.yaml",
+        "convoys/*.md",
+        "convoys/README.md",
+        "molecules/*.yaml",
+        "molecules/*.md",
+        "molecules/README.md",
+        "epics/*.yaml",
+        "epics/*.md",
+        "epics/README.md",
+
+        # Agent metrics
+        "agents/METRICS.md",
+        "AGENT_PERFORMANCE.md",
+        ".metrics/agents/*.json",
+        ".metrics/agents/*.yaml",
+        "metrics/agents/*.md",
+    ],
+    directory_patterns=[
+        "agents/specialists",
+        "agents/roles",
+        ".queue",
+        "queue",
+        "convoys",
+        "molecules",
+        "epics",
+        ".metrics/agents",
+        "metrics/agents",
+        "pipelines/multi_agent",
+    ],
+    weight=4.0
+)
+
+# Level 8: Custom Orchestration (Yegge Stage 8)
+LEVEL_8_PATTERNS = LevelConfig(
+    name="Level 8: Custom Orchestration",
+    description="Custom orchestration, meta-automation, and frontier tooling",
+    file_patterns=[
+        # Custom orchestration
+        "orchestration.yaml",
+        "orchestration/*.yaml",
+        "orchestration/*.py",
+        "orchestration/README.md",
+        "ORCHESTRATOR.md",
+        "orchestration/ARCHITECTURE.md",
+
+        # Gas Town / custom orchestrators
+        ".gastown/*.yaml",
+        ".gastown/*.json",
+        ".gastown/README.md",
+        "gastown.config.yaml",
+        "gastown.config.json",
+
+        # Meta-automation (automation generating automation)
+        "meta/*.yaml",
+        "meta/*.py",
+        "meta/README.md",
+        "generators/*.py",
+        "generators/*.yaml",
+        "generators/README.md",
+        "AUTO_GENERATE.md",
+
+        # Agent composition
+        "agents/COMPOSITION.md",
+        "agents/DECOMPOSITION.md",
+        "agents/TEMPLATES.md",
+        "agent_templates/*.yaml",
+        "agent_templates/*.md",
+        "agent_templates/README.md",
+
+        # Frontier tooling
+        ".frontier/*.yaml",
+        ".frontier/*.json",
+        ".frontier/README.md",
+        "experimental/*.md",
+        "EXPERIMENTAL.md",
+
+        # Custom tool definitions
+        "tools/custom/*.py",
+        "tools/custom/*.yaml",
+        "tools/custom/README.md",
+        "tools/REGISTRY.md",
+        ".tools/*.yaml",
+        ".tools/*.json",
+
+        # Agent SDK / framework
+        "agent_sdk/*.py",
+        "agent_sdk/README.md",
+        "agent_framework/*.py",
+        "agent_framework/README.md",
+        "AGENT_SDK.md",
+        "FRAMEWORK.md",
+
+        # Custom protocols
+        "protocols/*.md",
+        "protocols/*.yaml",
+        "PROTOCOL.md",
+
+        # Infrastructure as code for agents
+        "infra/agents/*.tf",
+        "infra/agents/*.yaml",
+        "k8s/agents/*.yaml",
+    ],
+    directory_patterns=[
+        "orchestration",
+        ".gastown",
+        "meta",
+        "generators",
+        "agent_templates",
+        ".frontier",
+        "experimental",
+        "tools/custom",
+        ".tools",
+        "agent_sdk",
+        "agent_framework",
+        "protocols",
+        "infra/agents",
+        "k8s/agents",
+    ],
+    weight=5.0
+)
+
+# All levels for iteration (1-8)
 LEVELS: Dict[int, LevelConfig] = {
     1: LEVEL_1_PATTERNS,
     2: LEVEL_2_PATTERNS,
     3: LEVEL_3_PATTERNS,
     4: LEVEL_4_PATTERNS,
+    5: LEVEL_5_PATTERNS,
+    6: LEVEL_6_PATTERNS,
+    7: LEVEL_7_PATTERNS,
+    8: LEVEL_8_PATTERNS,
 }
 
-# Core files that indicate basic AI tool adoption (any of these suggest Level 1+)
-# Only includes actual files from Level 1 patterns
+# Core files that indicate basic AI tool adoption (any of these suggest Level 2+)
+# Only includes actual files from Level 2 patterns
 CORE_AI_FILES: Set[str] = {
     "CLAUDE.md",
     "AGENTS.md",

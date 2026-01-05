@@ -2,6 +2,7 @@
 Report generation for AI proficiency measurement.
 
 Outputs results in various formats: terminal, JSON, markdown, CSV.
+Uses levels 1-8 aligned with Steve Yegge's 8-stage model.
 """
 
 import json
@@ -20,6 +21,8 @@ class Colors:
     GREEN = "\033[92m"
     YELLOW = "\033[93m"
     RED = "\033[91m"
+    MAGENTA = "\033[35m"
+    PURPLE = "\033[35;1m"
     ENDC = "\033[0m"
     BOLD = "\033[1m"
     DIM = "\033[2m"
@@ -40,16 +43,35 @@ def _color(text: str, color: str) -> str:
 
 
 def _level_color(level: int) -> str:
-    """Get color for a level."""
+    """Get color for a level (1-8)."""
 
     colors = {
-        0: Colors.RED,
-        1: Colors.YELLOW,
-        2: Colors.CYAN,
-        3: Colors.GREEN,
-        4: Colors.BLUE,
+        1: Colors.RED,       # Zero AI
+        2: Colors.YELLOW,    # Basic
+        3: Colors.CYAN,      # Comprehensive
+        4: Colors.GREEN,     # Advanced
+        5: Colors.BLUE,      # Multi-Agent
+        6: Colors.MAGENTA,   # Fleet Ready
+        7: Colors.PURPLE,    # Agent Fleet
+        8: Colors.BOLD,      # Frontier
     }
     return colors.get(level, Colors.ENDC)
+
+
+def _level_status(level: int) -> str:
+    """Get status label for a level (1-8)."""
+
+    statuses = {
+        1: "Zero AI",
+        2: "Basic",
+        3: "Comprehensive",
+        4: "Advanced",
+        5: "Multi-Agent",
+        6: "Fleet Ready",
+        7: "Agent Fleet",
+        8: "Frontier",
+    }
+    return statuses.get(level, "Unknown")
 
 
 def _progress_bar(percent: float, width: int = 20) -> str:
@@ -76,11 +98,7 @@ class TerminalReporter:
         print(file=output)
 
         # Overall level
-        level_text = f"Level {score.overall_level}"
-        if score.overall_level == 0:
-            level_text = "Level 0: No Context Engineering"
-        else:
-            level_text = score.level_scores[score.overall_level].name
+        level_text = score.level_scores[score.overall_level].name
 
         print(
             f"  Overall Level: {_color(level_text, _level_color(score.overall_level))}",
@@ -98,7 +116,7 @@ class TerminalReporter:
 
         for level_num in sorted(score.level_scores.keys()):
             level_score = score.level_scores[level_num]
-            achieved = "✓" if level_num <= score.overall_level and score.overall_level > 0 else "○"
+            achieved = "✓" if level_num <= score.overall_level else "○"
             achieved_color = Colors.GREEN if achieved == "✓" else Colors.DIM
 
             bar = _progress_bar(level_score.coverage_percent)
@@ -127,11 +145,11 @@ class TerminalReporter:
             for rec in score.recommendations:
                 print(f"    → {rec}", file=output)
             print(file=output)
-        
+
         # Add guidance if many files detected but low level
         total_files = sum(ls.file_count for ls in score.level_scores.values())
-        if total_files > 30 and score.overall_level <= 1:
-            print(_color("  💡 Note:", Colors.BOLD), file=output)
+        if total_files > 30 and score.overall_level <= 2:
+            print(_color("  Note:", Colors.BOLD), file=output)
             print(f"    You have {total_files} documentation files detected but a low level score.", file=output)
             print(f"    This likely means your team uses different file names/structures.", file=output)
             print(f"    Consider customizing patterns in config.py for your organization.", file=output)
@@ -165,24 +183,16 @@ class TerminalReporter:
         print(f"  {'Repository':<30} {'Level':<10} {'Score':<10} {'Status'}", file=output)
         print(f"  {'-'*30} {'-'*10} {'-'*10} {'-'*15}", file=output)
 
-        # Distribution counters
-        level_counts = {0: 0, 1: 0, 2: 0, 3: 0, 4: 0}
+        # Distribution counters (levels 1-8)
+        level_counts = {i: 0 for i in range(1, 9)}
 
         for score in sorted_scores:
             name = score.repo_name[:28] + ".." if len(score.repo_name) > 30 else score.repo_name
             level = f"Level {score.overall_level}"
             score_str = f"{score.overall_score:.1f}"
 
-            if score.overall_level == 0:
-                status = _color("No AI context", Colors.RED)
-            elif score.overall_level == 1:
-                status = _color("Basic", Colors.YELLOW)
-            elif score.overall_level == 2:
-                status = _color("Comprehensive", Colors.CYAN)
-            elif score.overall_level == 3:
-                status = _color("Advanced", Colors.GREEN)
-            else:
-                status = _color("Frontier", Colors.BLUE)
+            status_text = _level_status(score.overall_level)
+            status = _color(status_text, _level_color(score.overall_level))
 
             print(f"  {name:<30} {level:<10} {score_str:<10} {status}", file=output)
             level_counts[score.overall_level] += 1
@@ -190,7 +200,7 @@ class TerminalReporter:
         print(file=output)
         print(_color("  Distribution:", Colors.BOLD), file=output)
         total = len(scores)
-        for level_num in range(5):
+        for level_num in range(1, 9):
             count = level_counts[level_num]
             pct = count / total * 100 if total > 0 else 0
             bar_width = int(pct / 5)
@@ -253,7 +263,7 @@ class JsonReporter:
             "total_repos": len(scores),
             "distribution": {
                 f"level_{i}": sum(1 for s in scores if s.overall_level == i)
-                for i in range(5)
+                for i in range(1, 9)
             },
             "average_score": round(
                 sum(s.overall_score for s in scores) / len(scores) if scores else 0,
@@ -279,11 +289,7 @@ class MarkdownReporter:
         print("## Summary", file=output)
         print(file=output)
 
-        level_name = (
-            "Level 0: No Context Engineering"
-            if score.overall_level == 0
-            else score.level_scores[score.overall_level].name
-        )
+        level_name = score.level_scores[score.overall_level].name
         print(f"- **Overall Level:** {level_name}", file=output)
         print(f"- **Overall Score:** {score.overall_score:.1f}/100", file=output)
         print(file=output)
@@ -295,7 +301,7 @@ class MarkdownReporter:
 
         for level_num in sorted(score.level_scores.keys()):
             ls = score.level_scores[level_num]
-            achieved = "✓" if level_num <= score.overall_level and score.overall_level > 0 else "○"
+            achieved = "✓" if level_num <= score.overall_level else "○"
             print(
                 f"| {ls.name} | {ls.coverage_percent:.1f}% | "
                 f"{ls.substantive_file_count} | {achieved} |",
@@ -339,7 +345,7 @@ class MarkdownReporter:
         print("|-------|-------|------------|", file=output)
 
         total = len(scores)
-        for level_num in range(5):
+        for level_num in range(1, 9):
             count = sum(1 for s in scores if s.overall_level == level_num)
             pct = count / total * 100 if total > 0 else 0
             print(f"| Level {level_num} | {count} | {pct:.1f}% |", file=output)
@@ -357,9 +363,7 @@ class MarkdownReporter:
             reverse=True,
         )
         for score in sorted_scores:
-            status = ["No AI context", "Basic", "Comprehensive", "Advanced", "Frontier"][
-                score.overall_level
-            ]
+            status = _level_status(score.overall_level)
             print(
                 f"| {score.repo_name} | Level {score.overall_level} | "
                 f"{score.overall_score:.1f} | {status} |",
@@ -375,22 +379,21 @@ class CsvReporter:
     def report_multiple(self, scores: List[RepoScore], output: TextIO = sys.stdout) -> None:
         """Report multiple repository scores as CSV."""
 
-        print(
-            "repo_name,repo_path,overall_level,overall_score,level_1_coverage,level_2_coverage,level_3_coverage,level_4_coverage",
-            file=output,
-        )
+        # Header with levels 1-8
+        header = "repo_name,repo_path,overall_level,overall_score"
+        for i in range(1, 9):
+            header += f",level_{i}_coverage"
+        print(header, file=output)
 
         for score in scores:
             coverages = [
                 score.level_scores.get(i, type("obj", (object,), {"coverage_percent": 0})).coverage_percent
-                for i in range(1, 5)
+                for i in range(1, 9)
             ]
-            print(
-                f'"{score.repo_name}","{score.repo_path}",{score.overall_level},'
-                f"{score.overall_score:.2f},{coverages[0]:.2f},{coverages[1]:.2f},"
-                f"{coverages[2]:.2f},{coverages[3]:.2f}",
-                file=output,
-            )
+            line = f'"{score.repo_name}","{score.repo_path}",{score.overall_level},{score.overall_score:.2f}'
+            for cov in coverages:
+                line += f",{cov:.2f}"
+            print(line, file=output)
 
 
 def get_reporter(format: str, verbose: bool = False):

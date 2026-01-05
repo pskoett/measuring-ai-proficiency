@@ -51,12 +51,15 @@ Examples:
   %(prog)s --format markdown -o report.md  Save markdown report
   %(prog)s -v                        Verbose output with file details
 
-Maturity Levels:
-  Level 0: No context engineering (autocomplete only)
-  Level 1: Basic instructions (CLAUDE.md, .cursorrules, etc.)
-  Level 2: Comprehensive context (architecture, conventions, patterns)
-  Level 3: Skills, memory & workflows (hooks, commands, memory files)
-  Level 4: Multi-agent orchestration (specialized agents, orchestration)
+Maturity Levels (aligned with Steve Yegge's 8-stage model):
+  Level 1: Zero AI (no context engineering, autocomplete only)
+  Level 2: Basic instructions (CLAUDE.md, .cursorrules, etc.)
+  Level 3: Comprehensive context (architecture, conventions, patterns)
+  Level 4: Skills & automation (hooks, commands, memory files)
+  Level 5: Multi-agent ready (specialized agents, MCP configs)
+  Level 6: Fleet infrastructure (Beads, shared context, workflows)
+  Level 7: Agent fleet (governance, scheduling, pipelines)
+  Level 8: Custom orchestration (Gas Town, meta-automation, frontier)
         """,
     )
 
@@ -98,8 +101,8 @@ Maturity Levels:
     parser.add_argument(
         "--min-level",
         type=int,
-        choices=[0, 1, 2, 3, 4],
-        help="Only show repos at or above this level",
+        choices=[1, 2, 3, 4, 5, 6, 7, 8],
+        help="Only show repos at or above this level (1-8)",
     )
 
     parser.add_argument(
@@ -150,8 +153,8 @@ Maturity Levels:
     if not scores:
         sys.exit(1)
 
-    # Return non-zero if all repos are Level 0
-    if all(s.overall_level == 0 for s in scores):
+    # Return non-zero if all repos are Level 1 (no AI context)
+    if all(s.overall_level == 1 for s in scores):
         sys.exit(2)
 
 

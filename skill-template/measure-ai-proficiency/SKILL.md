@@ -27,15 +27,18 @@ measure-ai-proficiency -v
 
 ### 2. Interpret Results
 
-**Maturity Levels:**
+**Maturity Levels (aligned with Steve Yegge's 8-stage model):**
 
-| Level | Name | Indicators |
-|-------|------|------------|
-| 0 | No Context Engineering | No AI-specific files |
-| 1 | Basic Instructions | CLAUDE.md, .cursorrules exist |
-| 2 | Comprehensive Context | Architecture, conventions documented |
-| 3 | Skills & Workflows | Hooks, commands, memory files |
-| 4 | Multi-Agent | Specialized agents, orchestration |
+| Level | Name | Yegge Stage | Indicators |
+|-------|------|-------------|------------|
+| 1 | Zero AI | Stage 1 | No AI-specific files (baseline) |
+| 2 | Basic Instructions | Stage 2 | CLAUDE.md, .cursorrules exist |
+| 3 | Comprehensive Context | Stage 3 | Architecture, conventions documented |
+| 4 | Skills & Automation | Stage 4 | Hooks, commands, memory files, skills |
+| 5 | Multi-Agent Ready | Stage 5 | Specialized agents, MCP configs |
+| 6 | Fleet Infrastructure | Stage 6 | Beads, shared context, workflows |
+| 7 | Agent Fleet | Stage 7 | Governance, scheduling, 10+ agents |
+| 8 | Custom Orchestration | Stage 8 | Gas Town, meta-automation, frontier |
 
 **Score interpretation:** File count matters more than percentage. The tool includes hundreds of patterns for comprehensive detection.
 
@@ -43,11 +46,13 @@ measure-ai-proficiency -v
 
 After assessment, offer to create missing high-priority files:
 
-**Level 1 gaps:** Create CLAUDE.md, .cursorrules, or .github/copilot-instructions.md
+**Level 2 gaps:** Create CLAUDE.md, .cursorrules, or .github/copilot-instructions.md
 
-**Level 2 gaps:** Create ARCHITECTURE.md, CONVENTIONS.md, or TESTING.md
+**Level 3 gaps:** Create ARCHITECTURE.md, CONVENTIONS.md, or TESTING.md
 
-**Level 3 gaps:** Create .claude/skills/ or .github/skills/, .claude/commands/, MEMORY.md
+**Level 4 gaps:** Create .claude/skills/ or .github/skills/, .claude/commands/, MEMORY.md
+
+**Level 5+ gaps:** Create specialized agents, MCP configs, orchestration workflows
 
 ### 4. Create Missing Files
 

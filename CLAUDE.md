@@ -29,7 +29,7 @@ measure_ai_proficiency/
 - Pure Python, no external dependencies for core functionality
 - Type hints throughout
 - Dataclasses for data structures
-- Exit codes: 0 = success, 1 = no repos found, 2 = all repos at Level 0
+- Exit codes: 0 = success, 1 = no repos found, 2 = all repos at Level 1 (no AI context)
 
 ## Supported Skill Locations
 

@@ -94,11 +94,11 @@ When these files exist in a repository, someone has deliberately invested in mak
 
 ## A Maturity Model
 
-Based on what I have observed, here is how teams tend to progress. This model combines two dimensions: the behavioral progression (how developers interact with AI tools) and the infrastructural progression (what context engineering artifacts exist). Both matter.
+Based on what I have observed, here is how teams tend to progress. This 8-level model directly aligns with Steve Yegge's 8-stage behavioral model from "Welcome to Gas Town." It combines two dimensions: the behavioral progression (how developers interact with AI tools) and the infrastructural progression (what context engineering artifacts exist). Both matter.
 
-Steve Yegge recently published an 8-stage behavioral model ranging from "maybe code completions" to "building your own orchestrator." The context engineering artifacts I describe here are the infrastructure that makes progression through those behavioral stages effective. You can be at Stage 6 behaviorally (running multiple parallel agents) with zero context files, but you will be far less effective than someone at the same stage with comprehensive context engineering in place.
+Steve Yegge's 8 stages range from "maybe code completions" to "building your own orchestrator." The context engineering artifacts I describe here are the infrastructure that makes progression through those behavioral stages effective. You can be at Stage 6 behaviorally (running multiple parallel agents) with zero context files, but you will be far less effective than someone at the same stage with comprehensive context engineering in place.
 
-**Level 0: Autocomplete and chat**
+**Level 1: Zero or Near-Zero AI (Yegge Stage 1)**
 
 No AI-specific files in the repository. Developers use AI tools for code completions and occasionally ask questions in chat. AI is treated as a slightly smarter search engine or autocomplete. This is where most teams currently are.
 
@@ -107,9 +107,9 @@ Behavioral indicators:
 - Copy-pasting code snippets from chat
 - AI has no awareness of project conventions
 
-**Level 1: Basic agent use with minimal context**
+**Level 2: Basic Instructions (Yegge Stage 2)**
 
-Developers have started using coding agents (Claude Code, Cursor agent mode, Copilot chat) but with limited project context. Basic instruction files exist. The AI has surface-level awareness of the project.
+Developers have started using coding agents (Claude Code, Cursor agent mode, Copilot chat) but with limited project context. Basic instruction files exist. The AI has surface-level awareness of the project. Agents typically run with permissions enabled.
 
 Files at this level:
 - `CLAUDE.md` or `AGENTS.md` with a paragraph or two about the project
@@ -122,7 +122,7 @@ Behavioral indicators:
 - Agents work on small, well-defined tasks
 - Frequent corrections needed for project conventions
 
-**Level 2: Trusted agent with comprehensive context**
+**Level 3: Comprehensive Context (Yegge Stage 3)**
 
 Comprehensive instruction files covering architecture, conventions, patterns, and anti-patterns. Developers trust the agent enough to reduce permission prompts. AI becomes a genuinely useful collaborator that understands how things work.
 
@@ -173,7 +173,7 @@ Behavioral indicators:
 - Agents handle larger, more complex tasks with fewer corrections
 - Trust has been earned through consistent, convention-following output
 
-**Level 3: Automated workflows and persistent memory**
+**Level 4: Skills & Automation (Yegge Stage 4)**
 
 Beyond instructions, the team has created skill files, memory systems, hooks, and workflow definitions. AI can execute complex tasks correctly, enforce quality gates automatically, and maintain context across sessions.
 
@@ -224,14 +224,14 @@ Beyond instructions, the team has created skill files, memory systems, hooks, an
 
 Behavioral indicators:
 - Primarily working from CLI (Claude Code, Codex CLI)
+- Agent fills more of the screen; wide agent view
 - Diffs scroll by; review is selective rather than comprehensive
-- Running 3-5 parallel agent instances regularly
 - Hooks enforce quality automatically; less manual review needed
-- Work queued up ahead of time; agents execute while you plan
+- Full trust in single agent instance
 
-**Level 4: Orchestrated multi-agent systems**
+**Level 5: Multi-Agent Ready (Yegge Stage 5)**
 
-Multiple agents with different roles and responsibilities. Shared context across the team. Skills that compose into larger workflows. Orchestration manages agent coordination. This is the current frontier.
+Multiple agents with different roles and responsibilities configured. MCP integrations enable tool usage. Basic orchestration patterns and handoff documentation.
 
 *Multi-agent configuration:*
 - `.github/agents/` folder with role-specific `.agent.md` files
@@ -240,11 +240,8 @@ Multiple agents with different roles and responsibilities. Shared context across
 - `.github/agents/documenter.agent.md` - documentation agent
 - `.github/agents/security.agent.md` - security review agent
 - `.github/agents/architect.agent.md` - architecture decision agent
-- `.github/agents/refactorer.agent.md` - refactoring specialist
-- `.github/agents/debugger.agent.md` - debugging specialist
-- `.github/agents/planner.agent.md` - task decomposition and planning agent
 - `roles/` folder for role-based configurations
-- Agent communication patterns and handoff protocols in `agents/HANDOFFS.md`
+- Agent handoff protocols in `agents/HANDOFFS.md`
 - `agents/ORCHESTRATION.md` explaining how agents coordinate
 
 *Tool and integration configurations:*
@@ -254,44 +251,127 @@ Multiple agents with different roles and responsibilities. Shared context across
 - Custom tool definitions in `tools/` folder
 - `tools/TOOLS.md` documenting available custom tools
 
-*Hooks and quality gates:*
-- `.claude/hooks/` with comprehensive hook scripts
-- `PreToolUse` hooks for validation and blocking
-- `PostToolUse` hooks for formatting and quality checks
-- `Stop` hooks for end-of-turn quality gates
-- `SessionStart` and `SessionEnd` hooks for context injection
-- `.claude/settings.json`, `.claude/settings.local.json` for hook configuration
+Behavioral indicators:
+- Running 3-5 parallel agent instances regularly
+- Work queued up ahead of time; agents execute while you plan
+- Significant productivity increase from parallelism
+- Manual management via tmux or similar tools
 
-*Shared context (within repo):*
-- Monorepo-aware context in `packages/*/CLAUDE.md`
-- `SHARED_CONTEXT.md` documenting shared context across packages
+**Level 6: Fleet Infrastructure (Yegge Stage 6)**
+
+Advanced memory systems, shared context across packages, and workflow pipeline definitions. Infrastructure for managing parallel agent instances at scale.
 
 *Memory and persistence systems:*
-- `.beads/` for Beads memory system
+- `.beads/` for Beads memory system (persistent external memory)
 - `memory/global/` for shared learnings within monorepo
 - `memory/project/` for project-specific context
 - Persistent agent state in `.agent_state/`
 
-*Orchestration infrastructure:*
-- Orchestration configs for tools like Gas Town or custom setups
-- `orchestration.yaml` or `orchestration/` folder
-- Pipeline definitions for multi-agent workflows
-- `workflows/` folder with composed multi-agent workflows
+*Shared context (within repo):*
+- Monorepo-aware context in `packages/*/CLAUDE.md`, `services/*/CLAUDE.md`
+- `SHARED_CONTEXT.md` documenting shared context across packages
+
+*Workflow pipelines:*
+- `workflows/` folder with YAML workflow definitions
+- `pipelines/` folder for multi-step processes
 - `workflows/code_review.yaml` - full review pipeline
 - `workflows/feature_development.yaml` - feature delivery pipeline
 - `workflows/incident_response.yaml` - debugging and fix pipeline
-- Agent scheduling and prioritization rules
-- `GOVERNANCE.md` documenting agent permissions and boundaries
+
+*Fleet configuration:*
+- `FLEET.md` documenting fleet setup and configuration
+- `.fleet/` folder for fleet management configs
 
 Behavioral indicators:
-- Running 10+ agents simultaneously, pushing limits of manual management
+- You are very fast - marked jump in output velocity
+- Capability to context-switch between agents quickly
+- Asynchronous agent execution; continuous output stream
+- Human may or may not review all changes
+
+**Level 7: Agent Fleet (Yegge Stage 7)**
+
+Large agent fleet with governance, scheduling, and multi-agent pipelines. Managing 10+ agents with structured work decomposition.
+
+*Governance and policies:*
+- `GOVERNANCE.md` documenting agent permissions and boundaries
+- `agents/PERMISSIONS.md` defining what agents can do
+- `AGENT_POLICIES.md` for compliance and security rules
+
+*Fleet-scale agent management:*
+- `agents/specialists/` for specialized agent definitions
+- `agents/roles/` for role-based configurations
+- `agents/SCHEDULING.md` for priority and scheduling rules
+- `agents/PRIORITY.md` for work prioritization
+- `.queue/` or `queue/` for agent work queues
+
+*Work decomposition (Gas Town style):*
+- `convoys/` folder for coordinated agent groups
+- `molecules/` folder for atomic work units
+- `epics/` folder for large task decomposition
+
+*Multi-agent pipelines:*
+- `pipelines/multi_agent/` for complex workflows
+- `workflows/release_pipeline.yaml`
+- `workflows/security_audit.yaml`
+- `workflows/deployment.yaml`
+
+*Agent metrics:*
+- `agents/METRICS.md` tracking agent performance
+- `.metrics/agents/` for performance data
+
+Behavioral indicators:
+- Running 10+ agents simultaneously
+- Approaching limits of manual management
+- Requires tooling to manage coordination
+- Inter-agent communication and mail systems
+- Work queued in structured plans (molecules, epics, convoys)
+
+**Level 8: Custom Orchestration (Yegge Stage 8)**
+
+Building custom orchestration frameworks and meta-automation. This is the frontier - automating agent workflows programmatically.
+
+*Custom orchestration:*
+- `orchestration.yaml` or `orchestration/` folder
+- `ORCHESTRATOR.md` documenting orchestration architecture
+- `orchestration/ARCHITECTURE.md` for orchestrator design
+
+*Gas Town / custom orchestrators:*
+- `.gastown/` configuration for Steve Yegge's orchestrator
+- `gastown.config.yaml` or `gastown.config.json`
+
+*Meta-automation:*
+- `meta/` folder for automation that generates automation
+- `generators/` for code and config generators
+- `AUTO_GENERATE.md` documenting auto-generation
+
+*Agent composition:*
+- `agents/COMPOSITION.md` for agent composition patterns
+- `agents/TEMPLATES.md` for agent templates
+- `agent_templates/` folder for reusable agent definitions
+
+*Frontier tooling:*
+- `.frontier/` or `experimental/` for cutting-edge experiments
+- `EXPERIMENTAL.md` documenting frontier techniques
+
+*Custom tools and SDK:*
+- `tools/custom/` for custom tool definitions
+- `tools/REGISTRY.md` for tool registry
+- `agent_sdk/` or `agent_framework/` for custom frameworks
+- `protocols/` for custom communication protocols
+
+*Infrastructure as code:*
+- `infra/agents/` for agent infrastructure
+- `k8s/agents/` for Kubernetes-based agent deployment
+
+Behavioral indicators:
 - Building custom orchestration to manage agent workflows
-- Agents coordinate through shared memory systems (Beads, etc.)
-- Work is queued in structured plans (molecules, epics, convoys)
+- Automating agent workflows programmatically
+- Creating specialized agent coordination logic
+- Pushing coding agents "as hard as anyone on the planet"
 - Human role shifts from coding to planning, reviewing, and unblocking agents
 - Throughput measured in PRs per hour rather than lines of code
 
-Most teams I encounter are at Level 0 or 1. The gap between that and Level 2+ is where the real productivity differences emerge.
+Most teams I encounter are at Level 1 or 2. The gap between that and Level 3+ is where the real productivity differences emerge. Levels 6-8 represent the frontier - very few teams have reached these levels yet.
 
 ## How to Measure This
 

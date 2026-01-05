@@ -4,7 +4,7 @@ This is a CLI tool for measuring AI coding proficiency based on context engineer
 
 ## Project Overview
 
-The tool scans repositories for AI context files (like `CLAUDE.md`, `.cursorrules`, `.github/copilot-instructions.md`, and skill files) and calculates a maturity score based on a 5-level model (0-4).
+The tool scans repositories for AI context files (like `CLAUDE.md`, `.cursorrules`, `.github/copilot-instructions.md`, and skill files) and calculates a maturity score based on an 8-level model (1-8) aligned with Steve Yegge's stages.
 
 ## Architecture
 
@@ -24,7 +24,7 @@ measure_ai_proficiency/
 To add detection for new AI context files, edit `config.py`:
 
 ```python
-# Add to appropriate level (1-4) in the LevelConfig
+# Add to appropriate level (1-8) in the LevelConfig
 file_patterns=[
     "your-new-pattern.md",
     ".your-tool/config/*.md",
@@ -47,7 +47,7 @@ The tool supports: terminal (default), JSON, markdown, CSV. Add new formats in `
 - Pure Python with no external dependencies for core functionality
 - Type hints on all functions and methods
 - Dataclasses for data structures
-- Exit codes: 0 = success, 1 = no repos found, 2 = all repos at Level 0
+- Exit codes: 0 = success, 1 = no repos found, 2 = all repos at Level 1
 
 ## Testing
 

@@ -52,27 +52,32 @@ If historical data exists, calculate:
 
 ### Step 5: Generate Recommendations
 
-Based on the current level, provide 3 specific, actionable recommendations:
+Based on the current level (1-8), provide 3 specific, actionable recommendations:
 
-**For Level 0:**
+**For Level 1 (Zero AI):**
 - Create a CLAUDE.md with project overview
 - Add .cursorrules for Cursor users
 - Document basic architecture in README
 
-**For Level 1:**
+**For Level 2 (Basic Instructions):**
 - Add ARCHITECTURE.md with system design
 - Create CONVENTIONS.md with coding standards
 - Document API in API.md
 
-**For Level 2:**
+**For Level 3 (Comprehensive Context):**
 - Set up .claude/commands/ for custom workflows
 - Add MEMORY.md for persistent learnings
 - Create skills in .claude/skills/
 
-**For Level 3:**
+**For Level 4 (Skills & Automation):**
 - Define specialized agents in .github/agents/
-- Create orchestration workflows
+- Create MCP configuration files
+- Set up orchestration workflows
+
+**For Level 5+ (Multi-Agent and beyond):**
+- Implement Beads memory system
 - Set up cross-repo shared context
+- Create governance and scheduling policies
 
 ### Step 6: Create Weekly Report Issue
 
@@ -98,10 +103,14 @@ Use this format:
 
 | Level | Coverage | Files |
 |-------|----------|-------|
-| Level 1: Basic | XX% | N files |
-| Level 2: Comprehensive | XX% | N files |
-| Level 3: Skills & Workflows | XX% | N files |
-| Level 4: Multi-Agent | XX% | N files |
+| Level 1: Zero AI | XX% | N files |
+| Level 2: Basic Instructions | XX% | N files |
+| Level 3: Comprehensive Context | XX% | N files |
+| Level 4: Skills & Automation | XX% | N files |
+| Level 5: Multi-Agent Ready | XX% | N files |
+| Level 6: Fleet Infrastructure | XX% | N files |
+| Level 7: Agent Fleet | XX% | N files |
+| Level 8: Custom Orchestration | XX% | N files |
 
 ### Recent Changes
 

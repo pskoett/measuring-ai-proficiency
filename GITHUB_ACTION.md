@@ -137,13 +137,13 @@ This guides you through:
 
 | Metric | Value |
 |--------|-------|
-| **Overall Level** | Level 2: Comprehensive Context |
+| **Overall Level** | Level 3: Comprehensive Context |
 | **Overall Score** | 45.3/100 |
 | **Files Detected** | 47 context files |
 
 ### This PR's Impact
 
-This PR adds `ARCHITECTURE.md` - great improvement for Level 2 maturity!
+This PR adds `ARCHITECTURE.md` - great improvement for Level 3 maturity!
 
 ### Top Recommendations
 
@@ -164,7 +164,7 @@ This PR adds `ARCHITECTURE.md` - great improvement for Level 2 maturity!
 
 | Metric | This Week | Last Week | Change |
 |--------|-----------|-----------|--------|
-| **Level** | 2 | 1 | +1 |
+| **Level** | 3 | 2 | +1 |
 | **Score** | 45.3 | 32.1 | +13.2 |
 | **Total Files** | 47 | 38 | +9 |
 
@@ -199,8 +199,8 @@ Add a check step to fail PRs below a threshold:
 - name: Check minimum level
   run: |
     LEVEL=$(jq '.overall_level' proficiency-report.json)
-    if [ "$LEVEL" -lt 1 ]; then
-      echo "Repository must be at least Level 1"
+    if [ "$LEVEL" -lt 2 ]; then
+      echo "Repository must be at least Level 2 (Basic Instructions)"
       exit 1
     fi
 ```

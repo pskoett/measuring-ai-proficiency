@@ -58,7 +58,7 @@ measure-ai-proficiency --format markdown --output proficiency-report.md
 ### Step 3: Analyze the Results
 
 Read the JSON report and extract:
-- Overall maturity level (0-4)
+- Overall maturity level (1-8)
 - Total files detected at each level
 - Top recommendations for improvement
 
@@ -107,5 +107,5 @@ Post a comment on the PR with the following structure:
 - Be constructive and encouraging, not critical
 - Highlight any positive changes in the PR
 - Keep recommendations actionable and specific
-- If the repo is already at Level 3+, congratulate them and suggest advanced improvements
-- If at Level 0, be encouraging about starting the journey
+- If the repo is already at Level 4+, congratulate them and suggest advanced improvements
+- If at Level 1, be encouraging about starting the journey
