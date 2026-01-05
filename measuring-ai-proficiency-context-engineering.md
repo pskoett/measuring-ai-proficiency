@@ -422,6 +422,52 @@ Skills represent Level 3 maturity in the context engineering model. By adding th
 
 The skill itself is an example of context engineering. It teaches AI how to help you get better at AI collaboration.
 
+## Automating Assessment with GitHub Actions
+
+For teams that want to track AI proficiency continuously, I have created GitHub Action workflows that integrate with your CI/CD pipeline.
+
+### What the GitHub Action Does
+
+The action provides two workflows:
+
+1. **PR Assessment**: Automatically comments on pull requests with the repository's current proficiency level, highlights any context engineering files being added, and provides recommendations.
+
+2. **Weekly Reports**: Creates a GitHub issue every Monday tracking progress over time, comparing to previous weeks, and suggesting next improvements.
+
+### Two Implementation Options
+
+**Option 1: GitHub Agentic Workflows**
+
+Uses [GitHub's Agentic Workflows](https://githubnext.com/projects/agentic-workflows/), a natural language approach powered by GitHub Copilot:
+
+```bash
+gh extension install githubnext/gh-aw
+gh aw add pskoett/measuring-ai-proficiency/.github/workflows/ai-proficiency-pr-review --create-pull-request
+gh aw add pskoett/measuring-ai-proficiency/.github/workflows/ai-proficiency-weekly-report --create-pull-request
+```
+
+**Option 2: Claude Code Action**
+
+For teams using the Anthropic API, the [Claude Code Action](https://github.com/anthropics/claude-code-action) provides deeper AI-powered analysis:
+
+```bash
+# In Claude Code terminal
+/install-github-app
+```
+
+Then add the workflow file from the repository.
+
+### Why Automate This
+
+Automation serves several purposes:
+
+1. **Visibility**: Every PR shows the team's context engineering status
+2. **Accountability**: Weekly reports create natural checkpoints
+3. **Gamification**: Watching the level increase motivates continued improvement
+4. **Onboarding**: New team members immediately see what context files exist and what to add
+
+The goal is not to gate PRs on proficiency level. The goal is to make the invisible visible. When everyone can see the current state and the path forward, improvement happens naturally.
+
 ## What This Metric Reveals
 
 A team with context engineering artifacts in most of their repositories has made a deliberate investment in AI collaboration. They are not just using AI tools. They are integrating AI into how they work.

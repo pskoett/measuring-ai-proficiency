@@ -1,0 +1,97 @@
+# AI Proficiency Assessment with Claude Code Action
+# Alternative to GitHub Agentic Workflows for Anthropic API users
+#
+# Setup:
+# 1. Run `/install-github-app` in Claude Code, OR
+# 2. Install https://github.com/apps/claude and add ANTHROPIC_API_KEY secret
+#
+# Usage:
+# - Automatically runs on PR open
+# - Comment `/assess-proficiency` on any PR or issue
+# - Comment `@claude assess the AI proficiency of this repo`
+
+name: AI Proficiency Assessment (Claude)
+
+on:
+  pull_request:
+    types: [opened, synchronize]
+  issue_comment:
+    types: [created]
+  workflow_dispatch:
+    inputs:
+      create_issue:
+        description: 'Create an issue with the report'
+        type: boolean
+        default: true
+
+permissions:
+  contents: read
+  pull-requests: write
+  issues: write
+
+jobs:
+  assess-proficiency:
+    # Only run on PR events, workflow dispatch, or /assess-proficiency comments
+    if: |
+      github.event_name == 'pull_request' ||
+      github.event_name == 'workflow_dispatch' ||
+      (github.event_name == 'issue_comment' && contains(github.event.comment.body, '/assess-proficiency'))
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install measure-ai-proficiency
+        run: pip install measure-ai-proficiency
+
+      - name: Run proficiency assessment
+        id: assess
+        run: |
+          # Generate reports
+          measure-ai-proficiency -v --format json --output proficiency-report.json
+          measure-ai-proficiency --format markdown --output proficiency-report.md
+
+          # Extract key metrics for the action output
+          echo "report<<EOF" >> $GITHUB_OUTPUT
+          cat proficiency-report.md >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+
+      - name: Claude Code Assessment
+        uses: anthropics/claude-code-action@v1
+        with:
+          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          prompt: |
+            You are assessing this repository's AI coding proficiency and context engineering maturity.
+
+            I've already run the measure-ai-proficiency tool. Here are the results:
+
+            ${{ steps.assess.outputs.report }}
+
+            Please analyze these results and provide:
+
+            1. **Summary**: A brief, encouraging summary of the current state
+            2. **Strengths**: What context engineering artifacts already exist
+            3. **Quick Wins**: 2-3 immediate actions that would improve the score
+            4. **Strategic Recommendations**: Longer-term improvements for reaching the next level
+
+            If this is a PR, also check what files are being changed and note any context engineering improvements being made.
+
+            Format your response as a clear, actionable GitHub comment. Be encouraging and constructive.
+            End with a link to https://github.com/pskoett/measuring-ai-proficiency for more information.
+
+      - name: Upload reports as artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: proficiency-reports
+          path: |
+            proficiency-report.json
+            proficiency-report.md
+          retention-days: 90

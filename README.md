@@ -94,6 +94,42 @@ Then ask Claude: "Assess my repository's AI proficiency" or "Help me improve my 
 
 The skill will automatically scan your repo, explain your maturity level, and offer to create missing context files. See [skill-template/](skill-template/) for the full skill content.
 
+## GitHub Action
+
+Automatically assess AI proficiency on every PR and track progress over time.
+
+### Quick Setup with GitHub Agentic Workflows
+
+```bash
+# Install the CLI extension
+gh extension install githubnext/gh-aw
+
+# Add the PR review workflow
+gh aw add pskoett/measuring-ai-proficiency/.github/workflows/ai-proficiency-pr-review --create-pull-request
+
+# Add the weekly report workflow
+gh aw add pskoett/measuring-ai-proficiency/.github/workflows/ai-proficiency-weekly-report --create-pull-request
+```
+
+### Alternative: Claude Code Action
+
+For Anthropic API users:
+
+```bash
+# In Claude Code terminal
+/install-github-app
+```
+
+Then copy `.github/workflows/ai-proficiency-claude.yml` to your repository.
+
+### What You Get
+
+- **PR Comments**: Automatic proficiency assessment on every PR
+- **Weekly Reports**: GitHub issue tracking progress over time
+- **Manual Trigger**: Comment `/assess-proficiency` on any PR or issue
+
+📖 **[Full GitHub Action documentation](GITHUB_ACTION.md)** with setup instructions, customization options, and troubleshooting.
+
 ## Usage
 
 ### Scan Current Directory
