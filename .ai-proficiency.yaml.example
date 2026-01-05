@@ -1,0 +1,52 @@
+# Example .ai-proficiency.yaml configuration
+#
+# Copy this file to .ai-proficiency.yaml and customize for your team.
+# All fields are optional - the tool will auto-detect what it can.
+
+# Specify which AI tools your team uses
+# Options: claude-code, github-copilot, cursor, openai-codex
+# If not specified, tools are auto-detected from existing files
+tools:
+  - claude-code
+  - github-copilot
+
+# Custom file locations (map standard patterns to your team's conventions)
+# Use this if your team uses different file names than the defaults
+documentation:
+  architecture: "docs/SYSTEM_DESIGN.md"     # Default: ARCHITECTURE.md
+  conventions: "CODING_STANDARDS.md"         # Default: CONVENTIONS.md
+  api: "docs/api/README.md"                  # Default: API.md
+  testing: "docs/TESTING_GUIDE.md"           # Default: TESTING.md
+
+# Adjust level thresholds (percentage coverage needed to advance)
+# Lower values = easier to advance to higher levels
+# Default thresholds shown below
+thresholds:
+  level_3: 15   # Comprehensive Context (default: 15)
+  level_4: 12   # Skills & Automation (default: 12)
+  level_5: 10   # Multi-Agent Ready (default: 10)
+  level_6: 8    # Fleet Infrastructure (default: 8)
+  level_7: 6    # Agent Fleet (default: 6)
+  level_8: 5    # Custom Orchestration (default: 5)
+
+# Skip certain recommendation types
+# Use this to hide recommendations that aren't relevant to your team
+skip_recommendations:
+  # - hooks           # Don't recommend Claude hooks
+  # - commands        # Don't recommend Claude commands
+  # - skills          # Don't recommend skills setup
+  # - memory          # Don't recommend memory files
+  # - agents          # Don't recommend agent setup
+  # - mcp             # Don't recommend MCP servers
+  # - beads           # Don't recommend Beads memory
+  # - gastown         # Don't recommend Gas Town orchestration
+  # - documentation   # Don't recommend documentation files
+
+# Focus areas - only show recommendations for specific topics
+# If specified, only these recommendation types will be shown
+# Omit this section to show all recommendations
+# focus_areas:
+#   - documentation
+#   - skills
+#   - testing
+#   - architecture

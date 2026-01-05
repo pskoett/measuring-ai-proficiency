@@ -56,6 +56,66 @@ Supports all major AI coding tools and scans **all directories** for context eng
 
 **Smart Scanning**: Automatically excludes `node_modules/`, `venv/`, `dist/`, `build/`, and other dependency folders.
 
+## Auto-Detection & Configuration
+
+### Auto-Detection
+
+The tool automatically detects which AI tools you're using based on files in your repository:
+
+```
+============================================================
+ AI Proficiency Report: my-project
+============================================================
+
+  Overall Level: Level 2: Basic Instructions
+  Overall Score: 45.3/100
+  AI Tools: Claude Code, Github Copilot    ← Auto-detected!
+```
+
+Recommendations are tailored to your detected tools. If you use Claude Code, you'll get Claude-specific recommendations. If you use GitHub Copilot, you'll get Copilot-specific recommendations.
+
+### Custom Configuration
+
+Create a `.ai-proficiency.yaml` file in your repository root to customize behavior:
+
+```yaml
+# .ai-proficiency.yaml
+
+# Specify which AI tools your team uses (auto-detected if not specified)
+tools:
+  - claude-code
+  - github-copilot
+
+# Custom file locations (map standard names to your team's conventions)
+documentation:
+  architecture: "docs/SYSTEM_DESIGN.md"
+  conventions: "CODING_STANDARDS.md"
+  api: "docs/api/README.md"
+
+# Adjust level thresholds (lower = easier to advance)
+thresholds:
+  level_3: 10   # Default: 15
+  level_4: 8    # Default: 12
+  level_5: 6    # Default: 10
+
+# Skip certain recommendation types
+skip_recommendations:
+  - hooks           # Don't recommend hooks
+  - gastown         # Don't recommend Gas Town
+
+# Only show recommendations for specific areas
+focus_areas:
+  - documentation
+  - skills
+  - testing
+```
+
+When a config file is present, you'll see:
+
+```
+  Config: .ai-proficiency.yaml loaded
+```
+
 ## Scanning Coverage
 
 The tool comprehensively scans for .md files in:

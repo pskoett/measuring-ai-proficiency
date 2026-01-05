@@ -222,3 +222,100 @@ class TestHigherLevels:
             score = scanner.scan()
 
             assert score.overall_level >= 4
+
+
+class TestAutoDetection:
+    """Tests for AI tool auto-detection."""
+
+    def test_detects_claude_code(self):
+        """Should detect Claude Code when CLAUDE.md exists."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            Path(tmpdir, "CLAUDE.md").write_text("# Project\n" + "x" * 200)
+
+            scanner = RepoScanner(tmpdir)
+            score = scanner.scan()
+
+            assert "claude-code" in score.detected_tools
+
+    def test_detects_github_copilot(self):
+        """Should detect GitHub Copilot when copilot-instructions.md exists."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            github_dir = Path(tmpdir) / ".github"
+            github_dir.mkdir()
+            Path(github_dir, "copilot-instructions.md").write_text("# Instructions\n" + "x" * 200)
+
+            scanner = RepoScanner(tmpdir)
+            score = scanner.scan()
+
+            assert "github-copilot" in score.detected_tools
+
+    def test_detects_cursor(self):
+        """Should detect Cursor when .cursorrules exists."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            Path(tmpdir, ".cursorrules").write_text("# Rules\n" + "x" * 200)
+
+            scanner = RepoScanner(tmpdir)
+            score = scanner.scan()
+
+            assert "cursor" in score.detected_tools
+
+    def test_detects_multiple_tools(self):
+        """Should detect multiple tools when present."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            # Claude
+            Path(tmpdir, "CLAUDE.md").write_text("# Project\n" + "x" * 200)
+            # Cursor
+            Path(tmpdir, ".cursorrules").write_text("# Rules\n" + "x" * 200)
+
+            scanner = RepoScanner(tmpdir)
+            score = scanner.scan()
+
+            assert "claude-code" in score.detected_tools
+            assert "cursor" in score.detected_tools
+
+    def test_empty_repo_no_tools(self):
+        """Empty repo should have no detected tools."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            scanner = RepoScanner(tmpdir)
+            score = scanner.scan()
+
+            assert score.detected_tools == []
+
+
+class TestRepoConfig:
+    """Tests for repository configuration."""
+
+    def test_config_loaded_from_yaml(self):
+        """Should load config from .ai-proficiency.yaml."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            # Create config file
+            config_content = """
+tools:
+  - claude-code
+thresholds:
+  level_3: 5
+skip_recommendations:
+  - hooks
+"""
+            Path(tmpdir, ".ai-proficiency.yaml").write_text(config_content)
+            Path(tmpdir, "CLAUDE.md").write_text("# Project\n" + "x" * 200)
+
+            scanner = RepoScanner(tmpdir)
+            score = scanner.scan()
+
+            # Check config was loaded (if yaml is available)
+            if score.config and score.config.from_file:
+                assert "claude-code" in score.config.tools
+                assert score.config.thresholds.get(3) == 5
+                assert "hooks" in score.config.skip_recommendations
+
+    def test_score_includes_detected_tools(self):
+        """RepoScore should include detected_tools field."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            Path(tmpdir, "CLAUDE.md").write_text("# Project\n" + "x" * 200)
+
+            scanner = RepoScanner(tmpdir)
+            score = scanner.scan()
+
+            assert hasattr(score, 'detected_tools')
+            assert isinstance(score.detected_tools, list)

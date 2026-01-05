@@ -108,6 +108,16 @@ class TerminalReporter:
             f"  Overall Score: {_color(f'{score.overall_score:.1f}/100', Colors.BOLD)}",
             file=output,
         )
+
+        # Show detected tools
+        if score.detected_tools:
+            tool_names = ", ".join(t.replace("-", " ").title() for t in score.detected_tools)
+            print(f"  AI Tools: {_color(tool_names, Colors.CYAN)}", file=output)
+
+            # Show if config was loaded
+            if score.config and score.config.from_file:
+                print(f"  Config: {_color('.ai-proficiency.yaml loaded', Colors.DIM)}", file=output)
+
         print(file=output)
 
         # Level breakdown
@@ -221,12 +231,14 @@ class JsonReporter:
     def _score_to_dict(self, score: RepoScore) -> dict:
         """Convert a RepoScore to a JSON-serializable dict."""
 
-        return {
+        result = {
             "repo_path": score.repo_path,
             "repo_name": score.repo_name,
             "scan_time": score.scan_time.isoformat(),
             "overall_level": score.overall_level,
             "overall_score": round(score.overall_score, 2),
+            "detected_tools": score.detected_tools,
+            "config_loaded": score.config.from_file if score.config else False,
             "level_scores": {
                 str(level): {
                     "name": ls.name,
@@ -248,6 +260,12 @@ class JsonReporter:
             },
             "recommendations": score.recommendations,
         }
+
+        # Add custom thresholds if config loaded
+        if score.config and score.config.thresholds:
+            result["custom_thresholds"] = score.config.thresholds
+
+        return result
 
     def report_single(self, score: RepoScore, output: TextIO = sys.stdout) -> None:
         """Report a single repository score as JSON."""
@@ -292,6 +310,14 @@ class MarkdownReporter:
         level_name = score.level_scores[score.overall_level].name
         print(f"- **Overall Level:** {level_name}", file=output)
         print(f"- **Overall Score:** {score.overall_score:.1f}/100", file=output)
+
+        # Show detected tools
+        if score.detected_tools:
+            tool_names = ", ".join(t.replace("-", " ").title() for t in score.detected_tools)
+            print(f"- **AI Tools Detected:** {tool_names}", file=output)
+            if score.config and score.config.from_file:
+                print(f"- **Config:** `.ai-proficiency.yaml` loaded", file=output)
+
         print(file=output)
 
         print("## Level Breakdown", file=output)

@@ -10,9 +10,14 @@ Focused on the big four AI coding tools:
 - GitHub Copilot
 - Cursor
 - OpenAI Codex CLI
+
+Supports:
+- Auto-detection of AI tools in use
+- Custom configuration via .ai-proficiency.yaml
+- Tool-specific recommendations
 """
 
-__version__ = "0.1.0"
+__version__ = "0.2.0"
 __author__ = "Peter Skoett"
 
 from .scanner import RepoScanner, RepoScore, scan_multiple_repos, scan_github_org
@@ -24,6 +29,13 @@ from .reporter import (
     get_reporter,
 )
 from .config import LEVELS, LevelConfig
+from .repo_config import (
+    RepoConfig,
+    load_repo_config,
+    detect_ai_tools,
+    TOOL_DETECTION,
+    TOOL_RECOMMENDATIONS,
+)
 
 __all__ = [
     "RepoScanner",
@@ -37,4 +49,9 @@ __all__ = [
     "get_reporter",
     "LEVELS",
     "LevelConfig",
+    "RepoConfig",
+    "load_repo_config",
+    "detect_ai_tools",
+    "TOOL_DETECTION",
+    "TOOL_RECOMMENDATIONS",
 ]

@@ -11,7 +11,39 @@ The default configuration includes hundreds of common patterns, but every organi
 - **Custom conventions**: Your own standards for organizing context engineering files
 - **Domain-specific patterns**: Finance, healthcare, or other industry-specific documentation
 
-## Quick Start
+## Quick Start: Config File (Recommended)
+
+The easiest way to customize is with a `.ai-proficiency.yaml` file in your repo:
+
+```yaml
+# .ai-proficiency.yaml
+
+# Specify your AI tools (or let them auto-detect)
+tools:
+  - claude-code
+  - github-copilot
+
+# Lower thresholds if defaults are too strict
+thresholds:
+  level_3: 10   # Default: 15
+  level_4: 8    # Default: 12
+
+# Skip recommendations that don't apply to your team
+skip_recommendations:
+  - hooks        # Not using Claude hooks
+  - gastown      # Not ready for Gas Town
+
+# Focus on specific areas
+focus_areas:
+  - documentation
+  - testing
+```
+
+See `.ai-proficiency.yaml.example` in this repo for a full example.
+
+## Alternative: Edit Source Code
+
+For deeper customization, modify the Python source:
 
 1. **Run the tool first** to see what it detects:
    ```bash
