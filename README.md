@@ -2,6 +2,20 @@
 
 A CLI tool for measuring AI coding proficiency based on context engineering artifacts.
 
+## ⚠️ Important: Customize for Your Organization
+
+**This tool provides a baseline assessment** but works best when customized to your team's conventions. Different organizations use different file names, structures, and patterns for context engineering.
+
+**What to do:**
+1. Run the tool to see what it detects
+2. Review the patterns in `measure_ai_proficiency/config.py`
+3. Add your team's specific file names and patterns
+4. Adjust thresholds if needed for your organization
+
+📖 **[Read the full customization guide](CUSTOMIZATION.md)** for detailed examples and instructions.
+
+**Example:** If your team uses `SYSTEM_DESIGN.md` instead of `ARCHITECTURE.md`, or stores documentation in `/documentation` instead of `/docs`, you'll need to add those patterns. The tool is designed to be extended, not prescriptive.
+
 ## The Problem
 
 91% of developers use AI tools. But adoption ≠ proficiency. Some developers save 4+ hours a week with AI. Others get slower with the same tools.
@@ -26,12 +40,30 @@ This tool scans repositories for context engineering artifacts and calculates a 
 
 ## Supported Tools
 
-Focused on the big four AI coding tools:
+Supports all major AI coding tools and scans **all directories** for context engineering artifacts:
 
-- **Claude Code**: `CLAUDE.md`, `AGENTS.md`, `.claude/hooks/`, `.claude/commands/`
-- **GitHub Copilot**: `.github/copilot-instructions.md`, `.github/instructions/`, `.github/agents/`
-- **Cursor**: `.cursorrules`, `.cursor/rules/`
-- **OpenAI Codex CLI**: `AGENTS.md`
+- **Claude Code**: `CLAUDE.md`, `AGENTS.md`, `.claude/agents/`, `.claude/skills/`, `.claude/hooks/`, `.claude/commands/`
+- **GitHub Copilot**: `.github/copilot-instructions.md`, `.github/AGENTS.md`, `.github/instructions/`, `.github/agents/`, `.github/*.md`
+- **Cursor**: `.cursorrules`, `.cursor/rules/`, `.cursor/*.md`
+- **VSCode AI**: `.vscode/*.md`
+- **OpenAI Codex CLI**: `.codex/*.md`, `AGENTS.md`
+- **Documentation**: `docs/`, `*/docs/` (recursively scans all subdirectories)
+
+**Smart Scanning**: Automatically excludes `node_modules/`, `venv/`, `dist/`, `build/`, and other dependency folders.
+
+## Scanning Coverage
+
+The tool comprehensively scans for .md files in:
+
+- **AI Tool Directories**: `.github/`, `.claude/`, `.cursor/`, `.vscode/`, `.codex/`
+- **Documentation**: `docs/`, `backend/docs/`, and any `*/docs/` subdirectories
+- **Root Files**: `CLAUDE.md`, `AGENTS.md`, `ARCHITECTURE.md`, `CONTRIBUTING.md`, etc.
+- **Skills & Workflows**: `.claude/skills/`, `scripts/`, `Makefile`, hooks, commands
+- **Custom Locations**: Detects files wherever you place them in your repository
+
+**Exclusions**: Automatically skips `node_modules/`, `venv/`, `.venv/`, `env/`, `dist/`, `build/`, `__pycache__/`, `.git/`, `vendor/`, `target/`, `coverage/`, and other common dependency/build directories.
+
+📖 **See Also**: [AGENT_REFERENCES.md](AGENT_REFERENCES.md) for best practices on agent document references and [CUSTOMIZATION.md](CUSTOMIZATION.md) for customization guidance.
 
 ## Installation
 
@@ -44,6 +76,23 @@ git clone https://github.com/pskoett/measuring-ai-proficiency
 cd measuring-ai-proficiency
 pip install -e .
 ```
+
+## Agent Skill
+
+Want AI to help improve your context engineering automatically? Add the skill to your repository:
+
+```bash
+# Create the skills directory
+mkdir -p .claude/skills/measure-ai-proficiency
+
+# Download the skill
+curl -o .claude/skills/measure-ai-proficiency/SKILL.md \
+  https://raw.githubusercontent.com/pskoett/measuring-ai-proficiency/main/skill-template/measure-ai-proficiency/SKILL.md
+```
+
+Then ask Claude: "Assess my repository's AI proficiency" or "Help me improve my context engineering"
+
+The skill will automatically scan your repo, explain your maturity level, and offer to create missing context files. See [skill-template/](skill-template/) for the full skill content.
 
 ## Usage
 
@@ -175,38 +224,52 @@ measure-ai-proficiency --org /path/to/org --min-level 2
 | Tool | Files |
 |------|-------|
 | Claude Code | `CLAUDE.md`, `AGENTS.md` |
-| GitHub Copilot | `.github/copilot-instructions.md` |
-| Cursor | `.cursorrules` |
+| GitHub Copilot | `.github/copilot-instructions.md`, `.github/AGENTS.md`, `.github/*.md` |
+| Cursor | `.cursorrules`, `.cursor/*.md` |
+| VSCode AI | `.vscode/*.md` |
+| Codex CLI | `.codex/*.md` |
 | General | `README.md` |
 
 ### Level 2: Comprehensive Context
 
 | Category | Files |
 |----------|-------|
-| Agent Instructions | `.github/instructions/*.instructions.md`, `.cursor/rules/` |
-| Architecture | `ARCHITECTURE.md`, `docs/architecture/`, `docs/adr/` |
-| Specifications | `spec.md`, `DESIGN.md`, `API.md`, `DATA_MODEL.md` |
-| Conventions | `CONVENTIONS.md`, `STYLE.md`, `PATTERNS.md`, `ANTI_PATTERNS.md` |
-| Development | `TESTING.md`, `DEBUGGING.md`, `DEPLOYMENT.md` |
+| AI Instructions | `.github/instructions/*.md`, `.cursor/rules/*.md`, `.vscode/*.md`, `.codex/*.md` |
+| Architecture | `ARCHITECTURE.md`, `docs/ARCHITECTURE.md`, `docs/architecture/*.md`, `DESIGN.md`, `TECHNICAL_OVERVIEW.md` |
+| API & Data | `API.md`, `docs/API.md`, `docs/api/*.md`, `DATA_MODEL.md`, `DOMAIN.md` |
+| Standards | `CONVENTIONS.md`, `STYLE.md`, `CONTRIBUTING.md`, `PATTERNS.md`, `CODE_REVIEW.md`, **`PR_REVIEW.md`** ⭐ |
+| Development | `DEVELOPMENT.md`, `TESTING.md`, `docs/TESTING.md`, `DEBUGGING.md`, `DEPLOYMENT.md`, `docs/DEPLOYMENT.md` |
+| Documentation | `docs/*.md`, `*/docs/*.md` (scans all documentation directories) |
+
+**⭐ PR_REVIEW.md is critical** - This file should define your PR review process, criteria, checklist, and standards. AI tools use this to provide contextual code review feedback.
 
 ### Level 3: Skills, Memory & Workflows
 
 | Category | Files |
 |----------|-------|
-| Skills | `SKILL.md`, `skills/`, `CAPABILITIES.md` |
-| Workflows | `WORKFLOWS.md`, `.claude/commands/`, `COMMANDS.md` |
+| Skills | `SKILL.md`, `skills/`, `.claude/skills/*/SKILL.md`, `CAPABILITIES.md` |
+| Agents | `.claude/agents/*.md`, `.github/agents/*.md`, `agents/*.md`, `agents/references.md` |
+| Workflows | `WORKFLOWS.md`, `.claude/commands/`, `COMMANDS.md`, `scripts/` |
 | Memory | `MEMORY.md`, `LEARNINGS.md`, `DECISIONS.md`, `.memory/` |
 | Hooks | `.claude/hooks/`, `.claude/settings.json` |
-| MCP | `mcp.json`, `.mcp/`, `mcp-config.json` |
+| MCP | `mcp.json`, `.mcp/*.json`, `mcp-config.json` |
+
+**💡 Agent Reference Pattern**: Agents should reference other documentation (ARCHITECTURE.md, CONVENTIONS.md, PR_REVIEW.md) in their instruction files. Create `agents/references.md` or `.claude/agents/references.md` listing all docs agents should consult.
 
 ### Level 4: Multi-Agent Orchestration
 
 | Category | Files |
 |----------|-------|
-| Agents | `.github/agents/*.agent.md`, `agents/HANDOFFS.md` |
+| Agents | `.github/agents/*.agent.md`, `agents/HANDOFFS.md`, `agents/ORCHESTRATION.md`, `agents/REFERENCES.md` |
+| PR Review Agents | `.github/agents/reviewer.agent.md`, `.github/agents/pr-reviewer.agent.md`, `.github/agents/code-reviewer.agent.md` |
 | Orchestration | `orchestration.yaml`, `workflows/*.yaml` |
 | Shared Context | `SHARED_CONTEXT.md`, `packages/*/CLAUDE.md` |
 | Memory Systems | `.beads/`, `memory/global/`, `.agent_state/` |
+
+**🔗 Document References in Agents**: For effective multi-agent systems, each agent file should explicitly reference the documentation it needs. For example:
+- PR reviewer agents → reference `PR_REVIEW.md`, `CONVENTIONS.md`, `PATTERNS.md`
+- Architecture agents → reference `ARCHITECTURE.md`, `DESIGN.md`, `API.md`
+- Test agents → reference `TESTING.md`, `CONVENTIONS.md`
 
 ## Scoring Algorithm
 
@@ -219,6 +282,65 @@ measure-ai-proficiency --org /path/to/org --min-level 2
    - Level 3: Level 2 + >15% coverage of Level 3 patterns
    - Level 4: Level 3 + >10% coverage of Level 4 patterns
 5. **Overall Score**: Weighted combination of coverage and substantiveness
+
+### Understanding Your Score
+
+⚠️ **Low score but lots of files detected?** This is normal! The tool includes hundreds of possible patterns for comprehensive scanning. Your team likely uses different file names and organization structures.
+
+**How to interpret:**
+- **File count matters more than percentage**: If you see 50+ documentation files detected, you have good context engineering regardless of the percentage
+- **Focus on what you have**: Look at the actual files detected in verbose mode (`-v`) to see your context engineering artifacts
+- **Customize the patterns**: Add your team's specific file names to `config.py` to get more accurate scores
+- **The maturity model is a guide**: Level 1 with 100+ files is better than Level 3 with 5 files
+
+## Customizing for Your Organization
+
+The tool is designed to be extended with your team's conventions. Edit `measure_ai_proficiency/config.py` to:
+
+### Add Your File Patterns
+
+```python
+# In LEVEL_2_PATTERNS, add your team's documentation files:
+file_patterns=[
+    # Your custom patterns
+    "SYSTEM_DESIGN.md",           # Instead of ARCHITECTURE.md
+    "documentation/*.md",          # Instead of docs/
+    "eng-docs/*.md",               # Your custom doc folder
+    "CODING_STANDARDS.md",         # Instead of CONVENTIONS.md
+    # ... existing patterns
+]
+```
+
+### Adjust Thresholds
+
+If your scoring seems too strict or too lenient, edit `scanner.py`:
+
+```python
+# Change coverage thresholds in _calculate_overall_level()
+level_2 = level_scores.get(2)
+if level_2 and level_2.coverage_percent >= 10:  # Changed from 20
+    current_level = 2
+```
+
+### Add Custom Directories
+
+```python
+directory_patterns=[
+    "your-custom-dir",
+    "team-docs",
+    # ... existing patterns
+]
+```
+
+### Example: Finance Team Configuration
+
+```python
+# Add fintech-specific patterns
+"COMPLIANCE.md",
+"SECURITY_STANDARDS.md",
+"regulatory/",
+"audit-docs/",
+```
 
 ## Use Cases
 

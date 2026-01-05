@@ -372,6 +372,56 @@ Example customization for a team using Aider and their own conventions:
 
 Run your customized version quarterly. Track the trend. That is the metric that matters.
 
+## An Agent Skill for Continuous Improvement
+
+Beyond the CLI tool, I have created an agent skill that you can add to any repository. This skill lets AI coding assistants assess and improve context engineering directly within your workflow.
+
+### What the Skill Does
+
+When you add this skill to your repository, Claude Code (and other skill-aware AI tools) can:
+
+1. **Automatically assess** your repository's context engineering maturity when you ask about AI readiness
+2. **Provide actionable recommendations** for what files to add next
+3. **Create starter content** for missing context files
+4. **Explain the maturity model** and what each level means for your workflow
+
+### Installing the Skill
+
+Copy the skill to your repository:
+
+```bash
+# Create the skills directory
+mkdir -p .claude/skills/measure-ai-proficiency
+
+# Copy the skill file (or create it manually)
+curl -o .claude/skills/measure-ai-proficiency/SKILL.md \
+  https://raw.githubusercontent.com/pskoett/measuring-ai-proficiency/main/skill-template/measure-ai-proficiency/SKILL.md
+```
+
+Or manually create `.claude/skills/measure-ai-proficiency/SKILL.md` with the content from the [skill-template](https://github.com/pskoett/measuring-ai-proficiency/tree/main/skill-template/measure-ai-proficiency) directory.
+
+### Using the Skill
+
+Once installed, simply ask Claude:
+
+- "Assess my repository's AI proficiency"
+- "How can I improve my context engineering?"
+- "What level is my AI maturity?"
+- "Help me create better context for AI coding"
+
+Claude will automatically use the skill to scan your repository, explain your current level, and offer to create any missing context files.
+
+### Why a Skill Matters
+
+Skills represent Level 3 maturity in the context engineering model. By adding this skill to your repository, you are:
+
+1. **Practicing what you measure**: Using skills to improve your use of skills
+2. **Making improvement automatic**: The AI can proactively suggest improvements
+3. **Building team awareness**: Everyone with access to the repo can assess and improve context engineering
+4. **Creating a feedback loop**: Regular assessment leads to continuous improvement
+
+The skill itself is an example of context engineering. It teaches AI how to help you get better at AI collaboration.
+
 ## What This Metric Reveals
 
 A team with context engineering artifacts in most of their repositories has made a deliberate investment in AI collaboration. They are not just using AI tools. They are integrating AI into how they work.

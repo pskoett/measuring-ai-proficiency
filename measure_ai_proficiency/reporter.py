@@ -127,6 +127,16 @@ class TerminalReporter:
             for rec in score.recommendations:
                 print(f"    → {rec}", file=output)
             print(file=output)
+        
+        # Add guidance if many files detected but low level
+        total_files = sum(ls.file_count for ls in score.level_scores.values())
+        if total_files > 30 and score.overall_level <= 1:
+            print(_color("  💡 Note:", Colors.BOLD), file=output)
+            print(f"    You have {total_files} documentation files detected but a low level score.", file=output)
+            print(f"    This likely means your team uses different file names/structures.", file=output)
+            print(f"    Consider customizing patterns in config.py for your organization.", file=output)
+            print(f"    Run with -v to see all detected files.", file=output)
+            print(file=output)
 
         print(_color(f"{'='*60}", Colors.DIM), file=output)
         print(file=output)

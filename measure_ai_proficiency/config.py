@@ -30,6 +30,7 @@ LEVEL_1_PATTERNS = LevelConfig(
         "AGENTS.md",
         # GitHub Copilot
         ".github/copilot-instructions.md",
+        ".github/AGENTS.md",
         # Cursor
         ".cursorrules",
         # General
@@ -46,12 +47,20 @@ LEVEL_2_PATTERNS = LevelConfig(
         # Agent instruction files (detailed versions)
         # Copilot scoped instructions
         ".github/instructions/*.instructions.md",
+        ".github/*.md",
         # Cursor rules directory
         ".cursor/rules/*.md",
         ".cursor/rules/*.mdc",
+        ".cursor/*.md",
+        # VSCode AI instructions
+        ".vscode/*.md",
+        # Codex CLI
+        ".codex/*.md",
         
         # Architecture and specification files
         "ARCHITECTURE.md",
+        "docs/ARCHITECTURE.md",
+        "*/docs/ARCHITECTURE.md",
         "docs/architecture/*.md",
         "spec.md",
         "specs/*.md",
@@ -62,10 +71,13 @@ LEVEL_2_PATTERNS = LevelConfig(
         "docs/rfcs/*.md",
         "TECHNICAL_OVERVIEW.md",
         "API.md",
+        "docs/API.md",
+        "*/docs/API.md",
         "docs/api/*.md",
         "DATA_MODEL.md",
         "docs/data/*.md",
         "SECURITY.md",
+        "docs/SECURITY.md",
         "GLOSSARY.md",
         "DOMAIN.md",
         
@@ -76,20 +88,51 @@ LEVEL_2_PATTERNS = LevelConfig(
         "PATTERNS.md",
         "ANTI_PATTERNS.md",
         "CODE_REVIEW.md",
+        "PR_REVIEW.md",
+        "PULL_REQUEST_TEMPLATE.md",
+        ".github/PULL_REQUEST_TEMPLATE.md",
+        ".github/pull_request_template.md",
+        "docs/PR_REVIEW.md",
+        "docs/CODE_REVIEW.md",
         "NAMING.md",
         
         # Development context
         "DEVELOPMENT.md",
+        "docs/DEVELOPMENT.md",
         "SETUP.md",
+        "docs/SETUP.md",
+        "docs/LOCAL_SETUP.md",
+        "*/docs/LOCAL_SETUP.md",
         "TESTING.md",
+        "docs/TESTING.md",
+        "*/docs/TESTING.md",
         "DEBUGGING.md",
         "PERFORMANCE.md",
         "DEPLOYMENT.md",
+        "docs/DEPLOYMENT.md",
+        "*/docs/DEPLOYMENT.md",
         "INFRASTRUCTURE.md",
         "DEPENDENCIES.md",
         "MIGRATION.md",
+        "CHANGELOG.md",
         "docs/runbooks/*.md",
         "docs/guides/*.md",
+        # Catch additional docs files
+        "docs/*.md",
+        "*/docs/*.md",
+        # Catch .md files in common project subdirectories
+        "backend/*.md",
+        "frontend/*.md",
+        "server/*.md",
+        "client/*.md",
+        "api/*.md",
+        "src/*.md",
+        "lib/*.md",
+        "packages/*/*.md",
+        "services/*/*.md",
+        # Catch deeply nested .md files (templates, nested folders, etc.)
+        "*/*/*.md",
+        "*/*/*/*.md",
     ],
     directory_patterns=[
         "docs/architecture",
@@ -114,6 +157,8 @@ LEVEL_3_PATTERNS = LevelConfig(
         "SKILL.md",
         "skills/*.md",
         "skills/*/SKILL.md",
+        ".claude/skills/*/SKILL.md",
+        ".claude/skills/*/*/*.md",
         "CAPABILITIES.md",
         
         # Workflow and automation
@@ -124,6 +169,8 @@ LEVEL_3_PATTERNS = LevelConfig(
         "justfile",
         "scripts/*.sh",
         "scripts/*.py",
+        "scripts/*.md",
+        "scripts/README.md",
         
         # Memory and learning
         "MEMORY.md",
@@ -142,6 +189,14 @@ LEVEL_3_PATTERNS = LevelConfig(
         
         # Agent configuration
         ".github/agents/*.agent.md",
+        ".github/agents/*.md",
+        ".claude/agents/*.md",
+        "agents/*.md",
+        # Agent reference files (agents that link to other docs)
+        ".github/agents/references.md",
+        ".claude/agents/references.md",
+        "agents/references.md",
+        # Context files for agents
         ".context/*.md",
         ".ai/*.md",
         "PROMPTS.md",
@@ -159,11 +214,19 @@ LEVEL_3_PATTERNS = LevelConfig(
         "mcp.json",
         ".mcp/*.json",
         "mcp-config.json",
+        "mcp-server/*.md",
+        # AI context templates
+        "templates/*.md",
+        "*/templates/*.md",
+        "*/templates/*/*.md",
     ],
     directory_patterns=[
         "skills",
         ".claude/commands",
         ".claude/hooks",
+        ".claude/skills",
+        ".claude/agents",
+        "agents",
         ".memory",
         ".context",
         ".ai",
@@ -171,6 +234,7 @@ LEVEL_3_PATTERNS = LevelConfig(
         "personas",
         ".mcp",
         ".github/agents",
+        ".codex",
     ],
     weight=2.0
 )
@@ -182,6 +246,8 @@ LEVEL_4_PATTERNS = LevelConfig(
     file_patterns=[
         # Multi-agent configuration (multiple agent files)
         ".github/agents/reviewer.agent.md",
+        ".github/agents/pr-reviewer.agent.md",
+        ".github/agents/code-reviewer.agent.md",
         ".github/agents/tester.agent.md",
         ".github/agents/documenter.agent.md",
         ".github/agents/security.agent.md",
@@ -191,6 +257,7 @@ LEVEL_4_PATTERNS = LevelConfig(
         ".github/agents/planner.agent.md",
         "agents/HANDOFFS.md",
         "agents/ORCHESTRATION.md",
+        "agents/REFERENCES.md",
         "roles/*.md",
         
         # Tool and integration configs

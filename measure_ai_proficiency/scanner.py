@@ -173,12 +173,25 @@ class RepoScanner:
         """Recursively search for files matching a glob pattern."""
 
         matches: List[str] = []
+        
+        # Directories to exclude from scanning
+        exclude_dirs = {
+            'node_modules', 'venv', '.venv', 'env', '.env',
+            'dist', 'build', '__pycache__', '.git', '.svn',
+            'vendor', 'target', 'out', '.next', '.nuxt',
+            'coverage', '.pytest_cache', '.tox', 'eggs',
+            '.mypy_cache', '.ruff_cache', 'site-packages'
+        }
 
         if not base_dir.exists():
             return matches
 
         try:
             for item in base_dir.rglob("*"):
+                # Skip if any part of the path is in exclude_dirs
+                if any(part in exclude_dirs for part in item.parts):
+                    continue
+                    
                 if item.is_file():
                     relative = item.relative_to(self.repo_path)
                     if fnmatch.fnmatch(str(relative), pattern):
@@ -292,70 +305,222 @@ class RepoScanner:
         """Generate actionable recommendations based on the score."""
 
         recommendations: List[str] = []
+        level_2 = score.level_scores.get(2)
+        level_3 = score.level_scores.get(3)
 
         if score.overall_level == 0:
             recommendations.append(
-                "Start with a CLAUDE.md or .cursorrules file describing your project's "
-                "architecture, conventions, and key abstractions."
+                "🚀 START HERE: Create a CLAUDE.md file in your repository root. "
+                "Describe your project's purpose, architecture, key abstractions, and coding conventions. "
+                "This is the #1 way to improve AI coding assistance."
             )
             recommendations.append(
-                "Add a .github/copilot-instructions.md for GitHub Copilot users."
+                "📝 Add a .github/copilot-instructions.md for GitHub Copilot users. "
+                "Include project-specific patterns, naming conventions, and common pitfalls."
+            )
+            recommendations.append(
+                "🎯 For Cursor users: Create a .cursorrules file with your team's coding standards. "
+                "This helps maintain consistency across AI-assisted coding sessions."
+            )
+            recommendations.append(
+                "💡 Quick win: Ensure your README.md has clear sections on architecture, setup, and testing. "
+                "This provides baseline context for all AI tools."
             )
             return recommendations
 
         if score.overall_level == 1:
-            level_2 = score.level_scores.get(2)
-            if level_2:
-                if not any("ARCHITECTURE" in f.path for f in level_2.matched_files):
+            # Priority recommendations for reaching Level 2
+            missing_critical = []
+            
+            if not any("ARCHITECTURE" in f.path.upper() for f in level_2.matched_files):
+                missing_critical.append("ARCHITECTURE.md")
+            if not any("API" in f.path.upper() for f in level_2.matched_files):
+                missing_critical.append("API.md")
+            if not any(any(term in f.path.upper() for term in ["CONVENTIONS", "STYLE", "STANDARDS"]) 
+                      for f in level_2.matched_files):
+                missing_critical.append("CONVENTIONS.md")
+            if not any("TESTING" in f.path.upper() for f in level_2.matched_files):
+                missing_critical.append("TESTING.md")
+            
+            if missing_critical:
+                recommendations.append(
+                    f"📚 PRIORITY: Add comprehensive documentation - you're missing {', '.join(missing_critical)}. "
+                    f"These files provide essential context for AI tools to understand your codebase deeply."
+                )
+            
+            # Add top 3-5 most impactful recommendations
+            priority_recs = []
+            
+            if not any("ARCHITECTURE" in f.path.upper() for f in level_2.matched_files):
+                priority_recs.append((
+                    "🏗️ Create docs/ARCHITECTURE.md: Document your system design, component relationships, "
+                    "data flow, and key architectural decisions. Include diagrams if possible. "
+                    "This helps AI understand the big picture when making suggestions.", 1
+                ))
+            
+            if not any(any(term in f.path.upper() for term in ["CONVENTIONS", "STYLE", "STANDARDS"]) 
+                      for f in level_2.matched_files):
+                priority_recs.append((
+                    "📏 Create CONVENTIONS.md: Document your team's coding standards, naming conventions, "
+                    "file organization, import patterns, error handling, and testing requirements. "
+                    "This ensures AI-generated code matches your team's style.", 2
+                ))
+            
+            if not any("PATTERNS" in f.path.upper() for f in level_2.matched_files):
+                priority_recs.append((
+                    "🎨 Add PATTERNS.md: Document common design patterns used in your codebase. "
+                    "Include examples of: state management, error handling, API interactions, "
+                    "data transformations, and component composition. AI will follow these patterns.", 3
+                ))
+            
+            if not any("API" in f.path.upper() for f in level_2.matched_files):
+                priority_recs.append((
+                    "🔌 Document your APIs: Create docs/API.md describing endpoints, request/response formats, "
+                    "authentication, rate limiting, and error codes. Helps AI generate correct API calls.", 4
+                ))
+            
+            if not any("TESTING" in f.path.upper() for f in level_2.matched_files):
+                priority_recs.append((
+                    "🧪 Add TESTING.md: Document your testing strategy, how to run tests, "
+                    "coverage requirements, and common testing patterns. AI can then generate proper tests.", 5
+                ))
+            
+            # Sort by priority and add top recommendations
+            priority_recs.sort(key=lambda x: x[1])
+            for rec, _ in priority_recs[:5]:  # Limit to top 5
+                recommendations.append(rec)
+            
+            # Additional helpful docs (lower priority)
+            if len(recommendations) < 7:  # Don't overwhelm with too many
+                if not any("CONTRIBUTING" in f.path.upper() for f in level_2.matched_files):
                     recommendations.append(
-                        "Add an ARCHITECTURE.md documenting your system design."
+                        "👥 Add CONTRIBUTING.md: Define workflow for PRs, commit conventions, "
+                        "code review guidelines, and development setup. Helps AI understand your process."
                     )
-                if not any(
-                    "CONVENTIONS" in f.path or "STYLE" in f.path
-                    for f in level_2.matched_files
-                ):
-                    recommendations.append(
-                        "Add a CONVENTIONS.md or STYLE.md documenting coding standards."
-                    )
-                if not any("PATTERNS" in f.path for f in level_2.matched_files):
-                    recommendations.append(
-                        "Add a PATTERNS.md documenting common patterns in your codebase."
-                    )
+            
+            if len(recommendations) < 8:
+                recommendations.append(
+                    "📂 Organization tip: Consider grouping docs in a /docs folder with subdirectories "
+                    "for architecture, api, guides, and runbooks. Makes context easier to find."
+                )
 
         if score.overall_level == 2:
-            level_3 = score.level_scores.get(3)
-            if level_3:
-                if not any(".claude/hooks" in d for d in level_3.matched_directories):
-                    recommendations.append(
-                        "Add .claude/hooks/ with PostToolUse hooks for auto-formatting."
-                    )
-                if not any(
-                    "MEMORY" in f.path or "LEARNINGS" in f.path
-                    for f in level_3.matched_files
-                ):
-                    recommendations.append(
-                        "Add MEMORY.md or LEARNINGS.md for persistent context."
-                    )
-                if not any(
-                    ".claude/commands" in d for d in level_3.matched_directories
-                ):
-                    recommendations.append(
-                        "Add custom slash commands in .claude/commands/."
-                    )
+            # Recommendations for reaching Level 3
+            recommendations.append(
+                "⚡ LEVEL UP: You have comprehensive documentation. Now add automation and workflows "
+                "to make AI even more productive with skills, hooks, and custom commands."
+            )
+            
+            if not any(".claude/skills" in d for d in level_3.matched_directories):
+                recommendations.append(
+                    "🛠️ Create .claude/skills/: Add custom skills for common tasks. Each skill should have "
+                    "a SKILL.md describing its purpose, inputs, outputs, and usage. Examples: "
+                    "create-component, run-tests, deploy-staging, generate-api-client."
+                )
+            
+            if not any(".claude/agents" in d for d in level_3.matched_directories):
+                recommendations.append(
+                    "🤖 Add .claude/agents/: Create specialized agent personas (e.g., test-expert.md, "
+                    "security-reviewer.md, api-designer.md) with specific expertise and responsibilities. "
+                    "Each agent gets different context and instructions."
+                )
+            
+            if not any(".claude/hooks" in d for d in level_3.matched_directories):
+                recommendations.append(
+                    "🪝 Set up .claude/hooks/: Add PostToolUse hooks for automatic actions like "
+                    "formatting code, running linters, updating tests, or validating against conventions. "
+                    "This ensures AI-generated code is always production-ready."
+                )
+            
+            if not any(".claude/commands" in d for d in level_3.matched_directories):
+                recommendations.append(
+                    "⌨️ Add .claude/commands/: Create custom slash commands for frequent tasks. "
+                    "Examples: /new-feature, /add-test, /refactor-component, /update-docs. "
+                    "Makes complex workflows one-command simple."
+                )
+            
+            if not any(any(term in f.path.upper() for term in ["MEMORY", "LEARNINGS", "DECISIONS"]) 
+                      for f in level_3.matched_files):
+                recommendations.append(
+                    "💾 Add MEMORY.md or LEARNINGS.md: Document lessons learned, past decisions, "
+                    "failed approaches, and architectural evolution. Helps AI avoid repeating mistakes "
+                    "and understand historical context."
+                )
+            
+            if not any("WORKFLOW" in f.path.upper() for f in level_3.matched_files):
+                recommendations.append(
+                    "🔄 Create WORKFLOWS.md: Document your team's common development workflows "
+                    "step-by-step (e.g., feature development, bug fixes, deployments). "
+                    "AI can guide through these processes."
+                )
+            
+            # Check for scripts
+            has_scripts = any("scripts/" in f.path for f in level_3.matched_files)
+            if not has_scripts:
+                recommendations.append(
+                    "📜 Add scripts/ directory: Include setup, testing, deployment, and maintenance scripts. "
+                    "Document each script in a scripts/README.md so AI knows when and how to use them."
+                )
 
         if score.overall_level == 3:
+            # Recommendations for reaching Level 4
             recommendations.append(
-                "Consider adding specialized agents in .github/agents/ for code review, "
-                "testing, and documentation tasks."
+                "🚀 ADVANCED: You have mature context engineering. Consider multi-agent orchestration "
+                "for complex workflows requiring specialized expertise and collaboration."
             )
+            
             recommendations.append(
-                "Explore orchestration tools like Gas Town for managing multiple agents."
+                "🤝 Create agents/HANDOFFS.md: Document when and how specialized agents should "
+                "hand off work to each other. Define triggers, context passing, and success criteria."
+            )
+            
+            recommendations.append(
+                "🎭 Add .github/agents/: Create specialized agents for code review (reviewer.agent.md), "
+                "testing (tester.agent.md), security analysis (security.agent.md), and documentation "
+                "(documenter.agent.md). Each with specific expertise and evaluation criteria."
+            )
+            
+            recommendations.append(
+                "🧩 Set up agents/ORCHESTRATION.md: Define workflows that require multiple agents "
+                "working together (e.g., feature-development.yaml, incident-response.yaml, "
+                "refactoring-workflow.yaml)."
+            )
+            
+            recommendations.append(
+                "📊 Add SHARED_CONTEXT.md: Document context that all agents should have access to - "
+                "critical system constraints, business rules, compliance requirements, and team values."
+            )
+            
+            recommendations.append(
+                "🔗 Consider MCP (Model Context Protocol) servers: Set up .mcp/servers/ for "
+                "integrations with external tools, databases, APIs, and services that agents need."
+            )
+            
+            recommendations.append(
+                "💡 Explore orchestration tools: Look into Gas Town, LangChain, or custom workflows "
+                "for managing multi-agent collaboration and complex development pipelines."
             )
 
         if score.overall_level == 4:
             recommendations.append(
-                "You're at the frontier! Consider contributing your patterns back to "
-                "the community."
+                "🌟 EXCEPTIONAL: You're at the frontier of AI-assisted development! "
+                "Your context engineering is world-class."
+            )
+            recommendations.append(
+                "🎓 Share your learnings: Write blog posts, create templates, or contribute patterns "
+                "back to the community. Your setup can help others level up their AI proficiency."
+            )
+            recommendations.append(
+                "📈 Track metrics: Monitor AI-assisted productivity gains, code quality improvements, "
+                "and developer satisfaction. Quantify your success to justify investment."
+            )
+            recommendations.append(
+                "🔬 Experiment with cutting edge: Try proposed APIs, new agent frameworks, "
+                "and emerging patterns. You're positioned to shape the future of AI-assisted development."
+            )
+            recommendations.append(
+                "🤝 Mentor others: Help other teams in your organization adopt similar practices. "
+                "Create internal documentation and training on context engineering."
             )
 
         return recommendations
