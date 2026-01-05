@@ -26,7 +26,7 @@ That shift is what proficiency looks like. And the artifacts are measurable evid
 
 Different AI tools use different context files, but they all serve the same purpose: giving AI persistent knowledge about how to work in a specific codebase.
 
-One important note: the context engineering landscape is changing constantly. New files, new conventions, new tools. What I list here reflects early 2025, but this shifts every few months. The specific files matter less than the underlying principle of deliberate context preparation.
+One important note: the context engineering landscape is changing constantly. New files, new conventions, new tools. What I list here reflects late 2025, but this shifts every few months. The specific files matter less than the underlying principle of deliberate context preparation.
 
 **Agent instruction files:**
 - `CLAUDE.md` or `AGENTS.md` for Claude Code
@@ -243,7 +243,6 @@ Multiple agents with different roles and responsibilities. Shared context across
 - `.github/agents/refactorer.agent.md` - refactoring specialist
 - `.github/agents/debugger.agent.md` - debugging specialist
 - `.github/agents/planner.agent.md` - task decomposition and planning agent
-- Organization-level agents in `{org}/.github/agents/` for enterprise-wide use
 - `roles/` folder for role-based configurations
 - Agent communication patterns and handoff protocols in `agents/HANDOFFS.md`
 - `agents/ORCHESTRATION.md` explaining how agents coordinate
@@ -251,12 +250,9 @@ Multiple agents with different roles and responsibilities. Shared context across
 *Tool and integration configurations:*
 - MCP server configurations (`mcp.json`, `.mcp/`, `mcp-config.json`)
 - `.mcp/servers/` for multiple MCP server definitions
-- MCP servers configured in agent profiles (organization-level Copilot agents)
-- `~/.copilot/mcp-config.json` for Copilot CLI MCP servers
 - `.claude/settings.json` with MCP and tool configurations
 - Custom tool definitions in `tools/` folder
 - `tools/TOOLS.md` documenting available custom tools
-- Integration configs for external services (Jira, Linear, Slack, etc.)
 
 *Hooks and quality gates:*
 - `.claude/hooks/` with comprehensive hook scripts
@@ -265,20 +261,14 @@ Multiple agents with different roles and responsibilities. Shared context across
 - `Stop` hooks for end-of-turn quality gates
 - `SessionStart` and `SessionEnd` hooks for context injection
 - `.claude/settings.json`, `.claude/settings.local.json` for hook configuration
-- Team-shared hook libraries
 
-*Shared and cross-repository context:*
-- Shared context repositories that multiple projects reference
-- Cross-repository skill libraries
-- Team-wide `.claude/` or similar folders with shared conventions
-- `.claude/settings.json` for team-level Claude configuration
+*Shared context (within repo):*
 - Monorepo-aware context in `packages/*/CLAUDE.md`
-- `SHARED_CONTEXT.md` documenting what's inherited from shared repos
+- `SHARED_CONTEXT.md` documenting shared context across packages
 
 *Memory and persistence systems:*
 - `.beads/` for Beads memory system
-- Memory federation across repositories
-- `memory/global/` for cross-project learnings
+- `memory/global/` for shared learnings within monorepo
 - `memory/project/` for project-specific context
 - Persistent agent state in `.agent_state/`
 
