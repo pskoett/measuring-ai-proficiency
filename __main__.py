@@ -1,0 +1,156 @@
+#!/usr/bin/env python3
+"""
+CLI entry point for measuring AI proficiency.
+
+Usage:
+    # Scan current directory
+    python -m measure_ai_proficiency
+
+    # Scan specific repository
+    python -m measure_ai_proficiency /path/to/repo
+
+    # Scan multiple repositories
+    python -m measure_ai_proficiency /path/to/repo1 /path/to/repo2
+
+    # Scan all repos in a directory (like a cloned GitHub org)
+    python -m measure_ai_proficiency --org /path/to/org-repos
+
+    # Output formats
+    python -m measure_ai_proficiency --format json
+    python -m measure_ai_proficiency --format markdown
+    python -m measure_ai_proficiency --format csv
+
+    # Save to file
+    python -m measure_ai_proficiency --output report.md --format markdown
+
+    # Verbose mode (show matched files)
+    python -m measure_ai_proficiency -v
+"""
+
+import argparse
+import sys
+from pathlib import Path
+
+from . import __version__
+from .scanner import RepoScanner, scan_multiple_repos, scan_github_org
+from .reporter import get_reporter
+
+
+def main():
+    parser = argparse.ArgumentParser(
+        prog="measure-ai-proficiency",
+        description="Measure AI coding proficiency based on context engineering artifacts.",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog="""
+Examples:
+  %(prog)s                           Scan current directory
+  %(prog)s /path/to/repo             Scan specific repository
+  %(prog)s repo1 repo2 repo3         Scan multiple repositories
+  %(prog)s --org /path/to/org        Scan all repos in directory
+  %(prog)s --format json             Output as JSON
+  %(prog)s --format markdown -o report.md  Save markdown report
+  %(prog)s -v                        Verbose output with file details
+
+Maturity Levels:
+  Level 0: No context engineering (autocomplete only)
+  Level 1: Basic instructions (CLAUDE.md, .cursorrules, etc.)
+  Level 2: Comprehensive context (architecture, conventions, patterns)
+  Level 3: Skills, memory & workflows (hooks, commands, memory files)
+  Level 4: Multi-agent orchestration (specialized agents, orchestration)
+        """,
+    )
+    
+    parser.add_argument(
+        "paths",
+        nargs="*",
+        default=["."],
+        help="Repository path(s) to scan (default: current directory)",
+    )
+    
+    parser.add_argument(
+        "--org",
+        metavar="PATH",
+        help="Scan all repositories in a directory (like a cloned GitHub org)",
+    )
+    
+    parser.add_argument(
+        "-f", "--format",
+        choices=["terminal", "json", "markdown", "csv"],
+        default="terminal",
+        help="Output format (default: terminal)",
+    )
+    
+    parser.add_argument(
+        "-o", "--output",
+        metavar="FILE",
+        help="Output file (default: stdout)",
+    )
+    
+    parser.add_argument(
+        "-v", "--verbose",
+        action="store_true",
+        help="Show detailed file matches",
+    )
+    
+    parser.add_argument(
+        "--version",
+        action="version",
+        version=f"%(prog)s {__version__}",
+    )
+    
+    parser.add_argument(
+        "--min-level",
+        type=int,
+        choices=[0, 1, 2, 3, 4],
+        help="Only show repos at or above this level",
+    )
+    
+    args = parser.parse_args()
+    
+    # Collect repositories to scan
+    if args.org:
+        scores = scan_github_org(args.org, verbose=args.verbose)
+    elif len(args.paths) == 1:
+        # Single repo
+        repo_path = Path(args.paths[0]).resolve()
+        if not repo_path.exists():
+            print(f"Error: Path does not exist: {repo_path}", file=sys.stderr)
+            sys.exit(1)
+        scanner = RepoScanner(str(repo_path), verbose=args.verbose)
+        scores = [scanner.scan()]
+    else:
+        # Multiple repos
+        scores = scan_multiple_repos(args.paths, verbose=args.verbose)
+    
+    # Filter by minimum level if specified
+    if args.min_level is not None:
+        scores = [s for s in scores if s.overall_level >= args.min_level]
+    
+    # Get reporter
+    reporter = get_reporter(args.format, verbose=args.verbose)
+    
+    # Output
+    output = sys.stdout
+    if args.output:
+        output = open(args.output, 'w')
+    
+    try:
+        if len(scores) == 1 and not args.org:
+            reporter.report_single(scores[0], output)
+        else:
+            reporter.report_multiple(scores, output)
+    finally:
+        if args.output:
+            output.close()
+    
+    # Exit code based on results
+    if not scores:
+        sys.exit(1)
+    
+    # Return non-zero if all repos are Level 0
+    if all(s.overall_level == 0 for s in scores):
+        sys.exit(2)
+
+
+if __name__ == "__main__":
+    main()

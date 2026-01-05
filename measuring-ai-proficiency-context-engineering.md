@@ -1,0 +1,382 @@
+# Measuring AI Proficiency: Context Engineering as a Leading Indicator
+
+There is a lot of discussion about AI adoption rates right now. 91% of developers use AI tools according to recent data. But that number tells you very little about whether people are actually proficient at using them.
+
+I have seen developers save 4+ hours a week with AI. I have also seen developers get slower with the same tools. Same access, very different outcomes.
+
+So how do you measure AI proficiency? Not adoption. Actual proficiency.
+
+I want to propose something concrete: measure context engineering. Look at whether teams are creating files like `CLAUDE.md`, `.cursorrules`, `spec.md`, and `SKILL.md`. These artifacts indicate that someone has moved beyond treating AI as fancy autocomplete and started deliberately shaping how AI understands their work.
+
+## What Context Engineering Means
+
+The effectiveness of AI tools depends heavily on the context you provide.
+
+A developer who opens Claude Code or Cursor and starts prompting is working with an AI that knows nothing about their codebase, conventions, or architecture. The AI will generate something plausible but likely does not fit how things are done in that specific project.
+
+A developer who has written a `CLAUDE.md` file explaining the project structure, coding conventions, key abstractions, and common pitfalls is working with an AI that has been taught how to contribute effectively to that specific codebase.
+
+The difference in output quality is significant.
+
+But more importantly, the act of creating that context file reveals something about the developer. They have understood that AI collaboration requires preparation. They have moved from using AI to engineering the context that AI operates in.
+
+That shift is what proficiency looks like. And the artifacts are measurable evidence that it has happened.
+
+## The Files That Signal Proficiency
+
+Different AI tools use different context files, but they all serve the same purpose: giving AI persistent knowledge about how to work in a specific codebase.
+
+One important note: the context engineering landscape is changing constantly. New files, new conventions, new tools. What I list here reflects early 2025, but this shifts every few months. The specific files matter less than the underlying principle of deliberate context preparation.
+
+**Agent instruction files:**
+- `CLAUDE.md` or `AGENTS.md` for Claude Code
+- `.github/copilot-instructions.md` for GitHub Copilot
+- `.github/instructions/*.instructions.md` for scoped Copilot instructions
+- `.github/agents/*.agent.md` for custom Copilot agents
+- `.cursorrules` or `.cursor/rules/` for Cursor
+- `AGENTS.md` for OpenAI Codex CLI
+
+**Specification and architecture files:**
+- `spec.md` for project or feature specifications AI can reference
+- `ARCHITECTURE.md` or `docs/architecture/` documenting system design
+- Architecture Decision Records (ADRs) in `docs/adr/`
+- `DESIGN.md` or `docs/design/` for design documents
+- `docs/rfcs/` for Request for Comments
+- `TECHNICAL_OVERVIEW.md` for high-level technical context
+- `API.md` or `docs/api/` documenting API contracts
+- `DATA_MODEL.md` or `docs/data/` explaining data structures
+- `PATTERNS.md` documenting common patterns in the codebase
+- `CONVENTIONS.md` or `STYLE.md` for coding standards
+- `GLOSSARY.md` defining domain terms
+- `DOMAIN.md` for domain-driven design context
+
+**Skill and workflow files:**
+- `SKILL.md` files following the Agent Skills specification
+- `skills/` folder with domain-specific skills
+- Custom workflow definitions
+- `.claude/commands/` for custom slash commands
+- `PROMPTS.md` or `.prompts/` folders with effective saved prompts
+- `WORKFLOWS.md` documenting automated processes
+- `COMMANDS.md` listing available commands
+
+**Hooks and automation files:**
+- `.claude/hooks/` folder with hook scripts
+- `.claude/settings.json` for Claude Code configuration and hooks
+- `.husky/` for Git hooks
+- MCP server configurations (`mcp.json`, `.mcp/`, `mcp-config.json`)
+- Custom tool integrations
+
+**Memory and learning files:**
+- `MEMORY.md` capturing persistent context
+- `LEARNINGS.md` documenting what has been discovered
+- `DECISIONS.md` tracking choices and rationale
+- `.memory/` folders for structured memory storage
+- `RETROSPECTIVES.md` capturing post-project learnings
+- `KNOWN_ISSUES.md` documenting current limitations
+- `TROUBLESHOOTING.md` with common problems and solutions
+- `GOTCHAS.md` warning about non-obvious pitfalls
+- `context.yaml` or `context.json` for structured context data
+
+**Supporting context:**
+- Well-structured `README.md` files that help AI understand the project
+- `CONTRIBUTING.md` with context for working in the codebase
+- `TESTING.md` with testing strategies and conventions
+- `DEVELOPMENT.md` or `SETUP.md` for environment setup
+- `DEBUGGING.md` with common debugging approaches
+- `SECURITY.md` documenting security considerations
+- `.context/` or `.ai/` folders organizing context by domain
+
+When these files exist in a repository, someone has deliberately invested in making AI more effective there. When they do not exist, teams are likely still at the basic prompting stage.
+
+## A Maturity Model
+
+Based on what I have observed, here is how teams tend to progress. This model combines two dimensions: the behavioral progression (how developers interact with AI tools) and the infrastructural progression (what context engineering artifacts exist). Both matter.
+
+Steve Yegge recently published an 8-stage behavioral model ranging from "maybe code completions" to "building your own orchestrator." The context engineering artifacts I describe here are the infrastructure that makes progression through those behavioral stages effective. You can be at Stage 6 behaviorally (running multiple parallel agents) with zero context files, but you will be far less effective than someone at the same stage with comprehensive context engineering in place.
+
+**Level 0: Autocomplete and chat**
+
+No AI-specific files in the repository. Developers use AI tools for code completions and occasionally ask questions in chat. AI is treated as a slightly smarter search engine or autocomplete. This is where most teams currently are.
+
+Behavioral indicators:
+- Using Copilot completions or ChatGPT for questions
+- Copy-pasting code snippets from chat
+- AI has no awareness of project conventions
+
+**Level 1: Basic agent use with minimal context**
+
+Developers have started using coding agents (Claude Code, Cursor agent mode, Copilot chat) but with limited project context. Basic instruction files exist. The AI has surface-level awareness of the project.
+
+Files at this level:
+- `CLAUDE.md` or `AGENTS.md` with a paragraph or two about the project
+- `.cursorrules` with basic coding style preferences
+- `.github/copilot-instructions.md` with simple guidelines
+- A decent `README.md` that explains what the project does
+
+Behavioral indicators:
+- Running agents with permissions enabled (approve each action)
+- Agents work on small, well-defined tasks
+- Frequent corrections needed for project conventions
+
+**Level 2: Trusted agent with comprehensive context**
+
+Comprehensive instruction files covering architecture, conventions, patterns, and anti-patterns. Developers trust the agent enough to reduce permission prompts. AI becomes a genuinely useful collaborator that understands how things work.
+
+*Agent instruction files:*
+- Detailed `CLAUDE.md` with architecture overview, key abstractions, and things to avoid
+- `.github/copilot-instructions.md` for repository-level Copilot configuration
+- `.github/instructions/` folder with scoped `*.instructions.md` files
+- `.cursorrules` or `.cursor/rules/` with comprehensive guidance
+- `AGENTS.md` for Codex CLI with detailed project context
+
+*Architecture and specification files:*
+- `ARCHITECTURE.md` or `docs/architecture/` explaining system design
+- `spec.md` files for features or components
+- Architecture Decision Records (ADRs) in `docs/adr/` or `docs/architecture/decisions/`
+- `DESIGN.md` or `docs/design/` for design documents
+- `docs/rfcs/` for Request for Comments on significant changes
+- `TECHNICAL_OVERVIEW.md` for high-level technical context
+- `API.md` or `docs/api/` documenting API contracts
+- `DATA_MODEL.md` or `docs/data/` explaining data structures and relationships
+- `SECURITY.md` documenting security considerations and requirements
+- `GLOSSARY.md` defining domain terms (especially valuable for AI understanding)
+- `DOMAIN.md` for domain-driven design context and bounded contexts
+
+*Conventions and standards files:*
+- `CONVENTIONS.md` or `STYLE.md` documenting coding standards
+- `CONTRIBUTING.md` with context for how to work in the codebase
+- `PATTERNS.md` documenting common patterns used in the project
+- `ANTI_PATTERNS.md` documenting what to avoid and why
+- `CODE_REVIEW.md` with review criteria and expectations
+- `NAMING.md` for naming conventions across the codebase
+
+*Development context files:*
+- `DEVELOPMENT.md` or `SETUP.md` for development environment setup
+- `TESTING.md` with testing strategies, conventions, and examples
+- `DEBUGGING.md` with common debugging approaches and tools
+- `PERFORMANCE.md` documenting performance considerations and benchmarks
+- `DEPLOYMENT.md` explaining deployment processes
+- `INFRASTRUCTURE.md` documenting infrastructure dependencies
+- `DEPENDENCIES.md` explaining key dependencies and why they were chosen
+- `MIGRATION.md` for database or breaking change migrations
+- `docs/runbooks/` for operational procedures
+- `docs/guides/` for how-to documentation
+- `examples/` folder with well-documented example code
+
+Behavioral indicators:
+- Running agents in "YOLO mode" (auto-approve most actions)
+- Agent fills more of the screen; code editor is primarily for reviewing diffs
+- Agents handle larger, more complex tasks with fewer corrections
+- Trust has been earned through consistent, convention-following output
+
+**Level 3: Automated workflows and persistent memory**
+
+Beyond instructions, the team has created skill files, memory systems, hooks, and workflow definitions. AI can execute complex tasks correctly, enforce quality gates automatically, and maintain context across sessions.
+
+*Skill files:*
+- `SKILL.md` files following the Agent Skills specification
+- `skills/` folder with multiple skill definitions
+- Domain-specific skills (`skills/testing/SKILL.md`, `skills/deployment/SKILL.md`)
+- `CAPABILITIES.md` documenting what the AI can do in this repo
+
+*Workflow and automation files:*
+- Custom workflow definitions for deployment, testing, documentation
+- `WORKFLOWS.md` documenting automated processes
+- `COMMANDS.md` listing available commands and their purposes
+- `.claude/commands/` for custom Claude Code slash commands
+- `Makefile` or `justfile` with well-documented targets
+- `scripts/` folder with documented automation scripts
+- `.husky/` hooks with context for AI understanding
+
+*Memory and learning files:*
+- `MEMORY.md` capturing persistent context
+- `LEARNINGS.md` documenting what has been discovered
+- `DECISIONS.md` tracking architectural choices and their rationale
+- `.memory/` folders for structured memory storage
+- `RETROSPECTIVES.md` capturing post-project learnings
+- `KNOWN_ISSUES.md` documenting current limitations and workarounds
+- `TROUBLESHOOTING.md` with common problems and solutions
+- `FAQ.md` answering frequent questions about the codebase
+- `GOTCHAS.md` warning about non-obvious pitfalls
+- `CHANGELOG.md` maintained to help AI understand project evolution
+- `HISTORY.md` for longer-term historical context
+- `context.yaml` or `context.json` for structured context data
+
+*Agent configuration files:*
+- Custom Copilot agents in `.github/agents/*.agent.md`
+- `.context/` or `.ai/` folders organizing context by domain
+- `PROMPTS.md` or `.prompts/` with saved effective prompts
+- `personas/` folder with different AI interaction styles for different tasks
+
+*Hooks and automation:*
+- `.claude/hooks/` folder with hook scripts (formatters, validators, notifications)
+- `.claude/settings.json` for project-level hook configuration
+- `PreToolUse` hooks for validation and blocking risky operations
+- `PostToolUse` hooks for automatic formatting and quality checks
+- `Stop` hooks for end-of-turn quality gates
+- Git hooks integrated with AI workflows
+- MCP server configurations for tool integrations
+
+Behavioral indicators:
+- Primarily working from CLI (Claude Code, Codex CLI)
+- Diffs scroll by; review is selective rather than comprehensive
+- Running 3-5 parallel agent instances regularly
+- Hooks enforce quality automatically; less manual review needed
+- Work queued up ahead of time; agents execute while you plan
+
+**Level 4: Orchestrated multi-agent systems**
+
+Multiple agents with different roles and responsibilities. Shared context across the team. Skills that compose into larger workflows. Orchestration manages agent coordination. This is the current frontier.
+
+*Multi-agent configuration:*
+- `.github/agents/` folder with role-specific `.agent.md` files
+- `.github/agents/reviewer.agent.md` - code review specialist agent
+- `.github/agents/tester.agent.md` - testing and QA agent
+- `.github/agents/documenter.agent.md` - documentation agent
+- `.github/agents/security.agent.md` - security review agent
+- `.github/agents/architect.agent.md` - architecture decision agent
+- `.github/agents/refactorer.agent.md` - refactoring specialist
+- `.github/agents/debugger.agent.md` - debugging specialist
+- `.github/agents/planner.agent.md` - task decomposition and planning agent
+- Organization-level agents in `{org}/.github/agents/` for enterprise-wide use
+- `roles/` folder for role-based configurations
+- Agent communication patterns and handoff protocols in `agents/HANDOFFS.md`
+- `agents/ORCHESTRATION.md` explaining how agents coordinate
+
+*Tool and integration configurations:*
+- MCP server configurations (`mcp.json`, `.mcp/`, `mcp-config.json`)
+- `.mcp/servers/` for multiple MCP server definitions
+- MCP servers configured in agent profiles (organization-level Copilot agents)
+- `~/.copilot/mcp-config.json` for Copilot CLI MCP servers
+- `.claude/settings.json` with MCP and tool configurations
+- Custom tool definitions in `tools/` folder
+- `tools/TOOLS.md` documenting available custom tools
+- Integration configs for external services (Jira, Linear, Slack, etc.)
+
+*Hooks and quality gates:*
+- `.claude/hooks/` with comprehensive hook scripts
+- `PreToolUse` hooks for validation and blocking
+- `PostToolUse` hooks for formatting and quality checks
+- `Stop` hooks for end-of-turn quality gates
+- `SessionStart` and `SessionEnd` hooks for context injection
+- `.claude/settings.json`, `.claude/settings.local.json` for hook configuration
+- Team-shared hook libraries
+
+*Shared and cross-repository context:*
+- Shared context repositories that multiple projects reference
+- Cross-repository skill libraries
+- Team-wide `.claude/` or similar folders with shared conventions
+- `.claude/settings.json` for team-level Claude configuration
+- Monorepo-aware context in `packages/*/CLAUDE.md`
+- `SHARED_CONTEXT.md` documenting what's inherited from shared repos
+
+*Memory and persistence systems:*
+- `.beads/` for Beads memory system
+- Memory federation across repositories
+- `memory/global/` for cross-project learnings
+- `memory/project/` for project-specific context
+- Persistent agent state in `.agent_state/`
+
+*Orchestration infrastructure:*
+- Orchestration configs for tools like Gas Town or custom setups
+- `orchestration.yaml` or `orchestration/` folder
+- Pipeline definitions for multi-agent workflows
+- `workflows/` folder with composed multi-agent workflows
+- `workflows/code_review.yaml` - full review pipeline
+- `workflows/feature_development.yaml` - feature delivery pipeline
+- `workflows/incident_response.yaml` - debugging and fix pipeline
+- Agent scheduling and prioritization rules
+- `GOVERNANCE.md` documenting agent permissions and boundaries
+
+Behavioral indicators:
+- Running 10+ agents simultaneously, pushing limits of manual management
+- Building custom orchestration to manage agent workflows
+- Agents coordinate through shared memory systems (Beads, etc.)
+- Work is queued in structured plans (molecules, epics, convoys)
+- Human role shifts from coding to planning, reviewing, and unblocking agents
+- Throughput measured in PRs per hour rather than lines of code
+
+Most teams I encounter are at Level 0 or 1. The gap between that and Level 2+ is where the real productivity differences emerge.
+
+## How to Measure This
+
+If you want to assess your organization's AI proficiency, here is a practical approach:
+
+**Scan your active repositories.** Identify repositories with commits in the last 90 days. These are your active codebases where AI proficiency matters.
+
+**Check for context files.** For each repository, look for:
+- Agent instruction files (`CLAUDE.md`, `AGENTS.md`, `.github/copilot-instructions.md`, `.cursorrules`, `.github/agents/*.agent.md`)
+- Architecture and specification files (`ARCHITECTURE.md`, `spec.md`, ADRs, `PATTERNS.md`, `DESIGN.md`, `API.md`, `DATA_MODEL.md`)
+- Conventions files (`CONVENTIONS.md`, `STYLE.md`, `ANTI_PATTERNS.md`, `NAMING.md`, `CODE_REVIEW.md`)
+- Skill and workflow files (`SKILL.md`, `skills/`, `WORKFLOWS.md`, `.claude/commands/`)
+- Hooks and automation (`.claude/hooks/`, `.claude/settings.json`, `mcp.json`, `.mcp/`)
+- Memory files (`MEMORY.md`, `LEARNINGS.md`, `.memory/`, `DECISIONS.md`, `RETROSPECTIVES.md`)
+- Supporting context (`TESTING.md`, `DEBUGGING.md`, `GLOSSARY.md`, `.context/` folders)
+
+This can be automated with a simple script that scans for these patterns.
+
+The specific files to check will evolve as tools change. Build your scanning to be adaptable, or update your checklist as the landscape shifts.
+
+**Calculate coverage.** What percentage of active repositories have context engineering artifacts? This gives you a baseline.
+
+**Assess quality.** For repositories that have context files, how detailed are they? When were they last updated? Stale files that no longer reflect the codebase are almost as problematic as no files at all.
+
+**Track over time.** Run this assessment quarterly. Are more repositories getting context files? Is quality improving? This tells you whether AI proficiency is actually growing across your organization.
+
+## What This Metric Reveals
+
+A team with context engineering artifacts in most of their repositories has made a deliberate investment in AI collaboration. They are not just using AI tools. They are integrating AI into how they work.
+
+A team with no context files, even if they report high AI tool usage, is likely stuck at the autocomplete stage. They are getting some value, but nowhere near what is possible.
+
+This metric is also a leading indicator. The presence of context engineering artifacts predicts future productivity gains. A team that has just started writing `CLAUDE.md` files is about to become more effective, even if the impact has not appeared in throughput metrics yet.
+
+Compare this to tracking AI usage rates, which is a lagging indicator that tells you what has already happened but not whether it is working.
+
+## Limitations
+
+I want to be clear about what this metric does not capture.
+
+It does not measure individual proficiency. A team might have excellent context files written by one person while everyone else ignores them.
+
+It does not measure prompt quality. Good context files combined with poor prompts still produce mediocre results.
+
+It does not capture all forms of AI proficiency. Some developers are highly effective without context files, particularly on smaller projects.
+
+And presence does not equal quality. A `CLAUDE.md` file with two sentences is very different from one with comprehensive documentation.
+
+But as a signal for organizational AI maturity, I believe it is more meaningful than what most companies currently track.
+
+## The Landscape Keeps Changing
+
+The context engineering landscape is not stable.
+
+Six months ago, most of these file conventions did not exist. Six months from now, there will likely be new ones. Tools are evolving rapidly. Best practices are still being established.
+
+This is not a reason to avoid context engineering. It is a reason to treat it as a practice rather than a checklist. The specific files matter less than the habit of deliberately preparing context for AI collaboration.
+
+Teams that build this capability will adapt as tools change. Teams that never start will continue falling behind regardless of what the current best practice happens to be.
+
+Measure what exists now, but expect to update your criteria. The principle remains constant even as the implementation evolves.
+
+## Getting Started
+
+If you want to improve AI proficiency in your organization, start by making context engineering visible.
+
+Create a template for `CLAUDE.md` or whatever context file matches your tooling. Show people what effective context looks like.
+
+Add context file creation to your repository setup process. Make it part of how new projects begin.
+
+Share examples of effective context files across teams. Let people see what others are doing.
+
+Measure and report on coverage. What gets measured gets attention.
+
+The goal is not to mandate context files. The goal is to make it easy and visible, so developers who are ready to improve have a clear path forward.
+
+## The Bottom Line
+
+Adoption metrics tell you who is using AI tools. Context engineering metrics tell you who understands how to use them effectively.
+
+If you want to know where your organization actually stands on AI proficiency, look at your repositories. Count the context files. Assess their quality. Track the trend over time.
+
+That will tell you more than any usage dashboard.
