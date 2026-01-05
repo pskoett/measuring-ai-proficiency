@@ -18,7 +18,7 @@ A CLI tool for measuring AI coding proficiency based on context engineering arti
 
 ## The Problem
 
-91% of developers use AI tools. But adoption ≠ proficiency. Some developers save 4+ hours a week with AI. Others get slower with the same tools.
+Adoption ≠ proficiency. Some developers save X+ hours a week with AI. Others get slower with the same tools.
 
 **How do you measure actual AI proficiency?**
 
