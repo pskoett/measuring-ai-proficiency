@@ -59,54 +59,57 @@ Maturity Levels:
   Level 4: Multi-agent orchestration (specialized agents, orchestration)
         """,
     )
-    
+
     parser.add_argument(
         "paths",
         nargs="*",
         default=["."],
         help="Repository path(s) to scan (default: current directory)",
     )
-    
+
     parser.add_argument(
         "--org",
         metavar="PATH",
         help="Scan all repositories in a directory (like a cloned GitHub org)",
     )
-    
+
     parser.add_argument(
-        "-f", "--format",
+        "-f",
+        "--format",
         choices=["terminal", "json", "markdown", "csv"],
         default="terminal",
         help="Output format (default: terminal)",
     )
-    
+
     parser.add_argument(
-        "-o", "--output",
+        "-o",
+        "--output",
         metavar="FILE",
         help="Output file (default: stdout)",
     )
-    
+
     parser.add_argument(
-        "-v", "--verbose",
+        "-v",
+        "--verbose",
         action="store_true",
         help="Show detailed file matches",
     )
-    
-    parser.add_argument(
-        "--version",
-        action="version",
-        version=f"%(prog)s {__version__}",
-    )
-    
+
     parser.add_argument(
         "--min-level",
         type=int,
         choices=[0, 1, 2, 3, 4],
         help="Only show repos at or above this level",
     )
-    
+
+    parser.add_argument(
+        "--version",
+        action="version",
+        version=f"%(prog)s {__version__}",
+    )
+
     args = parser.parse_args()
-    
+
     # Collect repositories to scan
     if args.org:
         scores = scan_github_org(args.org, verbose=args.verbose)
@@ -121,19 +124,19 @@ Maturity Levels:
     else:
         # Multiple repos
         scores = scan_multiple_repos(args.paths, verbose=args.verbose)
-    
+
     # Filter by minimum level if specified
     if args.min_level is not None:
         scores = [s for s in scores if s.overall_level >= args.min_level]
-    
+
     # Get reporter
     reporter = get_reporter(args.format, verbose=args.verbose)
-    
+
     # Output
     output = sys.stdout
     if args.output:
-        output = open(args.output, 'w')
-    
+        output = open(args.output, "w")
+
     try:
         if len(scores) == 1 and not args.org:
             reporter.report_single(scores[0], output)
@@ -142,11 +145,11 @@ Maturity Levels:
     finally:
         if args.output:
             output.close()
-    
+
     # Exit code based on results
     if not scores:
         sys.exit(1)
-    
+
     # Return non-zero if all repos are Level 0
     if all(s.overall_level == 0 for s in scores):
         sys.exit(2)

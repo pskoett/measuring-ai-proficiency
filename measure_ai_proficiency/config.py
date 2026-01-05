@@ -242,13 +242,12 @@ LEVELS: Dict[int, LevelConfig] = {
 }
 
 # Core files that indicate basic AI tool adoption (any of these suggest Level 1+)
+# Only includes actual files from Level 1 patterns
 CORE_AI_FILES: Set[str] = {
     "CLAUDE.md",
     "AGENTS.md",
     ".github/copilot-instructions.md",
     ".cursorrules",
-    ".cursor/rules",
-    ".github/agents",
 }
 
 # Quality indicators - files that suggest the context is actively maintained
