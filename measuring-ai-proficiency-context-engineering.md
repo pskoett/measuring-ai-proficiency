@@ -323,6 +323,55 @@ The specific files to check will evolve as tools change. Build your scanning to 
 
 **Track over time.** Run this assessment quarterly. Are more repositories getting context files? Is quality improving? This tells you whether AI proficiency is actually growing across your organization.
 
+## A Tool to Get Started
+
+I have built a CLI tool that automates this measurement: [measure-ai-proficiency](https://github.com/pskoett/measuring-ai-proficiency).
+
+```bash
+# Install
+pip install measure-ai-proficiency
+
+# Scan a single repository
+measure-ai-proficiency /path/to/repo
+
+# Scan all repos in your organization
+measure-ai-proficiency --org /path/to/cloned-repos
+
+# Get JSON output for tracking over time
+measure-ai-proficiency --org /path/to/repos --format json --output q1-2025.json
+```
+
+The tool scans for the file patterns described in this article and calculates a maturity level (0-4) for each repository. It generates recommendations for what to add next.
+
+**Important: You will need to customize this for your team.**
+
+The tool ships with patterns for the big four AI coding tools: Claude Code, GitHub Copilot, Cursor, and OpenAI Codex CLI. But your team might use different tools, or have established different conventions.
+
+To adapt it:
+
+1. **Fork the repository** and edit `config.py`
+2. **Add patterns for your tools.** If your team uses Aider, Cody, Continue, or other AI tools, add their context file patterns to the appropriate level
+3. **Remove patterns you do not use.** If nobody on your team uses Cursor, remove `.cursorrules` from your fork so it does not skew coverage percentages
+4. **Add your own conventions.** If your team has standardized on `AI_CONTEXT.md` instead of `CLAUDE.md`, add that pattern
+5. **Adjust thresholds.** The default requires 20% coverage for Level 2, 15% for Level 3, 10% for Level 4. Tune these based on what makes sense for your organization
+
+The tool is meant as a starting point, not a universal standard. Context engineering practices vary across teams and tools. The value is in measuring your team's specific practices consistently over time, not in comparing yourself to some external benchmark.
+
+Example customization for a team using Aider and their own conventions:
+
+```python
+# In config.py, add to LEVEL_1_PATTERNS.file_patterns:
+".aider.conf.yml",
+"AI_CONTEXT.md",
+".aider/conventions.md",
+
+# Add to CORE_AI_FILES:
+".aider.conf.yml",
+"AI_CONTEXT.md",
+```
+
+Run your customized version quarterly. Track the trend. That is the metric that matters.
+
 ## What This Metric Reveals
 
 A team with context engineering artifacts in most of their repositories has made a deliberate investment in AI collaboration. They are not just using AI tools. They are integrating AI into how they work.
