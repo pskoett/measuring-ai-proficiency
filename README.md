@@ -288,28 +288,41 @@ measure-ai-proficiency --org /path/to/org --min-level 2
  AI Proficiency Report: my-project
 ============================================================
 
-  Overall Level: Level 2: Comprehensive Context
-  Overall Score: 45.3/100
+  Overall Level: Level 3: Comprehensive Context
+  Overall Score: 32.5/100
+  AI Tools: Claude Code, Github Copilot
 
   Level Breakdown:
 
-    ✓ Level 1: Basic Instructions
-      [████████████░░░░░░░░] 60.0% (3 files)
+    ✓ Level 1: Zero AI
+      [████████████████████] 100.0% (1 files)
 
-    ✓ Level 2: Comprehensive Context
+    ✓ Level 2: Basic Instructions
+      [████████░░░░░░░░░░░░] 40.0% (2 files)
+
+    ✓ Level 3: Comprehensive Context
       [██████░░░░░░░░░░░░░░] 28.5% (12 files)
 
-    ○ Level 3: Skills, Memory & Workflows
+    ○ Level 4: Skills & Automation
       [██░░░░░░░░░░░░░░░░░░] 8.2% (4 files)
 
-    ○ Level 4: Multi-Agent Orchestration
+    ○ Level 5: Multi-Agent Ready
+      [░░░░░░░░░░░░░░░░░░░░] 0.0% (0 files)
+
+    ○ Level 6: Fleet Infrastructure
+      [░░░░░░░░░░░░░░░░░░░░] 0.0% (0 files)
+
+    ○ Level 7: Agent Fleet
+      [░░░░░░░░░░░░░░░░░░░░] 0.0% (0 files)
+
+    ○ Level 8: Custom Orchestration
       [░░░░░░░░░░░░░░░░░░░░] 0.0% (0 files)
 
   Recommendations:
 
-    → Add .claude/hooks/ with PostToolUse hooks for auto-formatting.
-    → Add MEMORY.md or LEARNINGS.md for persistent context.
-    → Add custom slash commands in .claude/commands/.
+    → 🔍 Detected AI tools: Claude Code, Github Copilot. Recommendations tailored accordingly.
+    → 📚 Add comprehensive documentation - ARCHITECTURE.md, API.md, CONVENTIONS.md, TESTING.md.
+    → 🎨 Add PATTERNS.md: Document common design patterns used in your codebase.
 
 ============================================================
 ```
@@ -318,30 +331,58 @@ measure-ai-proficiency --org /path/to/org --min-level 2
 
 ```json
 {
+  "repo_path": "/path/to/my-project",
   "repo_name": "my-project",
-  "overall_level": 2,
-  "overall_score": 45.3,
+  "scan_time": "2026-01-05T12:00:00.000000",
+  "overall_level": 3,
+  "overall_score": 32.5,
+  "detected_tools": ["claude-code", "github-copilot"],
+  "config_loaded": false,
   "level_scores": {
     "1": {
-      "name": "Level 1: Basic Instructions",
-      "coverage_percent": 60.0,
-      "file_count": 3,
+      "name": "Level 1: Zero AI",
+      "description": "No AI-specific context files, baseline level",
+      "file_count": 1,
+      "substantive_file_count": 1,
+      "coverage_percent": 100.0,
       "matched_files": [
-        {"path": "CLAUDE.md", "size_bytes": 2048},
-        {"path": ".cursorrules", "size_bytes": 512},
-        {"path": "README.md", "size_bytes": 4096}
-      ]
+        {"path": "README.md", "size_bytes": 4096, "is_substantive": true}
+      ],
+      "matched_directories": []
+    },
+    "2": {
+      "name": "Level 2: Basic Instructions",
+      "description": "Basic context files exist with minimal project information",
+      "file_count": 2,
+      "substantive_file_count": 2,
+      "coverage_percent": 40.0,
+      "matched_files": [
+        {"path": "CLAUDE.md", "size_bytes": 2048, "is_substantive": true},
+        {"path": ".github/copilot-instructions.md", "size_bytes": 1024, "is_substantive": true}
+      ],
+      "matched_directories": []
     }
   },
   "recommendations": [
-    "Add .claude/hooks/ with PostToolUse hooks for auto-formatting."
+    "🔍 Detected AI tools: Claude Code, Github Copilot. Recommendations tailored accordingly.",
+    "📚 Add comprehensive documentation - ARCHITECTURE.md, API.md, CONVENTIONS.md, TESTING.md."
   ]
 }
 ```
 
 ## Files Detected
 
-### Level 1: Basic Instructions
+### Level 1: Zero AI (Baseline)
+
+Baseline level - only README.md present, no AI-specific context files.
+
+| File | Purpose |
+|------|--------|
+| `README.md` | Basic project documentation |
+
+### Level 2: Basic Instructions
+
+Core AI context files that indicate intentional AI tool usage.
 
 | Tool | Files |
 |------|-------|
@@ -350,9 +391,8 @@ measure-ai-proficiency --org /path/to/org --min-level 2
 | Cursor | `.cursorrules`, `.cursor/*.md` |
 | VSCode AI | `.vscode/*.md` |
 | Codex CLI | `.codex/*.md` |
-| General | `README.md` |
 
-### Level 2: Comprehensive Context
+### Level 3: Comprehensive Context
 
 | Category | Files |
 |----------|-------|
@@ -365,7 +405,7 @@ measure-ai-proficiency --org /path/to/org --min-level 2
 
 **⭐ PR_REVIEW.md is critical** - This file should define your PR review process, criteria, checklist, and standards. AI tools use this to provide contextual code review feedback.
 
-### Level 3: Skills, Memory & Workflows
+### Level 4: Skills & Automation
 
 | Category | Files |
 |----------|-------|
@@ -378,7 +418,7 @@ measure-ai-proficiency --org /path/to/org --min-level 2
 
 **💡 Agent Reference Pattern**: Agents should reference other documentation (ARCHITECTURE.md, CONVENTIONS.md, PR_REVIEW.md) in their instruction files. Create `agents/references.md` or `.claude/agents/references.md` listing all docs agents should consult.
 
-### Level 4: Multi-Agent Orchestration
+### Level 5: Multi-Agent Ready
 
 | Category | Files |
 |----------|-------|
@@ -395,14 +435,16 @@ measure-ai-proficiency --org /path/to/org --min-level 2
 
 ## Scoring Algorithm
 
-1. **File Detection**: Scan for patterns at each level
+1. **File Detection**: Scan for patterns at each level (1-8)
 2. **Substantiveness Check**: Files must have >100 bytes to count
 3. **Coverage Calculation**: Percentage of patterns matched per level
 4. **Level Achievement**:
-   - Level 1: At least one core AI file with content
-   - Level 2: Level 1 + >20% coverage of Level 2 patterns
-   - Level 3: Level 2 + >15% coverage of Level 3 patterns
-   - Level 4: Level 3 + >10% coverage of Level 4 patterns
+   - Level 1: Baseline (always achieved)
+   - Level 2: At least one AI context file (CLAUDE.md, .cursorrules, etc.)
+   - Level 3: Level 2 + >20% coverage of comprehensive context patterns
+   - Level 4: Level 3 + >15% coverage of skills & automation patterns
+   - Level 5: Level 4 + >10% coverage of multi-agent patterns
+   - Level 6-8: Progressive thresholds for fleet infrastructure and orchestration
 5. **Overall Score**: Weighted combination of coverage and substantiveness
 
 ### Understanding Your Score
