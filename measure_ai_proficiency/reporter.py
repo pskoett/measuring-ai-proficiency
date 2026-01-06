@@ -148,6 +148,43 @@ class TerminalReporter:
                     )
             print(file=output)
 
+        # Cross-references section
+        xref = score.cross_references
+        if xref and (xref.total_count > 0 or xref.quality_scores):
+            print(_color("  Cross-References & Quality:", Colors.BOLD), file=output)
+            print(file=output)
+
+            if xref.total_count > 0:
+                print(f"    References: {xref.total_count} found in {xref.source_files_scanned} files", file=output)
+                print(f"    Unique targets: {len(xref.unique_targets)}", file=output)
+                resolved_pct = f"{xref.resolution_rate:.0f}%"
+                resolved_color = Colors.GREEN if xref.resolution_rate >= 75 else Colors.YELLOW
+                print(f"    Resolved: {xref.resolved_count}/{xref.total_count} ({_color(resolved_pct, resolved_color)})", file=output)
+
+            if xref.quality_scores:
+                print(file=output)
+                print(f"    Content Quality:", file=output)
+                for file_path, quality in xref.quality_scores.items():
+                    q_color = Colors.GREEN if quality.quality_score >= 6 else (Colors.YELLOW if quality.quality_score >= 3 else Colors.RED)
+                    print(f"      {file_path}: {_color(f'{quality.quality_score:.1f}/10', q_color)} ({quality.word_count} words, {quality.section_count} sections)", file=output)
+
+            if xref.bonus_points > 0:
+                print(file=output)
+                print(f"    {_color(f'Bonus: +{xref.bonus_points:.1f} points', Colors.GREEN)}", file=output)
+
+            # Show detailed references in verbose mode
+            if self.verbose and xref.references:
+                print(file=output)
+                print(f"    {_color('References:', Colors.DIM)}", file=output)
+                for ref in xref.references[:10]:
+                    status = "✓" if ref.is_resolved else "✗"
+                    status_color = Colors.GREEN if ref.is_resolved else Colors.RED
+                    print(f"      {_color(status, status_color)} {ref.source_file}:{ref.line_number} -> {ref.target}", file=output)
+                if len(xref.references) > 10:
+                    print(f"      {_color(f'... and {len(xref.references) - 10} more', Colors.DIM)}", file=output)
+
+            print(file=output)
+
         # Recommendations
         if score.recommendations:
             print(_color("  Recommendations:", Colors.BOLD), file=output)
@@ -265,6 +302,41 @@ class JsonReporter:
         if score.config and score.config.thresholds:
             result["custom_thresholds"] = score.config.thresholds
 
+        # Add cross-references if present
+        if score.cross_references:
+            xref = score.cross_references
+            result["cross_references"] = {
+                "total_count": xref.total_count,
+                "source_files_scanned": xref.source_files_scanned,
+                "unique_targets": list(xref.unique_targets),
+                "resolved_count": xref.resolved_count,
+                "resolution_rate": round(xref.resolution_rate, 2),
+                "bonus_points": round(xref.bonus_points, 2),
+                "references": [
+                    {
+                        "source_file": ref.source_file,
+                        "target": ref.target,
+                        "reference_type": ref.reference_type,
+                        "line_number": ref.line_number,
+                        "is_resolved": ref.is_resolved,
+                    }
+                    for ref in xref.references
+                ],
+                "quality_scores": {
+                    path: {
+                        "has_sections": q.has_sections,
+                        "has_specific_paths": q.has_specific_paths,
+                        "has_tool_commands": q.has_tool_commands,
+                        "has_constraints": q.has_constraints,
+                        "has_cross_refs": q.has_cross_refs,
+                        "word_count": q.word_count,
+                        "section_count": q.section_count,
+                        "quality_score": round(q.quality_score, 2),
+                    }
+                    for path, q in xref.quality_scores.items()
+                },
+            }
+
         return result
 
     def report_single(self, score: RepoScore, output: TextIO = sys.stdout) -> None:
@@ -347,6 +419,48 @@ class MarkdownReporter:
                 for f in ls.matched_files:
                     status = "●" if f.is_substantive else "○"
                     print(f"- {status} `{f.path}`", file=output)
+                print(file=output)
+
+        # Cross-references section
+        xref = score.cross_references
+        if xref and (xref.total_count > 0 or xref.quality_scores):
+            print("## Cross-References & Quality", file=output)
+            print(file=output)
+
+            if xref.total_count > 0:
+                print(f"- **References Found:** {xref.total_count}", file=output)
+                print(f"- **Files Scanned:** {xref.source_files_scanned}", file=output)
+                print(f"- **Unique Targets:** {len(xref.unique_targets)}", file=output)
+                print(f"- **Resolution Rate:** {xref.resolution_rate:.0f}%", file=output)
+
+            if xref.bonus_points > 0:
+                print(f"- **Bonus Points:** +{xref.bonus_points:.1f}", file=output)
+            print(file=output)
+
+            if xref.quality_scores:
+                print("### Content Quality", file=output)
+                print(file=output)
+                print("| File | Score | Words | Sections | Has Sections | Has Paths | Has Commands | Has Constraints |", file=output)
+                print("|------|-------|-------|----------|--------------|-----------|--------------|-----------------|", file=output)
+                for path, q in xref.quality_scores.items():
+                    print(
+                        f"| `{path}` | {q.quality_score:.1f}/10 | {q.word_count} | {q.section_count} | "
+                        f"{'✓' if q.has_sections else '○'} | {'✓' if q.has_specific_paths else '○'} | "
+                        f"{'✓' if q.has_tool_commands else '○'} | {'✓' if q.has_constraints else '○'} |",
+                        file=output,
+                    )
+                print(file=output)
+
+            if xref.references:
+                print("### Reference Details", file=output)
+                print(file=output)
+                print("| Source | Target | Type | Status |", file=output)
+                print("|--------|--------|------|--------|", file=output)
+                for ref in xref.references[:20]:
+                    status = "Resolved" if ref.is_resolved else "Missing"
+                    print(f"| `{ref.source_file}:{ref.line_number}` | `{ref.target}` | {ref.reference_type} | {status} |", file=output)
+                if len(xref.references) > 20:
+                    print(f"\n*...and {len(xref.references) - 20} more references*", file=output)
                 print(file=output)
 
         if score.recommendations:

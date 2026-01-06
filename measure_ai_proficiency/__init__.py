@@ -20,7 +20,15 @@ Supports:
 __version__ = "0.2.0"
 __author__ = "Peter Skoett"
 
-from .scanner import RepoScanner, RepoScore, scan_multiple_repos, scan_github_org
+from .scanner import (
+    RepoScanner,
+    RepoScore,
+    scan_multiple_repos,
+    scan_github_org,
+    CrossReference,
+    ContentQuality,
+    CrossReferenceResult,
+)
 from .reporter import (
     TerminalReporter,
     JsonReporter,
@@ -42,6 +50,9 @@ __all__ = [
     "RepoScore",
     "scan_multiple_repos",
     "scan_github_org",
+    "CrossReference",
+    "ContentQuality",
+    "CrossReferenceResult",
     "TerminalReporter",
     "JsonReporter",
     "MarkdownReporter",

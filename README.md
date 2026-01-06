@@ -28,6 +28,8 @@ Measure context engineering. Look at whether teams are creating files like `CLAU
 
 This tool scans repositories for context engineering artifacts and calculates a maturity score based on an 8-level model aligned with Steve Yegge's stages.
 
+**New: Cross-Reference Detection & Quality Evaluation** - The tool now analyzes the *content* of your AI instruction files, detecting cross-references between documents and evaluating quality indicators like sections, constraints, and commands.
+
 ## Maturity Levels
 
 | Level | Name | Yegge Stage | Description |
@@ -289,7 +291,7 @@ measure-ai-proficiency --org /path/to/org --min-level 2
 ============================================================
 
   Overall Level: Level 3: Comprehensive Context
-  Overall Score: 32.5/100
+  Overall Score: 38.7/100
   AI Tools: Claude Code, Github Copilot
 
   Level Breakdown:
@@ -318,6 +320,19 @@ measure-ai-proficiency --org /path/to/org --min-level 2
     ○ Level 8: Custom Orchestration
       [░░░░░░░░░░░░░░░░░░░░] 0.0% (0 files)
 
+  Cross-References & Quality:
+
+    References: 12 found in 3 files
+    Unique targets: 8
+    Resolved: 10/12 (83%)
+
+    Content Quality:
+      CLAUDE.md: 7.2/10 (450 words, 8 sections)
+      AGENTS.md: 8.5/10 (820 words, 14 sections)
+      .github/copilot-instructions.md: 6.8/10 (320 words, 10 sections)
+
+    Bonus: +6.2 points
+
   Recommendations:
 
     → 🔍 Detected AI tools: Claude Code, Github Copilot. Recommendations tailored accordingly.
@@ -335,32 +350,38 @@ measure-ai-proficiency --org /path/to/org --min-level 2
   "repo_name": "my-project",
   "scan_time": "2026-01-05T12:00:00.000000",
   "overall_level": 3,
-  "overall_score": 32.5,
+  "overall_score": 38.7,
   "detected_tools": ["claude-code", "github-copilot"],
   "config_loaded": false,
   "level_scores": {
     "1": {
       "name": "Level 1: Zero AI",
-      "description": "No AI-specific context files, baseline level",
-      "file_count": 1,
-      "substantive_file_count": 1,
       "coverage_percent": 100.0,
-      "matched_files": [
-        {"path": "README.md", "size_bytes": 4096, "is_substantive": true}
-      ],
-      "matched_directories": []
+      "matched_files": [{"path": "README.md", "size_bytes": 4096, "is_substantive": true}]
     },
     "2": {
       "name": "Level 2: Basic Instructions",
-      "description": "Basic context files exist with minimal project information",
-      "file_count": 2,
-      "substantive_file_count": 2,
       "coverage_percent": 40.0,
       "matched_files": [
         {"path": "CLAUDE.md", "size_bytes": 2048, "is_substantive": true},
         {"path": ".github/copilot-instructions.md", "size_bytes": 1024, "is_substantive": true}
-      ],
-      "matched_directories": []
+      ]
+    }
+  },
+  "cross_references": {
+    "total_count": 12,
+    "source_files_scanned": 3,
+    "unique_targets": ["ARCHITECTURE.md", "CONVENTIONS.md", "AGENTS.md", "docs/"],
+    "resolved_count": 10,
+    "resolution_rate": 83.33,
+    "bonus_points": 6.2,
+    "references": [
+      {"source_file": "CLAUDE.md", "target": "ARCHITECTURE.md", "reference_type": "markdown_link", "line_number": 12, "is_resolved": true},
+      {"source_file": "CLAUDE.md", "target": "AGENTS.md", "reference_type": "file_mention", "line_number": 8, "is_resolved": true}
+    ],
+    "quality_scores": {
+      "CLAUDE.md": {"quality_score": 7.2, "word_count": 450, "section_count": 8, "has_sections": true, "has_constraints": true},
+      "AGENTS.md": {"quality_score": 8.5, "word_count": 820, "section_count": 14, "has_sections": true, "has_constraints": true}
     }
   },
   "recommendations": [
@@ -433,19 +454,93 @@ Core AI context files that indicate intentional AI tool usage.
 - Architecture agents → reference `ARCHITECTURE.md`, `DESIGN.md`, `API.md`
 - Test agents → reference `TESTING.md`, `CONVENTIONS.md`
 
+## Cross-Reference Detection & Quality Evaluation
+
+The tool analyzes the *content* of your AI instruction files, not just their existence. This provides deeper insight into context engineering maturity.
+
+### What Gets Scanned
+
+AI instruction files are scanned for cross-references and quality:
+- `CLAUDE.md`, `AGENTS.md`, `.cursorrules`, `CODEX.md`
+- `.github/copilot-instructions.md`, `.copilot-instructions.md`
+- Scoped instruction files (`.github/instructions/*.md`, `.cursor/rules/*.md`)
+- Skills (`*.claude/skills/*/SKILL.md`, `.github/skills/*/SKILL.md`)
+
+### Cross-Reference Detection
+
+The tool detects references between your documentation files:
+
+| Type | Pattern | Example |
+|------|---------|---------|
+| Markdown links | `[text](file.md)` | `[architecture](ARCHITECTURE.md)` |
+| File mentions | `"FILE.md"`, `` `FILE.md` `` | `"AGENTS.md"`, `` `CONVENTIONS.md` `` |
+| Relative paths | `./path/file.md` | `./docs/ARCHITECTURE.md` |
+| Directory refs | `skills/`, `.claude/commands/` | `.claude/skills/`, `docs/` |
+
+**Resolution tracking**: The tool checks if referenced files actually exist, helping identify broken links.
+
+### Content Quality Evaluation
+
+Each instruction file is scored (0-10) based on quality indicators inspired by [best-in-class examples](https://github.com/steipete/agent-scripts/blob/main/AGENTS.MD):
+
+| Indicator | What We Look For | Points |
+|-----------|------------------|--------|
+| **Sections** | Markdown headers (`##`) | 0-2 |
+| **Paths** | Concrete file/dir paths (`/src/`, `~/config/`) | 0-2 |
+| **Commands** | CLI commands in backticks (`` `npm test` ``) | 0-2 |
+| **Constraints** | "never", "avoid", "don't", "must not" | 0-2 |
+| **Substance** | Word count (200+ words = full points) | 0-2 |
+
+### Bonus Points
+
+Cross-references and quality contribute up to **+10 bonus points** to your overall score:
+
+- **Cross-reference bonus (up to 5 pts)**:
+  - +3 pts for unique targets referenced (max at 6 unique)
+  - +2 pts for resolution rate (100% resolved = full points)
+
+- **Quality bonus (up to 5 pts)**:
+  - Half of average quality score across all instruction files
+
+### Example Output
+
+```
+Cross-References & Quality:
+
+  References: 12 found in 3 files
+  Unique targets: 8
+  Resolved: 10/12 (83%)
+
+  Content Quality:
+    CLAUDE.md: 7.2/10 (450 words, 8 sections)
+    AGENTS.md: 8.5/10 (820 words, 14 sections)
+
+  Bonus: +6.2 points
+```
+
+### Improving Your Cross-Reference Score
+
+1. **Link your docs**: Add `[architecture](ARCHITECTURE.md)` links in your CLAUDE.md
+2. **Reference other files**: Mention `"CONVENTIONS.md"` or `` `TESTING.md` `` when relevant
+3. **Use sections**: Organize with `## Architecture`, `## Conventions`, etc.
+4. **Add constraints**: Include clear rules like "Never modify production directly"
+5. **Include commands**: Show tool usage like `` `npm run test` ``
+
 ## Scoring Algorithm
 
 1. **File Detection**: Scan for patterns at each level (1-8)
 2. **Substantiveness Check**: Files must have >100 bytes to count
 3. **Coverage Calculation**: Percentage of patterns matched per level
-4. **Level Achievement**:
+4. **Cross-Reference Detection**: Scan AI instruction files for references to other docs
+5. **Quality Evaluation**: Evaluate instruction file quality (sections, commands, constraints)
+6. **Level Achievement**:
    - Level 1: Baseline (always achieved)
    - Level 2: At least one AI context file (CLAUDE.md, .cursorrules, etc.)
    - Level 3: Level 2 + >20% coverage of comprehensive context patterns
    - Level 4: Level 3 + >15% coverage of skills & automation patterns
    - Level 5: Level 4 + >10% coverage of multi-agent patterns
    - Level 6-8: Progressive thresholds for fleet infrastructure and orchestration
-5. **Overall Score**: Weighted combination of coverage and substantiveness
+7. **Overall Score**: Weighted combination of coverage, substantiveness, and cross-reference bonus (up to +10 points)
 
 ### Understanding Your Score
 

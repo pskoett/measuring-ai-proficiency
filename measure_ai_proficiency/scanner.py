@@ -7,6 +7,7 @@ Uses levels 1-8 aligned with Steve Yegge's 8-stage AI coding proficiency model.
 
 import fnmatch
 import os
+import re
 from dataclasses import dataclass, field
 from datetime import datetime
 from pathlib import Path
@@ -21,6 +22,118 @@ from .repo_config import (
     format_multi_tool_options,
     TOOL_RECOMMENDATIONS,
 )
+
+# =============================================================================
+# Cross-Reference Detection Constants
+# =============================================================================
+
+# AI instruction files to scan for cross-references
+INSTRUCTION_FILES: Set[str] = {
+    "CLAUDE.md",
+    "AGENTS.md",
+    ".cursorrules",
+    "CODEX.md",
+    ".github/copilot-instructions.md",
+    ".copilot-instructions.md",
+    ".github/AGENTS.md",
+}
+
+# Known AI-related files that are valid reference targets
+KNOWN_TARGETS: Set[str] = {
+    "CLAUDE.md", "AGENTS.md", ".cursorrules", "CODEX.md",
+    "ARCHITECTURE.md", "CONVENTIONS.md", "SKILL.md", "TESTING.md",
+    "API.md", "SECURITY.md", "CONTRIBUTING.md", "PATTERNS.md",
+    "DEVELOPMENT.md", "DEPLOYMENT.md", "MEMORY.md", "LEARNINGS.md",
+    "HANDOFFS.md", "GOVERNANCE.md", "SHARED_CONTEXT.md",
+}
+
+# Max file size to read for cross-reference scanning (100KB)
+MAX_CROSS_REF_FILE_SIZE: int = 100_000
+
+# Regex patterns for detecting cross-references
+CROSS_REF_PATTERNS: Dict[str, re.Pattern] = {
+    # Markdown links: [text](file.md) or [text](./path/file.md)
+    "markdown_link": re.compile(
+        r'\[([^\]]+)\]\(([^)]+\.(?:md|yaml|yml|json|rules|mdc))\)',
+        re.IGNORECASE
+    ),
+    # File mentions in quotes/backticks: "AGENTS.md", `CLAUDE.md`, 'CONVENTIONS.md'
+    "file_mention": re.compile(
+        r'[`"\']([A-Z][A-Za-z0-9_\-]+\.(?:md|yaml|yml|json))[`"\']'
+    ),
+    # Relative paths: ./docs/ARCHITECTURE.md, ../CLAUDE.md
+    "relative_path": re.compile(
+        r'(?:^|\s)(\.{1,2}/[\w\-./]+\.(?:md|yaml|yml|json))',
+        re.MULTILINE
+    ),
+    # Directory references: skills/, .claude/commands/, docs/
+    "directory_ref": re.compile(
+        r'(?:^|\s)(\.?/?(?:skills|\.claude|\.github|\.copilot|docs|agents|workflows|\.mcp)(?:/[\w\-]+)*/?)',
+        re.MULTILINE
+    ),
+}
+
+# Patterns for evaluating content quality
+QUALITY_PATTERNS: Dict[str, re.Pattern] = {
+    # Markdown sections (headers)
+    "sections": re.compile(r'^#{1,3}\s+.+', re.MULTILINE),
+    # Concrete file paths
+    "paths": re.compile(r'[`~]?(?:/[\w\-./]+|~/[\w\-./]+)[`]?'),
+    # CLI commands in backticks
+    "commands": re.compile(r'`[a-z][\w\-]*(?:\s+[^`]+)?`'),
+    # Constraint language
+    "constraints": re.compile(r'\b(?:never|avoid|don\'t|do not|must not|always|required)\b', re.IGNORECASE),
+}
+
+
+@dataclass
+class CrossReference:
+    """A detected cross-reference between files."""
+
+    source_file: str      # File containing the reference
+    target: str           # Referenced file/directory path
+    reference_type: str   # "markdown_link", "file_mention", "relative_path", "directory_ref"
+    line_number: int      # Line where reference was found
+    is_resolved: bool     # Whether target exists in repo
+
+
+@dataclass
+class ContentQuality:
+    """Quality metrics for an AI instruction file's content."""
+
+    has_sections: bool         # Has markdown headers (##)
+    has_specific_paths: bool   # Contains concrete file paths
+    has_tool_commands: bool    # References CLI tools/commands
+    has_constraints: bool      # Contains "never", "avoid", "don't", etc.
+    has_cross_refs: bool       # References other docs
+    word_count: int
+    section_count: int
+    quality_score: float       # 0-10 based on indicators
+
+
+@dataclass
+class CrossReferenceResult:
+    """Summary of cross-references and quality found in a repository."""
+
+    references: List["CrossReference"] = field(default_factory=list)
+    source_files_scanned: int = 0
+    resolved_count: int = 0
+    quality_scores: Dict[str, "ContentQuality"] = field(default_factory=dict)
+    bonus_points: float = 0.0
+
+    @property
+    def total_count(self) -> int:
+        return len(self.references)
+
+    @property
+    def unique_targets(self) -> Set[str]:
+        return set(r.target for r in self.references)
+
+    @property
+    def resolution_rate(self) -> float:
+        if self.total_count == 0:
+            return 0.0
+        return self.resolved_count / self.total_count * 100
 
 
 @dataclass
@@ -74,6 +187,7 @@ class RepoScore:
     recommendations: List[str] = field(default_factory=list)
     detected_tools: List[str] = field(default_factory=list)
     config: Optional[RepoConfig] = None
+    cross_references: Optional[CrossReferenceResult] = None
 
     @property
     def has_any_ai_files(self) -> bool:
@@ -122,9 +236,15 @@ class RepoScanner:
             level_score = self._scan_level(level_num, level_config)
             score.level_scores[level_num] = level_score
 
+        # Scan for cross-references and evaluate content quality
+        score.cross_references = self._scan_cross_references()
+
         # Calculate overall level and score (using custom thresholds if configured)
         score.overall_level = self._calculate_overall_level(score.level_scores)
-        score.overall_score = self._calculate_overall_score(score.level_scores)
+        base_score = self._calculate_overall_score(score.level_scores)
+
+        # Add cross-reference bonus to overall score (capped at 100)
+        score.overall_score = min(100, base_score + score.cross_references.bonus_points)
 
         # Generate recommendations (tool-specific)
         score.recommendations = self._generate_recommendations(score)
@@ -254,6 +374,215 @@ class RepoScanner:
             )
         except (OSError, PermissionError):
             return FileMatch(path=path, pattern=pattern, level=level)
+
+    # =========================================================================
+    # Cross-Reference Detection Methods
+    # =========================================================================
+
+    def _scan_cross_references(self) -> CrossReferenceResult:
+        """Scan AI instruction files for cross-references and evaluate quality."""
+
+        sources = self._find_instruction_files()
+        references: List[CrossReference] = []
+        quality_scores: Dict[str, ContentQuality] = {}
+
+        for source in sources:
+            content = self._read_file_safe(source)
+            if content:
+                # Extract cross-references
+                refs = self._extract_references(source, content)
+                references.extend(refs)
+
+                # Evaluate content quality
+                quality = self._evaluate_quality(content)
+                # Update has_cross_refs based on actual references found
+                quality = ContentQuality(
+                    has_sections=quality.has_sections,
+                    has_specific_paths=quality.has_specific_paths,
+                    has_tool_commands=quality.has_tool_commands,
+                    has_constraints=quality.has_constraints,
+                    has_cross_refs=len(refs) > 0,
+                    word_count=quality.word_count,
+                    section_count=quality.section_count,
+                    quality_score=quality.quality_score,
+                )
+                rel_path = str(source.relative_to(self.repo_path))
+                quality_scores[rel_path] = quality
+
+        resolved_count = sum(1 for r in references if r.is_resolved)
+        bonus_points = self._calculate_cross_ref_bonus(references, quality_scores)
+
+        return CrossReferenceResult(
+            references=references,
+            source_files_scanned=len(sources),
+            resolved_count=resolved_count,
+            quality_scores=quality_scores,
+            bonus_points=bonus_points,
+        )
+
+    def _find_instruction_files(self) -> List[Path]:
+        """Find AI instruction files to scan for cross-references."""
+
+        files: List[Path] = []
+
+        # Check known instruction files
+        for name in INSTRUCTION_FILES:
+            path = self.repo_path / name
+            if path.exists() and path.is_file():
+                try:
+                    if path.stat().st_size <= MAX_CROSS_REF_FILE_SIZE:
+                        files.append(path)
+                except (OSError, PermissionError):
+                    pass
+
+        # Also check for scoped instruction files
+        scoped_patterns = [
+            ".github/instructions/*.instructions.md",
+            ".cursor/rules/*.md",
+            ".claude/skills/*/SKILL.md",
+            ".github/skills/*/SKILL.md",
+        ]
+        for pattern in scoped_patterns:
+            try:
+                for match in self.repo_path.glob(pattern):
+                    if match.stat().st_size <= MAX_CROSS_REF_FILE_SIZE:
+                        files.append(match)
+            except (OSError, PermissionError):
+                pass
+
+        return files
+
+    def _read_file_safe(self, path: Path) -> Optional[str]:
+        """Safely read file content with size limit and error handling."""
+
+        try:
+            if path.stat().st_size > MAX_CROSS_REF_FILE_SIZE:
+                return None
+            return path.read_text(encoding='utf-8', errors='ignore')
+        except (OSError, PermissionError, UnicodeDecodeError):
+            return None
+
+    def _extract_references(self, source: Path, content: str) -> List[CrossReference]:
+        """Extract cross-references from a single file's content."""
+
+        references: List[CrossReference] = []
+        rel_source = str(source.relative_to(self.repo_path))
+        seen: Set[tuple] = set()  # Dedupe (target, line_number)
+
+        for line_num, line in enumerate(content.split('\n'), start=1):
+            for ref_type, pattern in CROSS_REF_PATTERNS.items():
+                for match in pattern.finditer(line):
+                    target = self._extract_target(match, ref_type)
+
+                    if not target:
+                        continue
+
+                    # Skip external URLs and anchors
+                    if target.startswith(('http://', 'https://', 'mailto:', '#')):
+                        continue
+
+                    # Normalize target path
+                    normalized = target.lstrip('./')
+
+                    # Dedupe
+                    key = (normalized, line_num)
+                    if key in seen:
+                        continue
+                    seen.add(key)
+
+                    # Check if target exists
+                    is_resolved = self._resolve_target(normalized)
+
+                    references.append(CrossReference(
+                        source_file=rel_source,
+                        target=normalized,
+                        reference_type=ref_type,
+                        line_number=line_num,
+                        is_resolved=is_resolved,
+                    ))
+
+        return references
+
+    def _extract_target(self, match: re.Match, ref_type: str) -> Optional[str]:
+        """Extract the target path from a regex match."""
+
+        if ref_type == "markdown_link":
+            # Group 2 is the path in [text](path)
+            return match.group(2)
+        elif ref_type in ("file_mention", "relative_path", "directory_ref"):
+            return match.group(1)
+        return match.group(0).strip()
+
+    def _resolve_target(self, target: str) -> bool:
+        """Check if a target path exists in the repository."""
+
+        # Try direct path
+        full_path = self.repo_path / target
+        if full_path.exists():
+            return True
+
+        # Try common documentation locations
+        for prefix in ['docs/', '.github/', '.claude/']:
+            if (self.repo_path / prefix / target).exists():
+                return True
+
+        return False
+
+    def _evaluate_quality(self, content: str) -> ContentQuality:
+        """Evaluate the quality of an AI instruction file's content."""
+
+        sections = QUALITY_PATTERNS["sections"].findall(content)
+        paths = QUALITY_PATTERNS["paths"].findall(content)
+        commands = QUALITY_PATTERNS["commands"].findall(content)
+        constraints = QUALITY_PATTERNS["constraints"].findall(content)
+        words = content.split()
+
+        # Calculate quality score (0-10)
+        score = 0.0
+        score += min(len(sections) / 5, 2.0)       # Up to 2 pts for sections
+        score += min(len(paths) / 3, 2.0)          # Up to 2 pts for paths
+        score += min(len(commands) / 3, 2.0)       # Up to 2 pts for commands
+        score += min(len(constraints) / 2, 2.0)    # Up to 2 pts for constraints
+        score += 2.0 if len(words) > 200 else (1.0 if len(words) > 50 else 0.0)  # Substance
+
+        return ContentQuality(
+            has_sections=len(sections) > 0,
+            has_specific_paths=len(paths) > 0,
+            has_tool_commands=len(commands) > 0,
+            has_constraints=len(constraints) > 0,
+            has_cross_refs=False,  # Updated later with actual refs
+            word_count=len(words),
+            section_count=len(sections),
+            quality_score=min(score, 10.0),
+        )
+
+    def _calculate_cross_ref_bonus(
+        self,
+        refs: List[CrossReference],
+        quality: Dict[str, ContentQuality]
+    ) -> float:
+        """Calculate bonus points based on cross-references and quality."""
+
+        bonus = 0.0
+
+        # Cross-reference bonus (up to 5 pts)
+        if refs:
+            unique_targets = set(r.target for r in refs)
+            resolved_count = sum(1 for r in refs if r.is_resolved)
+            resolved_rate = resolved_count / len(refs) if refs else 0
+
+            # Up to 3 pts for unique cross-references (max at 6 unique)
+            bonus += min(len(unique_targets) / 2, 3.0)
+            # Up to 2 pts for resolution rate
+            bonus += resolved_rate * 2.0
+
+        # Quality bonus (up to 5 pts)
+        if quality:
+            avg_quality = sum(q.quality_score for q in quality.values()) / len(quality)
+            # Half of average quality score as bonus
+            bonus += avg_quality / 2
+
+        return min(bonus, 10.0)
 
     def _calculate_overall_level(self, level_scores: Dict[int, LevelScore]) -> int:
         """

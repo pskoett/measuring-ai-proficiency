@@ -319,3 +319,220 @@ skip_recommendations:
 
             assert hasattr(score, 'detected_tools')
             assert isinstance(score.detected_tools, list)
+
+
+class TestCrossReferences:
+    """Tests for cross-reference detection and quality evaluation."""
+
+    def test_detects_markdown_links(self):
+        """Should detect markdown links like [text](file.md)."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            claude_md = Path(tmpdir) / "CLAUDE.md"
+            claude_md.write_text("""
+# Project Context
+
+See the [architecture docs](ARCHITECTURE.md) for system design.
+Also check [conventions](./CONVENTIONS.md).
+""")
+            # Create the referenced file so it can be resolved
+            Path(tmpdir, "ARCHITECTURE.md").write_text("# Architecture\n" + "x" * 200)
+
+            scanner = RepoScanner(tmpdir)
+            score = scanner.scan()
+
+            assert score.cross_references is not None
+            assert score.cross_references.total_count >= 2
+            # At least one should be resolved (ARCHITECTURE.md exists)
+            assert score.cross_references.resolved_count >= 1
+
+    def test_detects_file_mentions(self):
+        """Should detect file mentions in quotes like 'AGENTS.md'."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            claude_md = Path(tmpdir) / "CLAUDE.md"
+            claude_md.write_text("""
+# Project Context
+
+This file works alongside `AGENTS.md` and "CONVENTIONS.md".
+Read 'TESTING.md' for testing guidelines.
+""")
+
+            scanner = RepoScanner(tmpdir)
+            score = scanner.scan()
+
+            assert score.cross_references is not None
+            assert score.cross_references.total_count >= 3
+
+    def test_detects_directory_refs(self):
+        """Should detect directory references like skills/ or .claude/commands/."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            claude_md = Path(tmpdir) / "CLAUDE.md"
+            claude_md.write_text("""
+# Project Context
+
+Custom skills are in .claude/skills/ directory.
+See docs/ for documentation.
+""")
+            # Create the skills directory
+            skills_dir = Path(tmpdir) / ".claude" / "skills"
+            skills_dir.mkdir(parents=True)
+
+            scanner = RepoScanner(tmpdir)
+            score = scanner.scan()
+
+            assert score.cross_references is not None
+            # Should have directory references
+            dir_refs = [r for r in score.cross_references.references if r.reference_type == "directory_ref"]
+            assert len(dir_refs) >= 1
+
+    def test_ignores_external_urls(self):
+        """Should not count external URLs as cross-references."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            claude_md = Path(tmpdir) / "CLAUDE.md"
+            claude_md.write_text("""
+# Project Context
+
+See [docs](https://example.com/docs.md) for more info.
+Also check http://example.com/file.yaml
+""")
+
+            scanner = RepoScanner(tmpdir)
+            score = scanner.scan()
+
+            assert score.cross_references is not None
+            # Should have no references (external URLs should be ignored)
+            assert score.cross_references.total_count == 0
+
+    def test_resolution_tracking(self):
+        """Should correctly track whether references resolve to existing files."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            claude_md = Path(tmpdir) / "CLAUDE.md"
+            claude_md.write_text("""
+# Project Context
+
+See [exists](README.md) and [missing](MISSING.md).
+""")
+            # Create README.md (exists)
+            Path(tmpdir, "README.md").write_text("# README\n" + "x" * 200)
+            # Don't create MISSING.md
+
+            scanner = RepoScanner(tmpdir)
+            score = scanner.scan()
+
+            assert score.cross_references is not None
+            # Check we have both resolved and unresolved references
+            refs = score.cross_references.references
+            resolved = [r for r in refs if r.is_resolved]
+            unresolved = [r for r in refs if not r.is_resolved]
+            assert len(resolved) >= 1
+            assert len(unresolved) >= 1
+
+    def test_quality_score_calculation(self):
+        """Should calculate quality scores for instruction files."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            claude_md = Path(tmpdir) / "CLAUDE.md"
+            claude_md.write_text("""
+# Project Context
+
+## Architecture
+
+This project uses React and TypeScript.
+
+## Conventions
+
+- Never use `any` type
+- Always use functional components
+- Run `npm test` before committing
+
+## Paths
+
+Files are in `/src/components/` and `~/config/`.
+
+## Important
+
+Never modify the database directly.
+""")
+
+            scanner = RepoScanner(tmpdir)
+            score = scanner.scan()
+
+            assert score.cross_references is not None
+            assert "CLAUDE.md" in score.cross_references.quality_scores
+
+            quality = score.cross_references.quality_scores["CLAUDE.md"]
+            assert quality.has_sections  # Has ## headers
+            assert quality.has_constraints  # Has "never"
+            assert quality.has_tool_commands  # Has `npm test`
+            assert quality.quality_score > 0
+
+    def test_bonus_points_added(self):
+        """Should add bonus points to overall score for cross-references."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            claude_md = Path(tmpdir) / "CLAUDE.md"
+            claude_md.write_text("""
+# Project Context
+
+## Architecture
+
+See [architecture](ARCHITECTURE.md) for details.
+Also check [conventions](CONVENTIONS.md) and [testing](TESTING.md).
+
+## Rules
+
+- Never modify production directly
+- Always run tests
+- Use `npm run lint` before committing
+""")
+            # Create referenced files
+            Path(tmpdir, "ARCHITECTURE.md").write_text("# Architecture\n" + "x" * 300)
+            Path(tmpdir, "CONVENTIONS.md").write_text("# Conventions\n" + "x" * 300)
+            Path(tmpdir, "TESTING.md").write_text("# Testing\n" + "x" * 300)
+
+            scanner = RepoScanner(tmpdir)
+            score = scanner.scan()
+
+            assert score.cross_references is not None
+            assert score.cross_references.bonus_points > 0
+            # Bonus should be capped at 10
+            assert score.cross_references.bonus_points <= 10
+
+    def test_bonus_capped_at_10(self):
+        """Bonus points should be capped at 10."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            # Create a very comprehensive CLAUDE.md with many cross-refs
+            refs = "\n".join([f"See [file{i}](FILE{i}.md)" for i in range(20)])
+            claude_md = Path(tmpdir) / "CLAUDE.md"
+            claude_md.write_text(f"""
+# Comprehensive Project
+
+## Architecture
+
+This is a large project with many references.
+
+{refs}
+
+## Rules
+
+Never do X. Never do Y. Never do Z.
+Always run `test`. Always run `lint`. Always run `build`.
+Use `/path/to/file` and `~/config/file`.
+""")
+            # Create some referenced files
+            for i in range(10):
+                Path(tmpdir, f"FILE{i}.md").write_text(f"# File {i}\n" + "x" * 200)
+
+            scanner = RepoScanner(tmpdir)
+            score = scanner.scan()
+
+            assert score.cross_references is not None
+            assert score.cross_references.bonus_points <= 10
+
+    def test_empty_repo_no_cross_refs(self):
+        """Empty repo should have no cross-references but valid structure."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            scanner = RepoScanner(tmpdir)
+            score = scanner.scan()
+
+            assert score.cross_references is not None
+            assert score.cross_references.total_count == 0
+            assert score.cross_references.source_files_scanned == 0
+            assert score.cross_references.bonus_points == 0
