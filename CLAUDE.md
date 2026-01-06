@@ -87,3 +87,14 @@ The scanner analyzes the content of AI instruction files to detect references:
 - `commits`: Git commit count via `git log --follow` (5+ = 2pts, 3-4 = 1pt)
 
 **Bonus Calculation**: Up to +10 points based on cross-references and quality scores.
+
+## Boris Cherny's Best Practices
+
+Key patterns from the creator of Claude Code:
+
+- **Team-maintained CLAUDE.md**: Check into git, update when Claude makes mistakes
+- **Slash commands**: Store in `.claude/commands/`, use for frequent workflows
+- **MCP config sharing**: Use `.mcp.json` at root level, commit to git
+- **Permission presets**: Configure `.claude/settings.json` with team-safe defaults
+- **Verification loops**: Always give Claude a way to verify its work (tests, linters, etc.)
+- **PostToolUse hooks**: Format code automatically after edits

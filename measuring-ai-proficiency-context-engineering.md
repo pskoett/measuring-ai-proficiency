@@ -67,7 +67,7 @@ One important note: the context engineering landscape is changing constantly. Ne
 - `.claude/hooks/` folder with hook scripts
 - `.claude/settings.json` for Claude Code configuration and hooks
 - `.husky/` for Git hooks
-- MCP server configurations (`mcp.json`, `.mcp/`, `mcp-config.json`)
+- MCP server configurations (`.mcp.json`, `mcp.json`, `.mcp/`, `mcp-config.json`)
 - Custom tool integrations
 
 **Memory and learning files:**
@@ -630,6 +630,26 @@ This is not a reason to avoid context engineering. It is a reason to treat it as
 Teams that build this capability will adapt as tools change. Teams that never start will continue falling behind regardless of what the current best practice happens to be.
 
 Measure what exists now, but expect to update your criteria. The principle remains constant even as the implementation evolves.
+
+## Best Practices from Industry Leaders
+
+### Boris Cherny's Claude Code Patterns
+
+Boris Cherny, the creator of Claude Code, shared his workflow publicly in early 2025. His patterns represent a high watermark for context engineering:
+
+**Team-maintained CLAUDE.md**: His team maintains a shared `CLAUDE.md` file checked into git. "Anytime we see Claude do something incorrectly we add it to the CLAUDE.md, so Claude knows not to do it next time." Multiple team members contribute weekly, creating compound improvements over time.
+
+**Slash commands as codified workflows**: Store frequently used workflows in `.claude/commands/` and commit them to version control. Commands like `/commit-push-pr` encode complex multi-step processes that otherwise require repeated prompting. The key insight: "identify workflows you repeat constantly, then codify them."
+
+**MCP configuration sharing**: Use `.mcp.json` at the root level and commit it to git. This enables team-wide tool integrations: Slack search, BigQuery analytics, Sentry error logs. "On-demand tool loading" makes tools available without consuming context until invoked.
+
+**Permission presets**: Configure `.claude/settings.json` with team-safe defaults for commonly used bash commands. Share these across the team so everyone operates with consistent guardrails.
+
+**Verification as the key insight**: "Probably the most important thing to get great results out of Claude Code: give Claude a way to verify its work. If Claude has that feedback loop, it will 2-3x the quality of the final result." This can be as simple as running tests, a linter, or having Claude test in a browser.
+
+**PostToolUse hooks for automation**: Use hooks to format code automatically after edits. "Claude usually generates well-formatted code out of the box, and the hook handles the last 10% to avoid formatting errors in CI later."
+
+These patterns demonstrate what mature context engineering looks like in practice: systematic, team-oriented, and focused on compounding improvements over time.
 
 ## Getting Started
 

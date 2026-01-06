@@ -275,8 +275,9 @@ LEVEL_5_PATTERNS = LevelConfig(
         ".claude/agents/references.md",
         "agents/references.md",
 
-        # MCP configuration
+        # MCP configuration (Boris Cherny pattern: .mcp.json shared via git)
         "mcp.json",
+        ".mcp.json",
         ".mcp/*.json",
         "mcp-config.json",
         "mcp-server/*.md",
