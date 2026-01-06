@@ -166,7 +166,24 @@ class TerminalReporter:
                 print(f"    Content Quality:", file=output)
                 for file_path, quality in xref.quality_scores.items():
                     q_color = Colors.GREEN if quality.quality_score >= 6 else (Colors.YELLOW if quality.quality_score >= 3 else Colors.RED)
-                    print(f"      {file_path}: {_color(f'{quality.quality_score:.1f}/10', q_color)} ({quality.word_count} words, {quality.section_count} sections)", file=output)
+                    # Show indicators as compact symbols
+                    indicators = []
+                    if quality.has_sections:
+                        indicators.append("sections")
+                    if quality.has_specific_paths:
+                        indicators.append("paths")
+                    if quality.has_tool_commands:
+                        indicators.append("commands")
+                    if quality.has_constraints:
+                        indicators.append("constraints")
+                    indicator_str = ", ".join(indicators) if indicators else "minimal"
+                    print(f"      {file_path}: {_color(f'{quality.quality_score:.1f}/10', q_color)} ({quality.word_count} words, {indicator_str})", file=output)
+
+                # Add quality scoring legend
+                print(file=output)
+                print(f"    {_color('Quality scoring (0-10):', Colors.DIM)}", file=output)
+                print(f"      {_color('sections', Colors.DIM)}: markdown headers (##)  {_color('paths', Colors.DIM)}: file/dir paths (/src/, ~/)", file=output)
+                print(f"      {_color('commands', Colors.DIM)}: CLI in backticks       {_color('constraints', Colors.DIM)}: never/avoid/don't/must not", file=output)
 
             if xref.bonus_points > 0:
                 print(file=output)
@@ -312,6 +329,16 @@ class JsonReporter:
                 "resolved_count": xref.resolved_count,
                 "resolution_rate": round(xref.resolution_rate, 2),
                 "bonus_points": round(xref.bonus_points, 2),
+                "quality_scoring_legend": {
+                    "max_score": 10,
+                    "indicators": {
+                        "sections": {"max_points": 2, "description": "Markdown headers (##) for organization"},
+                        "paths": {"max_points": 2, "description": "Concrete file/directory paths (/src/, ~/)"},
+                        "commands": {"max_points": 2, "description": "CLI commands in backticks"},
+                        "constraints": {"max_points": 2, "description": "Directive language (never, avoid, don't, must not)"},
+                        "substance": {"max_points": 2, "description": "Word count (200+ words = 2 pts, 50-200 = 1 pt)"},
+                    },
+                },
                 "references": [
                     {
                         "source_file": ref.source_file,
@@ -449,6 +476,15 @@ class MarkdownReporter:
                         f"{'✓' if q.has_tool_commands else '○'} | {'✓' if q.has_constraints else '○'} |",
                         file=output,
                     )
+                print(file=output)
+
+                # Add quality scoring explanation
+                print("**Quality Scoring (0-10 points):**", file=output)
+                print("- **Sections** (0-2 pts): Markdown headers (`##`) for organization", file=output)
+                print("- **Paths** (0-2 pts): Concrete file/directory paths (`/src/`, `~/config/`)", file=output)
+                print("- **Commands** (0-2 pts): CLI commands in backticks (`` `npm test` ``)", file=output)
+                print("- **Constraints** (0-2 pts): Directive language (\"never\", \"avoid\", \"don't\", \"must not\")", file=output)
+                print("- **Substance** (0-2 pts): Word count (200+ words = 2 pts)", file=output)
                 print(file=output)
 
             if xref.references:
