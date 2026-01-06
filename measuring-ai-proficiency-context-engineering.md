@@ -35,7 +35,7 @@ One important note: the context engineering landscape is changing constantly. Ne
 - `.github/agents/*.agent.md` for custom Copilot agents
 - `.github/skills/*/SKILL.md` for GitHub Copilot project skills
 - `~/.copilot/skills/*/SKILL.md` for GitHub Copilot personal skills
-- `.cursorrules` or `.cursor/rules/` for Cursor
+- `.cursorrules`, `.cursor/rules/`, or `.cursor/skills/*/SKILL.md` for Cursor
 - `AGENTS.md` for OpenAI Codex CLI
 
 **Specification and architecture files:**
@@ -54,8 +54,8 @@ One important note: the context engineering landscape is changing constantly. Ne
 
 **Skill and workflow files:**
 - `SKILL.md` files following the [Agent Skills](https://agentskills.io/) open standard
-- Project skills in `.claude/skills/`, `.github/skills/`, or `.codex/skills/` directories
-- Personal skills in `~/.copilot/skills/`, `~/.claude/skills/`, or `~/.codex/skills/`
+- Project skills in `.claude/skills/`, `.github/skills/`, `.cursor/skills/`, or `.codex/skills/` directories
+- Personal skills in `~/.copilot/skills/`, `~/.claude/skills/`, `~/.cursor/skills/`, or `~/.codex/skills/`
 - `skills/` folder with domain-specific skills
 - Custom workflow definitions
 - `.claude/commands/` for custom slash commands
@@ -179,9 +179,9 @@ Beyond instructions, the team has created skill files, memory systems, hooks, an
 
 *Skill files:*
 - `SKILL.md` files following the [Agent Skills](https://agentskills.io/) open standard
-- Project skills in `.claude/skills/`, `.github/skills/`, or `.codex/skills/` directories
+- Project skills in `.claude/skills/`, `.github/skills/`, `.cursor/skills/`, or `.codex/skills/` directories
 - Domain-specific skills (`skills/testing/SKILL.md`, `skills/deployment/SKILL.md`)
-- Personal skills in `~/.copilot/skills/`, `~/.claude/skills/`, or `~/.codex/skills/` (shared across projects)
+- Personal skills in `~/.copilot/skills/`, `~/.claude/skills/`, `~/.cursor/skills/`, or `~/.codex/skills/` (shared across projects)
 - `CAPABILITIES.md` documenting what the AI can do in this repo
 
 *Workflow and automation files:*
@@ -383,7 +383,7 @@ If you want to assess your organization's AI proficiency, here is a practical ap
 - Agent instruction files (`CLAUDE.md`, `AGENTS.md`, `.github/copilot-instructions.md`, `.cursorrules`, `.github/agents/*.agent.md`)
 - Architecture and specification files (`ARCHITECTURE.md`, `spec.md`, ADRs, `PATTERNS.md`, `DESIGN.md`, `API.md`, `DATA_MODEL.md`)
 - Conventions files (`CONVENTIONS.md`, `STYLE.md`, `ANTI_PATTERNS.md`, `NAMING.md`, `CODE_REVIEW.md`)
-- Skill files (`.claude/skills/*/SKILL.md`, `.github/skills/*/SKILL.md`, `.codex/skills/*/SKILL.md`, `skills/`, `WORKFLOWS.md`, `.claude/commands/`)
+- Skill files (`.claude/skills/*/SKILL.md`, `.github/skills/*/SKILL.md`, `.cursor/skills/*/SKILL.md`, `.codex/skills/*/SKILL.md`, `skills/`, `WORKFLOWS.md`, `.claude/commands/`)
 - Hooks and automation (`.claude/hooks/`, `.claude/settings.json`, `mcp.json`, `.mcp/`)
 - Memory files (`MEMORY.md`, `LEARNINGS.md`, `.memory/`, `DECISIONS.md`, `RETROSPECTIVES.md`)
 - Supporting context (`TESTING.md`, `DEBUGGING.md`, `GLOSSARY.md`, `.context/` folders)
@@ -453,7 +453,7 @@ Beyond the CLI tool, I have created an agent skill that you can add to any repos
 
 ### What the Skill Does
 
-When you add this skill to your repository, Claude Code, GitHub Copilot, and other skill-aware AI tools can:
+When you add this skill to your repository, Claude Code, GitHub Copilot, Cursor, and other skill-aware AI tools can:
 
 1. **Automatically assess** your repository's context engineering maturity when you ask about AI readiness
 2. **Provide actionable recommendations** for what files to add next
@@ -462,7 +462,7 @@ When you add this skill to your repository, Claude Code, GitHub Copilot, and oth
 
 ### Installing the Skill
 
-Agent Skills follow an [open standard](https://agentskills.io/) and work with Claude Code, GitHub Copilot, and OpenAI Codex. Copy the skill to your repository:
+Agent Skills follow an [open standard](https://agentskills.io/) and work with Claude Code, GitHub Copilot, Cursor, and OpenAI Codex. Copy the skill to your repository:
 
 **For Claude Code:**
 ```bash
@@ -481,6 +481,16 @@ mkdir -p .github/skills/measure-ai-proficiency
 
 # Copy the skill file
 curl -o .github/skills/measure-ai-proficiency/SKILL.md \
+  https://raw.githubusercontent.com/pskoett/measuring-ai-proficiency/main/skill-template/measure-ai-proficiency/SKILL.md
+```
+
+**For Cursor:**
+```bash
+# Create the skills directory
+mkdir -p .cursor/skills/measure-ai-proficiency
+
+# Copy the skill file
+curl -o .cursor/skills/measure-ai-proficiency/SKILL.md \
   https://raw.githubusercontent.com/pskoett/measuring-ai-proficiency/main/skill-template/measure-ai-proficiency/SKILL.md
 ```
 
@@ -505,7 +515,7 @@ Once installed, simply ask your AI assistant:
 - "What level is my AI maturity?"
 - "Help me create better context for AI coding"
 
-Claude Code, GitHub Copilot, OpenAI Codex, and other skill-aware tools will automatically use the skill to scan your repository, explain your current level, and offer to create any missing context files.
+Claude Code, GitHub Copilot, Cursor, OpenAI Codex, and other skill-aware tools will automatically use the skill to scan your repository, explain your current level, and offer to create any missing context files.
 
 ### Why a Skill Matters
 
