@@ -163,7 +163,7 @@ LEVEL_4_PATTERNS = LevelConfig(
     name="Level 4: Skills & Automation",
     description="Skill files, memory systems, hooks, and workflow definitions",
     file_patterns=[
-        # Skill files - Claude Code, GitHub Copilot, and OpenAI Codex
+        # Skill files - Claude Code, GitHub Copilot, Cursor, and OpenAI Codex
         "SKILL.md",
         "skills/*.md",
         "skills/*/SKILL.md",
@@ -173,6 +173,8 @@ LEVEL_4_PATTERNS = LevelConfig(
         ".github/skills/*/*.md",
         ".copilot/skills/*/SKILL.md",
         ".copilot/skills/*/*.md",
+        ".cursor/skills/*/SKILL.md",
+        ".cursor/skills/*/*.md",
         ".codex/skills/*/SKILL.md",
         ".codex/skills/*/*.md",
         "CAPABILITIES.md",
@@ -229,6 +231,7 @@ LEVEL_4_PATTERNS = LevelConfig(
         ".claude/skills",
         ".github/skills",
         ".copilot/skills",
+        ".cursor/skills",
         ".codex/skills",
         ".memory",
         ".context",

@@ -46,6 +46,7 @@ measure_ai_proficiency/
 Agent Skills follow the [Agent Skills](https://agentskills.io/) open standard:
 - Claude Code: `.claude/skills/*/SKILL.md`
 - GitHub Copilot: `.github/skills/*/SKILL.md` or `.copilot/skills/*/SKILL.md`
+- Cursor: `.cursor/skills/*/SKILL.md`
 - OpenAI Codex: `.codex/skills/*/SKILL.md`
 - Generic: `skills/*/SKILL.md`
 

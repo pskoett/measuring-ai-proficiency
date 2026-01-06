@@ -447,6 +447,9 @@ class RepoScanner:
             ".cursor/rules/*.md",
             ".claude/skills/*/SKILL.md",
             ".github/skills/*/SKILL.md",
+            ".cursor/skills/*/SKILL.md",
+            ".copilot/skills/*/SKILL.md",
+            ".codex/skills/*/SKILL.md",
         ]
         for pattern in scoped_patterns:
             try:

@@ -2,7 +2,7 @@
 
 A CLI tool for measuring AI coding proficiency based on context engineering artifacts.
 
-## ⚠️ Important: Customize for Your Organization
+## ⚠️ Important: Customize for Your Organization or Team
 
 **This tool provides a baseline assessment** but works best when customized to your team's conventions. Different organizations use different file names, structures, and patterns for context engineering.
 
@@ -49,12 +49,12 @@ Supports all major AI coding tools and scans **all directories** for context eng
 
 - **Claude Code**: `CLAUDE.md`, `AGENTS.md`, `.claude/agents/`, `.claude/skills/`, `.claude/hooks/`, `.claude/commands/`
 - **GitHub Copilot**: `.github/copilot-instructions.md`, `.github/AGENTS.md`, `.github/instructions/`, `.github/agents/`, `.github/skills/`, `.github/*.md`
-- **Cursor**: `.cursorrules`, `.cursor/rules/`, `.cursor/*.md`
+- **Cursor**: `.cursorrules`, `.cursor/rules/`, `.cursor/skills/`, `.cursor/*.md`
 - **VSCode AI**: `.vscode/*.md`
 - **OpenAI Codex CLI**: `.codex/*.md`, `.codex/skills/`, `AGENTS.md`
 - **Documentation**: `docs/`, `*/docs/` (recursively scans all subdirectories)
 
-**Agent Skills**: Claude Code, GitHub Copilot, and OpenAI Codex all support the [Agent Skills](https://agentskills.io/) open standard. Skills are stored in `.claude/skills/`, `.github/skills/`, or `.codex/skills/` directories with `SKILL.md` files containing instructions for specialized tasks.
+**Agent Skills**: Claude Code, GitHub Copilot, Cursor, and OpenAI Codex all support the [Agent Skills](https://agentskills.io/) open standard. Skills are stored in `.claude/skills/`, `.github/skills/`, `.cursor/skills/`, or `.codex/skills/` directories with `SKILL.md` files containing instructions for specialized tasks.
 
 **Smart Scanning**: Automatically excludes `node_modules/`, `venv/`, `dist/`, `build/`, and other dependency folders.
 
@@ -125,7 +125,7 @@ The tool comprehensively scans for .md files in:
 - **AI Tool Directories**: `.github/`, `.claude/`, `.cursor/`, `.vscode/`, `.codex/`, `.copilot/`
 - **Documentation**: `docs/`, `backend/docs/`, and any `*/docs/` subdirectories
 - **Root Files**: `CLAUDE.md`, `AGENTS.md`, `ARCHITECTURE.md`, `CONTRIBUTING.md`, etc.
-- **Skills & Workflows**: `.claude/skills/`, `.github/skills/`, `.codex/skills/`, `scripts/`, `Makefile`, hooks, commands
+- **Skills & Workflows**: `.claude/skills/`, `.github/skills/`, `.cursor/skills/`, `.codex/skills/`, `scripts/`, `Makefile`, hooks, commands
 - **Custom Locations**: Detects files wherever you place them in your repository
 
 **Exclusions**: Automatically skips `node_modules/`, `venv/`, `.venv/`, `env/`, `dist/`, `build/`, `__pycache__/`, `.git/`, `vendor/`, `target/`, `coverage/`, and other common dependency/build directories.
@@ -165,6 +165,16 @@ mkdir -p .github/skills/measure-ai-proficiency
 
 # Download the skill
 curl -o .github/skills/measure-ai-proficiency/SKILL.md \
+  https://raw.githubusercontent.com/pskoett/measuring-ai-proficiency/main/skill-template/measure-ai-proficiency/SKILL.md
+```
+
+**For Cursor:**
+```bash
+# Create the skills directory
+mkdir -p .cursor/skills/measure-ai-proficiency
+
+# Download the skill
+curl -o .cursor/skills/measure-ai-proficiency/SKILL.md \
   https://raw.githubusercontent.com/pskoett/measuring-ai-proficiency/main/skill-template/measure-ai-proficiency/SKILL.md
 ```
 
@@ -430,7 +440,7 @@ Core AI context files that indicate intentional AI tool usage.
 
 | Category | Files |
 |----------|-------|
-| Skills | `SKILL.md`, `skills/`, `.claude/skills/*/SKILL.md`, `.github/skills/*/SKILL.md`, `.copilot/skills/*/SKILL.md`, `.codex/skills/*/SKILL.md`, `CAPABILITIES.md` |
+| Skills | `SKILL.md`, `skills/`, `.claude/skills/*/SKILL.md`, `.github/skills/*/SKILL.md`, `.copilot/skills/*/SKILL.md`, `.cursor/skills/*/SKILL.md`, `.codex/skills/*/SKILL.md`, `CAPABILITIES.md` |
 | Agents | `.claude/agents/*.md`, `.github/agents/*.md`, `agents/*.md`, `agents/references.md` |
 | Workflows | `WORKFLOWS.md`, `.claude/commands/`, `COMMANDS.md`, `scripts/` |
 | Memory | `MEMORY.md`, `LEARNINGS.md`, `DECISIONS.md`, `.memory/` |
@@ -464,7 +474,7 @@ AI instruction files are scanned for cross-references and quality:
 - `CLAUDE.md`, `AGENTS.md`, `.cursorrules`, `CODEX.md`
 - `.github/copilot-instructions.md`, `.copilot-instructions.md`
 - Scoped instruction files (`.github/instructions/*.md`, `.cursor/rules/*.md`)
-- Skills (`*.claude/skills/*/SKILL.md`, `.github/skills/*/SKILL.md`)
+- Skills (`.claude/skills/*/SKILL.md`, `.github/skills/*/SKILL.md`, `.cursor/skills/*/SKILL.md`)
 
 ### Cross-Reference Detection
 

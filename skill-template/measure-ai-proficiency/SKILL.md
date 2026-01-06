@@ -7,7 +7,7 @@ description: Assess and improve repository AI coding proficiency and context eng
 
 Assess repository context engineering maturity and provide actionable recommendations for improving AI collaboration.
 
-This skill works with Claude Code, GitHub Copilot, and OpenAI Codex (via the [Agent Skills](https://agentskills.io/) open standard).
+This skill works with Claude Code, GitHub Copilot, Cursor, and OpenAI Codex (via the [Agent Skills](https://agentskills.io/) open standard).
 
 ## Prerequisites
 

@@ -43,6 +43,7 @@ file_patterns=[
 All major AI tools now support the [Agent Skills](https://agentskills.io/) open standard:
 - Claude Code: `.claude/skills/*/SKILL.md`
 - GitHub Copilot: `.github/skills/*/SKILL.md`
+- Cursor: `.cursor/skills/*/SKILL.md`
 - OpenAI Codex: `.codex/skills/*/SKILL.md`
 
 ### Output Formats
