@@ -213,6 +213,12 @@ Beyond instructions, the team has created skill files, memory systems, hooks, an
 - `PROMPTS.md` or `.prompts/` with saved effective prompts
 - `personas/` folder with different AI interaction styles for different tasks
 
+*Agent personality and identity (ClawdBot pattern):*
+- `SOUL.md` defining behavioral constitution and core truths
+- `IDENTITY.md` or `PERSONALITY.md` for agent character
+- `.soul/` folder for personality configuration
+- Session transcripts in `.transcripts/` or `.sessions/` (JSONL format)
+
 *Hooks and automation:*
 - `.claude/hooks/` folder with hook scripts (formatters, validators, notifications)
 - `.claude/settings.json` for project-level hook configuration
@@ -282,6 +288,11 @@ Advanced memory systems, shared context across packages, and workflow pipeline d
 - `FLEET.md` documenting fleet setup and configuration
 - `.fleet/` folder for fleet management configs
 
+*Gas Town patterns - service discovery and formulas:*
+- `routes.jsonl` for transparent routing and service discovery
+- `formulas/` folder with workflow templates (TOML/YAML)
+- `discovery/` for agent discovery configurations
+
 Behavioral indicators:
 - You are very fast - marked jump in output velocity
 - Capability to context-switch between agents quickly
@@ -308,6 +319,10 @@ Large agent fleet with governance, scheduling, and multi-agent pipelines. Managi
 - `convoys/` folder for coordinated agent groups
 - `molecules/` folder for atomic work units
 - `epics/` folder for large task decomposition
+- `swarm/` for worker coordination patterns
+- `wisps/` for ephemeral patrol cycles
+- `polecats/` for task-oriented workers
+- `.rigs/` or `rigs/` for project-specific configurations
 
 *Multi-agent pipelines:*
 - `pipelines/multi_agent/` for complex workflows
@@ -358,6 +373,12 @@ Building custom orchestration frameworks and meta-automation. This is the fronti
 - `tools/REGISTRY.md` for tool registry
 - `agent_sdk/` or `agent_framework/` for custom frameworks
 - `protocols/` for custom communication protocols
+
+*Agent communication (ClawdBot/Gas Town patterns):*
+- `mail-protocol.md` or `MAIL_PROTOCOL.md` for inter-agent messaging
+- `federation.md` or `FEDERATION.md` for distributed agent systems
+- `escalation.md` or `ESCALATION.md` for handling failures
+- `watchdog/` for monitoring and health checks
 
 *Infrastructure as code:*
 - `infra/agents/` for agent infrastructure

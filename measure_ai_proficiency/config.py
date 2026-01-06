@@ -212,6 +212,18 @@ LEVEL_4_PATTERNS = LevelConfig(
         ".prompts/*.md",
         "personas/*.md",
 
+        # Agent personality and behavioral constitution (ClawdBot pattern)
+        "SOUL.md",
+        ".soul/*.md",
+        "IDENTITY.md",
+        "PERSONALITY.md",
+
+        # Session transcripts and logging
+        ".transcripts/*.jsonl",
+        "transcripts/*.jsonl",
+        ".sessions/*.jsonl",
+        "sessions/*.jsonl",
+
         # Hooks and automation
         ".claude/hooks/*.sh",
         ".claude/hooks/*.py",
@@ -239,6 +251,11 @@ LEVEL_4_PATTERNS = LevelConfig(
         ".prompts",
         "personas",
         ".codex",
+        ".soul",
+        ".transcripts",
+        "transcripts",
+        ".sessions",
+        "sessions",
     ],
     weight=2.0
 )
@@ -347,6 +364,18 @@ LEVEL_6_PATTERNS = LevelConfig(
         ".fleet/*.yaml",
         ".fleet/*.json",
         ".fleet/README.md",
+
+        # Gas Town patterns - service discovery and routing
+        "routes.jsonl",
+        ".routes/*.jsonl",
+        "discovery/*.md",
+        "discovery/*.yaml",
+
+        # Formula templates (Gas Town molecules)
+        "formulas/*.toml",
+        "formulas/*.yaml",
+        "formulas/README.md",
+        ".formulas/*.toml",
     ],
     directory_patterns=[
         ".beads",
@@ -355,6 +384,9 @@ LEVEL_6_PATTERNS = LevelConfig(
         "agent_state",
         "workflows",
         "pipelines",
+        "formulas",
+        ".formulas",
+        "discovery",
         "memory/global",
         "memory/shared",
         "memory/project",
@@ -411,6 +443,18 @@ LEVEL_7_PATTERNS = LevelConfig(
         "epics/*.md",
         "epics/README.md",
 
+        # Gas Town advanced patterns
+        "swarm/*.yaml",
+        "swarm/*.md",
+        "swarm/README.md",
+        "wisps/*.yaml",
+        "wisps/*.md",
+        "polecats/*.yaml",
+        "polecats/*.md",
+        ".rigs/*.yaml",
+        ".rigs/*.md",
+        "rigs/*.yaml",
+
         # Agent metrics
         "agents/METRICS.md",
         "AGENT_PERFORMANCE.md",
@@ -426,6 +470,11 @@ LEVEL_7_PATTERNS = LevelConfig(
         "convoys",
         "molecules",
         "epics",
+        "swarm",
+        "wisps",
+        "polecats",
+        ".rigs",
+        "rigs",
         ".metrics/agents",
         "metrics/agents",
         "pipelines/multi_agent",
@@ -498,6 +547,16 @@ LEVEL_8_PATTERNS = LevelConfig(
         "protocols/*.yaml",
         "PROTOCOL.md",
 
+        # Agent communication (ClawdBot/Gas Town patterns)
+        "mail-protocol.md",
+        "MAIL_PROTOCOL.md",
+        "federation.md",
+        "FEDERATION.md",
+        "escalation.md",
+        "ESCALATION.md",
+        "watchdog/*.yaml",
+        "watchdog/*.md",
+
         # Infrastructure as code for agents
         "infra/agents/*.tf",
         "infra/agents/*.yaml",
@@ -516,6 +575,7 @@ LEVEL_8_PATTERNS = LevelConfig(
         "agent_sdk",
         "agent_framework",
         "protocols",
+        "watchdog",
         "infra/agents",
         "k8s/agents",
     ],
