@@ -50,3 +50,12 @@ skip_recommendations:
 #   - skills
 #   - testing
 #   - architecture
+
+# Quality scoring thresholds (advanced - rarely need to change)
+# These control how files are evaluated for quality scoring
+# quality:
+#   max_file_size: 100000       # Max bytes to scan for cross-refs (default: 100KB)
+#   min_substantive_bytes: 100  # Min bytes for file to count as "substantive"
+#   word_threshold_partial: 50  # Words needed for partial quality points
+#   word_threshold_full: 200    # Words needed for full quality points
+#   git_timeout: 5              # Git command timeout in seconds

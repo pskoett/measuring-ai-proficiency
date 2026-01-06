@@ -7,6 +7,7 @@ Supports:
 """
 
 import os
+import sys
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Dict, List, Optional, Set
@@ -37,6 +38,13 @@ class RepoConfig:
 
     # Focus areas (only show recommendations for these)
     focus_areas: List[str] = field(default_factory=list)
+
+    # Quality scoring thresholds (configurable)
+    max_file_size: int = 100_000  # Max file size for cross-ref scanning (bytes)
+    min_substantive_bytes: int = 100  # Minimum bytes for a file to be "substantive"
+    word_threshold_partial: int = 50  # Words for partial quality points
+    word_threshold_full: int = 200  # Words for full quality points
+    git_timeout: int = 5  # Git command timeout in seconds
 
     # Whether config was loaded from file
     from_file: bool = False
@@ -185,9 +193,24 @@ def load_repo_config(repo_path: Path) -> RepoConfig:
             if "focus_areas" in data:
                 config.focus_areas = data["focus_areas"]
 
-        except Exception:
-            # If config loading fails, fall back to auto-detection
-            pass
+            # Load quality scoring options
+            if "quality" in data:
+                quality = data["quality"]
+                if "max_file_size" in quality:
+                    config.max_file_size = int(quality["max_file_size"])
+                if "min_substantive_bytes" in quality:
+                    config.min_substantive_bytes = int(quality["min_substantive_bytes"])
+                if "word_threshold_partial" in quality:
+                    config.word_threshold_partial = int(quality["word_threshold_partial"])
+                if "word_threshold_full" in quality:
+                    config.word_threshold_full = int(quality["word_threshold_full"])
+                if "git_timeout" in quality:
+                    config.git_timeout = int(quality["git_timeout"])
+
+        except yaml.YAMLError as e:
+            print(f"Warning: Failed to parse {config_file}: {e}", file=sys.stderr)
+        except Exception as e:
+            print(f"Warning: Failed to load config {config_file}: {e}", file=sys.stderr)
 
     # Auto-detect tools (supplement configured tools)
     detected_tools = detect_ai_tools(repo_path)
@@ -215,6 +238,15 @@ def get_tool_specific_recommendation(
     return tool_recs.get(rec_type, fallback)
 
 
+# Proper display names for AI tools (handles special capitalization like "GitHub")
+TOOL_DISPLAY_NAMES = {
+    "claude-code": "Claude Code",
+    "github-copilot": "GitHub Copilot",
+    "cursor": "Cursor",
+    "openai-codex": "OpenAI Codex",
+}
+
+
 def format_multi_tool_options(tools: List[str], rec_type: str) -> str:
     """Format recommendations showing options for multiple tools."""
 
@@ -222,7 +254,7 @@ def format_multi_tool_options(tools: List[str], rec_type: str) -> str:
     for tool in tools:
         path = get_tool_specific_recommendation(tool, rec_type)
         if path:
-            tool_name = tool.replace("-", " ").title()
+            tool_name = TOOL_DISPLAY_NAMES.get(tool, tool.replace("-", " ").title())
             options.append(f"{path} ({tool_name})")
 
     if not options:

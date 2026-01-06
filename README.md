@@ -71,7 +71,7 @@ The tool automatically detects which AI tools you're using based on files in you
 
   Overall Level: Level 2: Basic Instructions
   Overall Score: 45.3/100
-  AI Tools: Claude Code, Github Copilot    ← Auto-detected!
+  AI Tools: Claude Code, GitHub Copilot    ← Auto-detected!
 ```
 
 Recommendations are tailored to your detected tools. If you use Claude Code, you'll get Claude-specific recommendations. If you use GitHub Copilot, you'll get Copilot-specific recommendations.
@@ -110,6 +110,14 @@ focus_areas:
   - documentation
   - skills
   - testing
+
+# Quality scoring thresholds (advanced, rarely needed)
+quality:
+  max_file_size: 100000       # Max bytes to scan for cross-refs (default: 100KB)
+  min_substantive_bytes: 100  # Min bytes for file to count as "substantive"
+  word_threshold_partial: 50  # Words for partial quality points
+  word_threshold_full: 200    # Words for full quality points
+  git_timeout: 5              # Git command timeout in seconds
 ```
 
 When a config file is present, you'll see:
@@ -302,7 +310,7 @@ measure-ai-proficiency --org /path/to/org --min-level 2
 
   Overall Level: Level 3: Comprehensive Context
   Overall Score: 38.7/100
-  AI Tools: Claude Code, Github Copilot
+  AI Tools: Claude Code, GitHub Copilot
 
   Level Breakdown:
 
@@ -345,7 +353,7 @@ measure-ai-proficiency --org /path/to/org --min-level 2
 
   Recommendations:
 
-    → 🔍 Detected AI tools: Claude Code, Github Copilot. Recommendations tailored accordingly.
+    → 🔍 Detected AI tools: Claude Code, GitHub Copilot. Recommendations tailored accordingly.
     → 📚 Add comprehensive documentation - ARCHITECTURE.md, API.md, CONVENTIONS.md, TESTING.md.
     → 🎨 Add PATTERNS.md: Document common design patterns used in your codebase.
 
@@ -395,7 +403,7 @@ measure-ai-proficiency --org /path/to/org --min-level 2
     }
   },
   "recommendations": [
-    "🔍 Detected AI tools: Claude Code, Github Copilot. Recommendations tailored accordingly.",
+    "🔍 Detected AI tools: Claude Code, GitHub Copilot. Recommendations tailored accordingly.",
     "📚 Add comprehensive documentation - ARCHITECTURE.md, API.md, CONVENTIONS.md, TESTING.md."
   ]
 }
@@ -499,8 +507,8 @@ Each instruction file is scored (0-10) based on quality indicators inspired by [
 | **Paths** | Concrete file/dir paths (`/src/`, `~/config/`) | 0-2 |
 | **Commands** | CLI commands in backticks (`` `npm test` ``) | 0-2 |
 | **Constraints** | "never", "avoid", "don't", "must not" | 0-2 |
-| **Substance** | Word count (200+ words = full points) | 0-2 |
-| **Commits** | Git history (5+ commits = full points) | 0-2 |
+| **Substance** | Word count (200+ = 2pts, 50-200 = 1pt) | 0-2 |
+| **Commits** | Git history (5+ = 2pts, 3-4 = 1pt) | 0-2 |
 
 ### Bonus Points
 
@@ -550,10 +558,10 @@ Cross-References & Quality:
 6. **Level Achievement**:
    - Level 1: Baseline (always achieved)
    - Level 2: At least one AI context file (CLAUDE.md, .cursorrules, etc.)
-   - Level 3: Level 2 + >20% coverage of comprehensive context patterns
-   - Level 4: Level 3 + >15% coverage of skills & automation patterns
-   - Level 5: Level 4 + >10% coverage of multi-agent patterns
-   - Level 6-8: Progressive thresholds for fleet infrastructure and orchestration
+   - Level 3: Level 2 + ≥15% coverage of comprehensive context patterns
+   - Level 4: Level 3 + ≥12% coverage of skills & automation patterns
+   - Level 5: Level 4 + ≥10% coverage of multi-agent patterns
+   - Level 6-8: Progressive thresholds (≥8%, ≥6%, ≥5%) for fleet infrastructure and orchestration
 7. **Overall Score**: Weighted combination of coverage, substantiveness, and cross-reference bonus (up to +10 points)
 
 ### Understanding Your Score

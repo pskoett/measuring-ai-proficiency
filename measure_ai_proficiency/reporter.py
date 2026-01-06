@@ -8,7 +8,7 @@ Uses levels 1-8 aligned with Steve Yegge's 8-stage model.
 import json
 import sys
 from datetime import datetime
-from typing import List, TextIO
+from typing import List, TextIO, Union
 
 from .scanner import RepoScore
 
@@ -26,6 +26,20 @@ class Colors:
     ENDC = "\033[0m"
     BOLD = "\033[1m"
     DIM = "\033[2m"
+
+
+# Proper display names for AI tools (handles special capitalization like "GitHub")
+TOOL_DISPLAY_NAMES = {
+    "claude-code": "Claude Code",
+    "github-copilot": "GitHub Copilot",
+    "cursor": "Cursor",
+    "openai-codex": "OpenAI Codex",
+}
+
+
+def _format_tool_name(tool: str) -> str:
+    """Format a tool ID into a display name."""
+    return TOOL_DISPLAY_NAMES.get(tool, tool.replace("-", " ").title())
 
 
 def _supports_color() -> bool:
@@ -111,7 +125,7 @@ class TerminalReporter:
 
         # Show detected tools
         if score.detected_tools:
-            tool_names = ", ".join(t.replace("-", " ").title() for t in score.detected_tools)
+            tool_names = ", ".join(_format_tool_name(t) for t in score.detected_tools)
             print(f"  AI Tools: {_color(tool_names, Colors.CYAN)}", file=output)
 
             # Show if config was loaded
@@ -468,7 +482,7 @@ class MarkdownReporter:
 
         # Show detected tools
         if score.detected_tools:
-            tool_names = ", ".join(t.replace("-", " ").title() for t in score.detected_tools)
+            tool_names = ", ".join(_format_tool_name(t) for t in score.detected_tools)
             print(f"- **AI Tools Detected:** {tool_names}", file=output)
             if score.config and score.config.from_file:
                 print(f"- **Config:** `.ai-proficiency.yaml` loaded", file=output)
@@ -674,7 +688,9 @@ class CsvReporter:
             print(line, file=output)
 
 
-def get_reporter(format: str, verbose: bool = False):
+def get_reporter(
+    format: str, verbose: bool = False
+) -> Union["TerminalReporter", "JsonReporter", "MarkdownReporter", "CsvReporter"]:
     """Get a reporter for the specified format."""
 
     reporters = {

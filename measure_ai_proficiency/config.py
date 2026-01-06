@@ -604,9 +604,3 @@ CORE_AI_FILES: Set[str] = {
     ".cursorrules",
 }
 
-# Quality indicators - files that suggest the context is actively maintained
-QUALITY_INDICATORS: List[str] = [
-    "CHANGELOG.md",
-    ".github/workflows/*.yml",
-    ".github/workflows/*.yaml",
-]

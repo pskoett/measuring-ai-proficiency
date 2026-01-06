@@ -49,7 +49,7 @@ KNOWN_TARGETS: Set[str] = {
 }
 
 # Max file size to read for cross-reference scanning (100KB)
-MAX_CROSS_REF_FILE_SIZE: int = 100_000
+# Note: Max file size is now configurable via RepoConfig.max_file_size (default: 100KB)
 
 # Regex patterns for detecting cross-references
 CROSS_REF_PATTERNS: Dict[str, re.Pattern] = {
@@ -215,6 +215,27 @@ class RepoScanner:
         self.verbose = verbose
         self._dir_cache: Dict[str, bool] = {}
         self.config: Optional[RepoConfig] = None
+
+    # Config getters with defaults (used before config is loaded)
+    @property
+    def _max_file_size(self) -> int:
+        return self.config.max_file_size if self.config else 100_000
+
+    @property
+    def _min_substantive_bytes(self) -> int:
+        return self.config.min_substantive_bytes if self.config else 100
+
+    @property
+    def _word_threshold_partial(self) -> int:
+        return self.config.word_threshold_partial if self.config else 50
+
+    @property
+    def _word_threshold_full(self) -> int:
+        return self.config.word_threshold_full if self.config else 200
+
+    @property
+    def _git_timeout(self) -> int:
+        return self.config.git_timeout if self.config else 5
 
     def scan(self) -> RepoScore:
         """Scan the repository and return a complete score."""
@@ -436,7 +457,7 @@ class RepoScanner:
             path = self.repo_path / name
             if path.exists() and path.is_file():
                 try:
-                    if path.stat().st_size <= MAX_CROSS_REF_FILE_SIZE:
+                    if path.stat().st_size <= self._max_file_size:
                         files.append(path)
                 except (OSError, PermissionError):
                     pass
@@ -454,7 +475,7 @@ class RepoScanner:
         for pattern in scoped_patterns:
             try:
                 for match in self.repo_path.glob(pattern):
-                    if match.stat().st_size <= MAX_CROSS_REF_FILE_SIZE:
+                    if match.stat().st_size <= self._max_file_size:
                         files.append(match)
             except (OSError, PermissionError):
                 pass
@@ -465,7 +486,7 @@ class RepoScanner:
         """Safely read file content with size limit and error handling."""
 
         try:
-            if path.stat().st_size > MAX_CROSS_REF_FILE_SIZE:
+            if path.stat().st_size > self._max_file_size:
                 return None
             return path.read_text(encoding='utf-8', errors='ignore')
         except (OSError, PermissionError, UnicodeDecodeError):
@@ -485,7 +506,7 @@ class RepoScanner:
                 cwd=self.repo_path,
                 capture_output=True,
                 text=True,
-                timeout=5,  # Prevent hanging on large repos
+                timeout=self._git_timeout,
             )
             if result.returncode == 0 and result.stdout.strip():
                 return len(result.stdout.strip().split('\n'))
@@ -575,7 +596,11 @@ class RepoScanner:
         score += min(len(paths) / 3, 2.0)          # Up to 2 pts for paths
         score += min(len(commands) / 3, 2.0)       # Up to 2 pts for commands
         score += min(len(constraints) / 2, 2.0)    # Up to 2 pts for constraints
-        score += 2.0 if len(words) > 200 else (1.0 if len(words) > 50 else 0.0)  # Substance
+        # Substance score based on word count (configurable thresholds)
+        if len(words) > self._word_threshold_full:
+            score += 2.0
+        elif len(words) > self._word_threshold_partial:
+            score += 1.0
 
         # Commit history bonus (up to 2 pts) - indicates active maintenance
         # 1 commit = 0 pts (just created), 3+ commits = 1 pt, 5+ commits = 2 pts
@@ -708,471 +733,515 @@ class RepoScanner:
             return min(100, (total_score / max_possible) * 100)
         return 0.0
 
-    def _generate_recommendations(self, score: RepoScore) -> List[str]:
-        """Generate actionable recommendations based on the score and detected tools."""
+    # =========================================================================
+    # Recommendation Helper Methods
+    # =========================================================================
 
-        recommendations: List[str] = []
+    def _should_skip(self, config: Optional[RepoConfig], rec_type: str) -> bool:
+        """Check if a recommendation type should be skipped."""
+        if config and config.skip_recommendations:
+            return rec_type in config.skip_recommendations
+        return False
+
+    def _in_focus(self, config: Optional[RepoConfig], rec_type: str) -> bool:
+        """Check if a recommendation type is in the focus area."""
+        if config and config.focus_areas:
+            return rec_type in config.focus_areas
+        return True
+
+    def _tool_path(self, tools: List[str], rec_type: str) -> str:
+        """Get tool-specific path for a recommendation type."""
+        return format_multi_tool_options(tools, rec_type)
+
+    # Proper display names for AI tools (handles special capitalization like "GitHub")
+    TOOL_DISPLAY_NAMES = {
+        "claude-code": "Claude Code",
+        "github-copilot": "GitHub Copilot",
+        "cursor": "Cursor",
+        "openai-codex": "OpenAI Codex",
+    }
+
+    def _format_tool_name(self, tool: str) -> str:
+        """Format a tool ID into a display name."""
+        return self.TOOL_DISPLAY_NAMES.get(tool, tool.replace("-", " ").title())
+
+    def _add_tools_header(
+        self, recs: List[str], tools: List[str], suffix: str = "Recommendations tailored accordingly."
+    ) -> None:
+        """Add detected tools header to recommendations."""
+        if tools:
+            tool_names = ", ".join(self._format_tool_name(t) for t in tools)
+            recs.append(f"🔍 Detected AI tools: {tool_names}. {suffix}")
+
+    def _recommendations_level_1(self, score: RepoScore, tools: List[str]) -> List[str]:
+        """Generate recommendations for Level 1: Zero AI."""
+        recs: List[str] = []
+        basic_file = self._tool_path(tools, "basic_file") or "CLAUDE.md"
+
+        self._add_tools_header(recs, tools)
+
+        recs.append(
+            f"🚀 START HERE: Create {basic_file} in your repository root. "
+            "Describe your project's purpose, architecture, key abstractions, and coding conventions. "
+            "This is the #1 way to improve AI coding assistance."
+        )
+
+        if "github-copilot" in tools or not tools:
+            recs.append(
+                "📝 Add .github/copilot-instructions.md for GitHub Copilot users. "
+                "Include project-specific patterns, naming conventions, and common pitfalls."
+            )
+
+        if "cursor" in tools or not tools:
+            recs.append(
+                "🎯 For Cursor users: Create a .cursorrules file with your team's coding standards. "
+                "This helps maintain consistency across AI-assisted coding sessions."
+            )
+
+        if "openai-codex" in tools:
+            recs.append(
+                "🤖 For OpenAI Codex: Create AGENTS.md with agent instructions and "
+                "set up .codex/ directory for Codex-specific configuration."
+            )
+
+        recs.append(
+            "💡 Quick win: Ensure your README.md has clear sections on architecture, setup, and testing. "
+            "This provides baseline context for all AI tools."
+        )
+
+        return recs
+
+    def _recommendations_level_2(
+        self, score: RepoScore, tools: List[str], config: Optional[RepoConfig]
+    ) -> List[str]:
+        """Generate recommendations for Level 2: Basic Instructions."""
+        recs: List[str] = []
         level_3 = score.level_scores.get(3)
+        if not level_3:
+            return recs
+
+        self._add_tools_header(recs, tools)
+
+        # Check for missing critical docs
+        missing_critical = []
+        level_3_files = level_3.matched_files
+
+        checks = [
+            ("ARCHITECTURE", "ARCHITECTURE.md"),
+            ("API", "API.md"),
+            (["CONVENTIONS", "STYLE", "STANDARDS"], "CONVENTIONS.md"),
+            ("TESTING", "TESTING.md"),
+        ]
+
+        for terms, filename in checks:
+            if isinstance(terms, str):
+                terms = [terms]
+            if not any(any(t in f.path.upper() for t in terms) for f in level_3_files):
+                missing_critical.append(filename)
+
+        if missing_critical and not self._should_skip(config, "documentation"):
+            recs.append(
+                f"📚 PRIORITY: Add comprehensive documentation - you're missing {', '.join(missing_critical)}. "
+                "These files provide essential context for AI tools to understand your codebase deeply."
+            )
+
+        # Priority recommendations
+        priority_recs = []
+
+        if not any("ARCHITECTURE" in f.path.upper() for f in level_3_files) and self._in_focus(config, "architecture"):
+            priority_recs.append((
+                "🏗️ Create docs/ARCHITECTURE.md: Document your system design, component relationships, "
+                "data flow, and key architectural decisions. Include diagrams if possible. "
+                "This helps AI understand the big picture when making suggestions.", 1
+            ))
+
+        if not any(any(t in f.path.upper() for t in ["CONVENTIONS", "STYLE", "STANDARDS"]) for f in level_3_files) and self._in_focus(config, "conventions"):
+            priority_recs.append((
+                "📏 Create CONVENTIONS.md: Document your team's coding standards, naming conventions, "
+                "file organization, import patterns, error handling, and testing requirements. "
+                "This ensures AI-generated code matches your team's style.", 2
+            ))
+
+        if not any("PATTERNS" in f.path.upper() for f in level_3_files) and self._in_focus(config, "patterns"):
+            priority_recs.append((
+                "🎨 Add PATTERNS.md: Document common design patterns used in your codebase. "
+                "Include examples of: state management, error handling, API interactions, "
+                "data transformations, and component composition. AI will follow these patterns.", 3
+            ))
+
+        if not any("API" in f.path.upper() for f in level_3_files) and self._in_focus(config, "api"):
+            priority_recs.append((
+                "🔌 Document your APIs: Create docs/API.md describing endpoints, request/response formats, "
+                "authentication, rate limiting, and error codes. Helps AI generate correct API calls.", 4
+            ))
+
+        if not any("TESTING" in f.path.upper() for f in level_3_files) and self._in_focus(config, "testing"):
+            priority_recs.append((
+                "🧪 Add TESTING.md: Document your testing strategy, how to run tests, "
+                "coverage requirements, and common testing patterns. AI can then generate proper tests.", 5
+            ))
+
+        priority_recs.sort(key=lambda x: x[1])
+        for rec, _ in priority_recs[:5]:
+            recs.append(rec)
+
+        if len(recs) < 7 and self._in_focus(config, "contributing"):
+            if not any("CONTRIBUTING" in f.path.upper() for f in level_3_files):
+                recs.append(
+                    "👥 Add CONTRIBUTING.md: Define workflow for PRs, commit conventions, "
+                    "code review guidelines, and development setup. Helps AI understand your process."
+                )
+
+        return recs
+
+    def _recommendations_level_3(
+        self, score: RepoScore, tools: List[str], config: Optional[RepoConfig]
+    ) -> List[str]:
+        """Generate recommendations for Level 3: Comprehensive Context."""
+        recs: List[str] = []
         level_4 = score.level_scores.get(4)
-        level_5 = score.level_scores.get(5)
-        level_6 = score.level_scores.get(6)
-        level_7 = score.level_scores.get(7)
+        if not level_4:
+            return recs
 
-        # Get detected tools for tool-specific recommendations
-        tools = score.detected_tools if score.detected_tools else ["claude-code"]
-        primary_tool = tools[0] if tools else "claude-code"
-        config = score.config
+        self._add_tools_header(recs, tools)
 
-        # Helper to check if recommendation should be skipped
-        def should_skip(rec_type: str) -> bool:
-            if config and config.skip_recommendations:
-                return rec_type in config.skip_recommendations
-            return False
+        recs.append(
+            "⚡ LEVEL UP: You have comprehensive documentation. Now add automation and workflows "
+            "to make AI even more productive with skills, hooks, and custom commands."
+        )
 
-        # Helper to check if recommendation is in focus area
-        def in_focus(rec_type: str) -> bool:
-            if config and config.focus_areas:
-                return rec_type in config.focus_areas
-            return True  # If no focus areas, include all
-
-        # Helper to get tool-specific path
-        def tool_path(rec_type: str) -> str:
-            return format_multi_tool_options(tools, rec_type)
-
-        if score.overall_level == 1:
-            # Level 1: Zero AI - need to start with basic AI files
-            basic_file = tool_path("basic_file") or "CLAUDE.md"
-
-            # Show detected tools if any
-            if tools:
-                tool_names = ", ".join(t.replace("-", " ").title() for t in tools)
-                recommendations.append(
-                    f"🔍 Detected AI tools: {tool_names}. Recommendations tailored accordingly."
-                )
-
-            recommendations.append(
-                f"🚀 START HERE: Create {basic_file} in your repository root. "
-                "Describe your project's purpose, architecture, key abstractions, and coding conventions. "
-                "This is the #1 way to improve AI coding assistance."
+        # Skills directory
+        skills_dir = self._tool_path(tools, "skills_dir")
+        if skills_dir and not self._should_skip(config, "skills"):
+            has_skills = any(
+                any(d in dir_name for d in [".claude/skills", ".github/skills", ".cursor/skills", ".codex/skills"])
+                for dir_name in level_4.matched_directories
             )
-
-            # Tool-specific recommendations based on what's detected or commonly used
-            if "github-copilot" in tools or not tools:
-                recommendations.append(
-                    "📝 Add .github/copilot-instructions.md for GitHub Copilot users. "
-                    "Include project-specific patterns, naming conventions, and common pitfalls."
+            if not has_skills:
+                recs.append(
+                    f"🛠️ Create {skills_dir}: Add custom skills for common tasks. Each skill should have "
+                    "a SKILL.md describing its purpose, inputs, outputs, and usage. Examples: "
+                    "create-component, run-tests, deploy-staging, generate-api-client. "
+                    "Follows the Agent Skills standard (agentskills.io)."
                 )
 
-            if "cursor" in tools or not tools:
-                recommendations.append(
-                    "🎯 For Cursor users: Create a .cursorrules file with your team's coding standards. "
-                    "This helps maintain consistency across AI-assisted coding sessions."
-                )
-
-            if "openai-codex" in tools:
-                recommendations.append(
-                    "🤖 For OpenAI Codex: Create AGENTS.md with agent instructions and "
-                    "set up .codex/ directory for Codex-specific configuration."
-                )
-
-            recommendations.append(
-                "💡 Quick win: Ensure your README.md has clear sections on architecture, setup, and testing. "
-                "This provides baseline context for all AI tools."
-            )
-            return recommendations
-
-        if score.overall_level == 2:
-            # Level 2: Basic Instructions - need comprehensive context
-            # Show detected tools
-            if tools:
-                tool_names = ", ".join(t.replace("-", " ").title() for t in tools)
-                recommendations.append(
-                    f"🔍 Detected AI tools: {tool_names}. Recommendations tailored accordingly."
-                )
-
-            missing_critical = []
-
-            if not any("ARCHITECTURE" in f.path.upper() for f in level_3.matched_files):
-                missing_critical.append("ARCHITECTURE.md")
-            if not any("API" in f.path.upper() for f in level_3.matched_files):
-                missing_critical.append("API.md")
-            if not any(any(term in f.path.upper() for term in ["CONVENTIONS", "STYLE", "STANDARDS"])
-                      for f in level_3.matched_files):
-                missing_critical.append("CONVENTIONS.md")
-            if not any("TESTING" in f.path.upper() for f in level_3.matched_files):
-                missing_critical.append("TESTING.md")
-
-            if missing_critical and not should_skip("documentation"):
-                recommendations.append(
-                    f"📚 PRIORITY: Add comprehensive documentation - you're missing {', '.join(missing_critical)}. "
-                    f"These files provide essential context for AI tools to understand your codebase deeply."
-                )
-
-            priority_recs = []
-
-            if not any("ARCHITECTURE" in f.path.upper() for f in level_3.matched_files) and in_focus("architecture"):
-                priority_recs.append((
-                    "🏗️ Create docs/ARCHITECTURE.md: Document your system design, component relationships, "
-                    "data flow, and key architectural decisions. Include diagrams if possible. "
-                    "This helps AI understand the big picture when making suggestions.", 1
-                ))
-
-            if not any(any(term in f.path.upper() for term in ["CONVENTIONS", "STYLE", "STANDARDS"])
-                      for f in level_3.matched_files) and in_focus("conventions"):
-                priority_recs.append((
-                    "📏 Create CONVENTIONS.md: Document your team's coding standards, naming conventions, "
-                    "file organization, import patterns, error handling, and testing requirements. "
-                    "This ensures AI-generated code matches your team's style.", 2
-                ))
-
-            if not any("PATTERNS" in f.path.upper() for f in level_3.matched_files) and in_focus("patterns"):
-                priority_recs.append((
-                    "🎨 Add PATTERNS.md: Document common design patterns used in your codebase. "
-                    "Include examples of: state management, error handling, API interactions, "
-                    "data transformations, and component composition. AI will follow these patterns.", 3
-                ))
-
-            if not any("API" in f.path.upper() for f in level_3.matched_files) and in_focus("api"):
-                priority_recs.append((
-                    "🔌 Document your APIs: Create docs/API.md describing endpoints, request/response formats, "
-                    "authentication, rate limiting, and error codes. Helps AI generate correct API calls.", 4
-                ))
-
-            if not any("TESTING" in f.path.upper() for f in level_3.matched_files) and in_focus("testing"):
-                priority_recs.append((
-                    "🧪 Add TESTING.md: Document your testing strategy, how to run tests, "
-                    "coverage requirements, and common testing patterns. AI can then generate proper tests.", 5
-                ))
-
-            priority_recs.sort(key=lambda x: x[1])
-            for rec, _ in priority_recs[:5]:
-                recommendations.append(rec)
-
-            if len(recommendations) < 7 and in_focus("contributing"):
-                if not any("CONTRIBUTING" in f.path.upper() for f in level_3.matched_files):
-                    recommendations.append(
-                        "👥 Add CONTRIBUTING.md: Define workflow for PRs, commit conventions, "
-                        "code review guidelines, and development setup. Helps AI understand your process."
-                    )
-
-        if score.overall_level == 3:
-            # Level 3: Comprehensive Context - need skills & automation
-            # Show detected tools
-            if tools:
-                tool_names = ", ".join(t.replace("-", " ").title() for t in tools)
-                recommendations.append(
-                    f"🔍 Detected AI tools: {tool_names}. Recommendations tailored accordingly."
-                )
-
-            recommendations.append(
-                "⚡ LEVEL UP: You have comprehensive documentation. Now add automation and workflows "
-                "to make AI even more productive with skills, hooks, and custom commands."
-            )
-
-            # Tool-specific skills directory recommendation
-            skills_dir = tool_path("skills_dir")
-            if skills_dir and not should_skip("skills"):
-                has_skills = any(
-                    any(d in dir_name for d in [".claude/skills", ".github/skills", ".cursor/skills", ".codex/skills"])
-                    for dir_name in level_4.matched_directories
-                )
-                if not has_skills:
-                    recommendations.append(
-                        f"🛠️ Create {skills_dir}: Add custom skills for common tasks. Each skill should have "
-                        "a SKILL.md describing its purpose, inputs, outputs, and usage. Examples: "
-                        "create-component, run-tests, deploy-staging, generate-api-client. "
-                        "Follows the Agent Skills standard (agentskills.io)."
-                    )
-
-            # Hooks (Claude-specific)
-            if "claude-code" in tools and not should_skip("hooks"):
+        # Claude-specific: hooks and commands
+        if "claude-code" in tools:
+            if not self._should_skip(config, "hooks"):
                 if not any(".claude/hooks" in d for d in level_4.matched_directories):
-                    recommendations.append(
+                    recs.append(
                         "🪝 Set up .claude/hooks/: Add PostToolUse hooks for automatic actions like "
                         "formatting code, running linters, updating tests, or validating against conventions. "
                         "This ensures AI-generated code is always production-ready."
                     )
 
-            # Commands (Claude-specific)
-            if "claude-code" in tools and not should_skip("commands"):
+            if not self._should_skip(config, "commands"):
                 if not any(".claude/commands" in d for d in level_4.matched_directories):
-                    recommendations.append(
+                    recs.append(
                         "⌨️ Add .claude/commands/: Create custom slash commands for frequent tasks. "
                         "Examples: /new-feature, /add-test, /refactor-component, /update-docs. "
                         "Makes complex workflows one-command simple."
                     )
 
-            # Copilot instructions directory
-            if "github-copilot" in tools and not should_skip("instructions"):
-                if not any(".github/instructions" in d for d in level_4.matched_directories):
-                    recommendations.append(
-                        "📋 Add .github/instructions/: Create scoped instruction files for different "
-                        "parts of your codebase. Examples: frontend.instructions.md, api.instructions.md."
-                    )
-
-            # Cursor-specific recommendations
-            if "cursor" in tools and not should_skip("cursor"):
-                if not any(".cursor/rules" in d for d in level_4.matched_directories):
-                    recommendations.append(
-                        "🎯 Add .cursor/rules/: Create scoped rule files (.md or .mdc) for different "
-                        "parts of your codebase. Also consider .cursor/skills/ for reusable skills."
-                    )
-
-            # Memory (universal)
-            if not should_skip("memory"):
-                if not any(any(term in f.path.upper() for term in ["MEMORY", "LEARNINGS", "DECISIONS"])
-                          for f in level_4.matched_files):
-                    recommendations.append(
-                        "💾 Add MEMORY.md or LEARNINGS.md: Document lessons learned, past decisions, "
-                        "failed approaches, and architectural evolution. Helps AI avoid repeating mistakes "
-                        "and understand historical context."
-                    )
-
-            # Boris Cherny's key insight: verification loops
-            if not should_skip("verification"):
-                recommendations.append(
-                    "✅ VERIFICATION (Boris Cherny's key insight): Give AI a way to verify its work - "
-                    "tests, linters, type checkers, or browser testing. This 2-3x the quality of results. "
-                    "Consider adding a verify script or PostToolUse hook for automatic validation."
+        # Copilot instructions directory
+        if "github-copilot" in tools and not self._should_skip(config, "instructions"):
+            if not any(".github/instructions" in d for d in level_4.matched_directories):
+                recs.append(
+                    "📋 Add .github/instructions/: Create scoped instruction files for different "
+                    "parts of your codebase. Examples: frontend.instructions.md, api.instructions.md."
                 )
 
-            # ClawdBot pattern: Agent personality/constitution
-            if not should_skip("soul"):
-                if not any(any(term in f.path.upper() for term in ["SOUL", "IDENTITY", "PERSONALITY"])
-                          for f in level_4.matched_files):
-                    recommendations.append(
-                        "🎭 Consider SOUL.md or IDENTITY.md (ClawdBot pattern): Define your agent's "
-                        "behavioral constitution - personality, tone, values, and guidelines for how "
-                        "it should interact with users and handle edge cases."
-                    )
-
-        if score.overall_level == 4:
-            # Level 4: Skills & Automation - need multi-agent setup
-            # Show detected tools
-            if tools:
-                tool_names = ", ".join(t.replace("-", " ").title() for t in tools)
-                recommendations.append(
-                    f"🔍 Detected AI tools: {tool_names}. Recommendations tailored accordingly."
+        # Cursor-specific
+        if "cursor" in tools and not self._should_skip(config, "cursor"):
+            if not any(".cursor/rules" in d for d in level_4.matched_directories):
+                recs.append(
+                    "🎯 Add .cursor/rules/: Create scoped rule files (.md or .mdc) for different "
+                    "parts of your codebase. Also consider .cursor/skills/ for reusable skills."
                 )
 
-            recommendations.append(
-                "🚀 ADVANCING: You have skills and automation. Now configure multiple specialized agents "
-                "and MCP integrations for more sophisticated AI collaboration."
+        # Memory (universal)
+        if not self._should_skip(config, "memory"):
+            if not any(any(t in f.path.upper() for t in ["MEMORY", "LEARNINGS", "DECISIONS"]) for f in level_4.matched_files):
+                recs.append(
+                    "💾 Add MEMORY.md or LEARNINGS.md: Document lessons learned, past decisions, "
+                    "failed approaches, and architectural evolution. Helps AI avoid repeating mistakes "
+                    "and understand historical context."
+                )
+
+        # Boris Cherny's verification loops
+        if not self._should_skip(config, "verification"):
+            recs.append(
+                "✅ VERIFICATION (Boris Cherny's key insight): Give AI a way to verify its work - "
+                "tests, linters, type checkers, or browser testing. This 2-3x the quality of results. "
+                "Consider adding a verify script or PostToolUse hook for automatic validation."
             )
 
-            # Tool-specific agents directory
-            agents_dir = tool_path("agents_dir")
-            has_agents = any(
-                any(d in dir_name for d in [".github/agents", ".claude/agents", "agents"])
-                for dir_name in level_5.matched_directories
+        # ClawdBot pattern: Agent personality
+        if not self._should_skip(config, "soul"):
+            if not any(any(t in f.path.upper() for t in ["SOUL", "IDENTITY", "PERSONALITY"]) for f in level_4.matched_files):
+                recs.append(
+                    "🎭 Consider SOUL.md or IDENTITY.md (ClawdBot pattern): Define your agent's "
+                    "behavioral constitution - personality, tone, values, and guidelines for how "
+                    "it should interact with users and handle edge cases."
+                )
+
+        return recs
+
+    def _recommendations_level_4(
+        self, score: RepoScore, tools: List[str], config: Optional[RepoConfig]
+    ) -> List[str]:
+        """Generate recommendations for Level 4: Skills & Automation."""
+        recs: List[str] = []
+        level_5 = score.level_scores.get(5)
+        if not level_5:
+            return recs
+
+        self._add_tools_header(recs, tools)
+
+        recs.append(
+            "🚀 ADVANCING: You have skills and automation. Now configure multiple specialized agents "
+            "and MCP integrations for more sophisticated AI collaboration."
+        )
+
+        has_agents = any(
+            any(d in dir_name for d in [".github/agents", ".claude/agents", "agents"])
+            for dir_name in level_5.matched_directories
+        )
+
+        if not has_agents and not self._should_skip(config, "agents"):
+            if "github-copilot" in tools:
+                recs.append(
+                    "🤖 Add .github/agents/: Create specialized GitHub agents for code review "
+                    "(reviewer.agent.md), testing (tester.agent.md), security analysis (security.agent.md). "
+                    "Each with specific expertise and evaluation criteria."
+                )
+            elif "claude-code" in tools:
+                recs.append(
+                    "🤖 Add .claude/agents/: Create specialized agents for different tasks. "
+                    "Define agent personas with specific expertise and context requirements."
+                )
+            else:
+                recs.append(
+                    "🤖 Add agents/: Create specialized agent configurations for your AI tools. "
+                    "Each agent should have specific expertise and evaluation criteria."
+                )
+
+        if not any(".mcp" in d for d in level_5.matched_directories) and not self._should_skip(config, "mcp"):
+            recs.append(
+                "🔗 Set up MCP servers: Create .mcp.json at the root (Boris Cherny pattern) for "
+                "team-shared tool integrations - Slack, databases, APIs. Also use .mcp/servers/ "
+                "for complex configs. Enables richer agent capabilities."
             )
 
-            if not has_agents and not should_skip("agents"):
-                if "github-copilot" in tools:
-                    recommendations.append(
-                        "🤖 Add .github/agents/: Create specialized GitHub agents for code review "
-                        "(reviewer.agent.md), testing (tester.agent.md), security analysis (security.agent.md). "
-                        "Each with specific expertise and evaluation criteria."
-                    )
-                elif "claude-code" in tools:
-                    recommendations.append(
-                        "🤖 Add .claude/agents/: Create specialized agents for different tasks. "
-                        "Define agent personas with specific expertise and context requirements."
-                    )
-                else:
-                    recommendations.append(
-                        "🤖 Add agents/: Create specialized agent configurations for your AI tools. "
-                        "Each agent should have specific expertise and evaluation criteria."
-                    )
-
-            if not any(".mcp" in d for d in level_5.matched_directories) and not should_skip("mcp"):
-                recommendations.append(
-                    "🔗 Set up MCP servers: Create .mcp.json at the root (Boris Cherny pattern) for "
-                    "team-shared tool integrations - Slack, databases, APIs. Also use .mcp/servers/ "
-                    "for complex configs. Enables richer agent capabilities."
-                )
-
-            if not should_skip("handoffs"):
-                recommendations.append(
-                    "🤝 Create agents/HANDOFFS.md: Document when and how specialized agents should "
-                    "hand off work to each other. Define triggers, context passing, and success criteria."
-                )
-
-        if score.overall_level == 5:
-            # Level 5: Multi-Agent Ready - need fleet infrastructure
-            # Show detected tools
-            if tools:
-                tool_names = ", ".join(t.replace("-", " ").title() for t in tools)
-                recommendations.append(
-                    f"🔍 Detected AI tools: {tool_names}. Recommendations tailored accordingly."
-                )
-
-            recommendations.append(
-                "🎯 FLEET READY: You have multi-agent setup. Now add fleet infrastructure "
-                "for managing parallel agent instances with shared memory and workflows."
+        if not self._should_skip(config, "handoffs"):
+            recs.append(
+                "🤝 Create agents/HANDOFFS.md: Document when and how specialized agents should "
+                "hand off work to each other. Define triggers, context passing, and success criteria."
             )
 
-            if not any(".beads" in d or "beads" in d for d in level_6.matched_directories) and not should_skip("beads"):
-                recommendations.append(
-                    "🧠 Set up Beads: Create .beads/ for persistent memory across agent sessions. "
-                    "Beads provides external memory that survives session timeouts and enables "
-                    "long-horizon work across multiple agent instances."
-                )
+        return recs
 
-            if not any("workflows" in d or "pipelines" in d for d in level_6.matched_directories) and not should_skip("workflows"):
-                recommendations.append(
-                    "🔄 Add workflows/: Create YAML workflow definitions for multi-step processes. "
-                    "Examples: workflows/code_review.yaml, workflows/feature_development.yaml. "
-                    "These coordinate agent activities across complex tasks."
-                )
+    def _recommendations_level_5(
+        self, score: RepoScore, tools: List[str], config: Optional[RepoConfig]
+    ) -> List[str]:
+        """Generate recommendations for Level 5: Multi-Agent Ready."""
+        recs: List[str] = []
+        level_6 = score.level_scores.get(6)
+        if not level_6:
+            return recs
 
-            if not any("SHARED_CONTEXT" in f.path.upper() for f in level_6.matched_files) and not should_skip("shared_context"):
-                recommendations.append(
-                    "📊 Create SHARED_CONTEXT.md: Document context that all agents should have access to - "
-                    "critical system constraints, business rules, compliance requirements, and team values."
-                )
+        self._add_tools_header(recs, tools)
 
-            if not should_skip("monorepo"):
-                # Tool-specific monorepo context
-                if "claude-code" in tools:
-                    recommendations.append(
-                        "📦 For monorepos: Add packages/*/CLAUDE.md for package-specific context. "
-                        "This helps agents understand boundaries and relationships between packages."
-                    )
-                elif "github-copilot" in tools:
-                    recommendations.append(
-                        "📦 For monorepos: Add packages/*/.github/copilot-instructions.md for package-specific context. "
-                        "This helps Copilot understand boundaries and relationships between packages."
-                    )
-                else:
-                    recommendations.append(
-                        "📦 For monorepos: Add package-specific context files for each package. "
-                        "This helps agents understand boundaries and relationships between packages."
-                    )
+        recs.append(
+            "🎯 FLEET READY: You have multi-agent setup. Now add fleet infrastructure "
+            "for managing parallel agent instances with shared memory and workflows."
+        )
 
-        if score.overall_level == 6:
-            # Level 6: Fleet Infrastructure - need agent fleet governance
-            # Show detected tools
-            if tools:
-                tool_names = ", ".join(t.replace("-", " ").title() for t in tools)
-                recommendations.append(
-                    f"🔍 Detected AI tools: {tool_names}. Recommendations tailored accordingly."
-                )
-
-            recommendations.append(
-                "⚡ FLEET INFRASTRUCTURE: You have the basics. Now scale to a full agent fleet "
-                "with governance, scheduling, and multi-agent pipelines."
+        if not any(".beads" in d or "beads" in d for d in level_6.matched_directories) and not self._should_skip(config, "beads"):
+            recs.append(
+                "🧠 Set up Beads: Create .beads/ for persistent memory across agent sessions. "
+                "Beads provides external memory that survives session timeouts and enables "
+                "long-horizon work across multiple agent instances."
             )
 
-            if not any("GOVERNANCE" in f.path.upper() for f in level_7.matched_files) and not should_skip("governance"):
-                recommendations.append(
-                    "📋 Create GOVERNANCE.md: Document agent permissions, boundaries, and policies. "
-                    "Define what agents can and cannot do, approval requirements, and escalation paths."
-                )
-
-            if not any("SCHEDULING" in f.path.upper() or "PRIORITY" in f.path.upper() for f in level_7.matched_files) and not should_skip("scheduling"):
-                recommendations.append(
-                    "📅 Add agents/SCHEDULING.md: Define how to prioritize and schedule agent work. "
-                    "Include queue management, priority rules, and resource allocation strategies."
-                )
-
-            if not any("convoys" in d or "molecules" in d or "epics" in d for d in level_7.matched_directories) and not should_skip("convoys"):
-                recommendations.append(
-                    "🚛 Set up convoys/ or molecules/: Use Gas Town-style work decomposition. "
-                    "Break large tasks into molecules (atomic units) and convoys (coordinated groups)."
-                )
-
-            # Gas Town advanced patterns
-            if not any("swarm" in d or "wisps" in d or "polecats" in d for d in level_7.matched_directories) and not should_skip("swarm"):
-                recommendations.append(
-                    "🐝 Consider swarm/, wisps/, or polecats/ (Gas Town patterns): "
-                    "swarm/ for distributed agent coordination, wisps/ for lightweight ephemeral agents, "
-                    "polecats/ for aggressive cleanup and maintenance agents."
-                )
-
-            if not should_skip("metrics"):
-                recommendations.append(
-                    "📊 Add agents/METRICS.md: Track agent performance, success rates, and productivity. "
-                    "Use metrics to optimize your fleet configuration and identify bottlenecks."
-                )
-
-        if score.overall_level == 7:
-            # Level 7: Agent Fleet - need custom orchestration
-            # Show detected tools
-            if tools:
-                tool_names = ", ".join(t.replace("-", " ").title() for t in tools)
-                recommendations.append(
-                    f"🔍 Detected AI tools: {tool_names}. Recommendations tailored accordingly."
-                )
-
-            recommendations.append(
-                "🎖️ AGENT FLEET: You're managing a full fleet. Now consider custom orchestration "
-                "for advanced coordination and meta-automation."
+        if not any("workflows" in d or "pipelines" in d for d in level_6.matched_directories) and not self._should_skip(config, "workflows"):
+            recs.append(
+                "🔄 Add workflows/: Create YAML workflow definitions for multi-step processes. "
+                "Examples: workflows/code_review.yaml, workflows/feature_development.yaml. "
+                "These coordinate agent activities across complex tasks."
             )
 
-            if not should_skip("orchestration"):
-                recommendations.append(
-                    "🏗️ Build orchestration/: Create custom orchestration logic for complex workflows. "
-                    "Define how agents coordinate, share state, and handle failures at scale."
-                )
-
-            if not should_skip("gastown"):
-                recommendations.append(
-                    "🔧 Consider Gas Town: Set up .gastown/ configuration for Steve Yegge's "
-                    "multi-agent orchestrator. It provides Kubernetes-like agent management."
-                )
-
-            if not should_skip("meta"):
-                recommendations.append(
-                    "⚙️ Add meta/: Create meta-automation that generates automation. "
-                    "Templates and generators that create new agent configs, workflows, and skills."
-                )
-
-            if not should_skip("experimental"):
-                recommendations.append(
-                    "🧪 Explore experimental/: Document frontier techniques you're exploring. "
-                    "New patterns, frameworks, and approaches for AI-assisted development."
-                )
-
-            # Gas Town/ClawdBot communication patterns
-            if not should_skip("protocols"):
-                recommendations.append(
-                    "📬 Consider agent communication protocols (Gas Town/ClawdBot patterns): "
-                    "MAIL_PROTOCOL.md for inter-agent messaging, FEDERATION.md for distributed agents, "
-                    "ESCALATION.md for handling failures, watchdog/ for monitoring agents."
-                )
-
-        if score.overall_level == 8:
-            # Level 8: Custom Orchestration - frontier level
-            # Show detected tools
-            if tools:
-                tool_names = ", ".join(t.replace("-", " ").title() for t in tools)
-                recommendations.append(
-                    f"🔍 Detected AI tools: {tool_names}. You're at the frontier!"
-                )
-
-            recommendations.append(
-                "🌟 FRONTIER: You're at Level 8 - building custom orchestration! "
-                "You're among the most advanced AI-assisted development setups in existence."
-            )
-            recommendations.append(
-                "🎓 Share your learnings: Write blog posts, create templates, or contribute patterns "
-                "back to the community. Your setup can help others level up their AI proficiency."
-            )
-            recommendations.append(
-                "📈 Track metrics: Monitor AI-assisted productivity gains, code quality improvements, "
-                "and developer satisfaction. Quantify your success to justify investment."
-            )
-            recommendations.append(
-                "🔬 Push boundaries: You're positioned to shape the future of AI-assisted development. "
-                "Experiment with new patterns and share what works."
-            )
-            recommendations.append(
-                "🤝 Mentor others: Help other teams in your organization adopt similar practices. "
-                "Create internal documentation and training on context engineering."
+        if not any("SHARED_CONTEXT" in f.path.upper() for f in level_6.matched_files) and not self._should_skip(config, "shared_context"):
+            recs.append(
+                "📊 Create SHARED_CONTEXT.md: Document context that all agents should have access to - "
+                "critical system constraints, business rules, compliance requirements, and team values."
             )
 
-        return recommendations
+        if not self._should_skip(config, "monorepo"):
+            if "claude-code" in tools:
+                recs.append(
+                    "📦 For monorepos: Add packages/*/CLAUDE.md for package-specific context. "
+                    "This helps agents understand boundaries and relationships between packages."
+                )
+            elif "github-copilot" in tools:
+                recs.append(
+                    "📦 For monorepos: Add packages/*/.github/copilot-instructions.md for package-specific context. "
+                    "This helps Copilot understand boundaries and relationships between packages."
+                )
+            else:
+                recs.append(
+                    "📦 For monorepos: Add package-specific context files for each package. "
+                    "This helps agents understand boundaries and relationships between packages."
+                )
+
+        return recs
+
+    def _recommendations_level_6(
+        self, score: RepoScore, tools: List[str], config: Optional[RepoConfig]
+    ) -> List[str]:
+        """Generate recommendations for Level 6: Fleet Infrastructure."""
+        recs: List[str] = []
+        level_7 = score.level_scores.get(7)
+        if not level_7:
+            return recs
+
+        self._add_tools_header(recs, tools)
+
+        recs.append(
+            "⚡ FLEET INFRASTRUCTURE: You have the basics. Now scale to a full agent fleet "
+            "with governance, scheduling, and multi-agent pipelines."
+        )
+
+        if not any("GOVERNANCE" in f.path.upper() for f in level_7.matched_files) and not self._should_skip(config, "governance"):
+            recs.append(
+                "📋 Create GOVERNANCE.md: Document agent permissions, boundaries, and policies. "
+                "Define what agents can and cannot do, approval requirements, and escalation paths."
+            )
+
+        if not any("SCHEDULING" in f.path.upper() or "PRIORITY" in f.path.upper() for f in level_7.matched_files) and not self._should_skip(config, "scheduling"):
+            recs.append(
+                "📅 Add agents/SCHEDULING.md: Define how to prioritize and schedule agent work. "
+                "Include queue management, priority rules, and resource allocation strategies."
+            )
+
+        if not any("convoys" in d or "molecules" in d or "epics" in d for d in level_7.matched_directories) and not self._should_skip(config, "convoys"):
+            recs.append(
+                "🚛 Set up convoys/ or molecules/: Use Gas Town-style work decomposition. "
+                "Break large tasks into molecules (atomic units) and convoys (coordinated groups)."
+            )
+
+        if not any("swarm" in d or "wisps" in d or "polecats" in d for d in level_7.matched_directories) and not self._should_skip(config, "swarm"):
+            recs.append(
+                "🐝 Consider swarm/, wisps/, or polecats/ (Gas Town patterns): "
+                "swarm/ for distributed agent coordination, wisps/ for lightweight ephemeral agents, "
+                "polecats/ for aggressive cleanup and maintenance agents."
+            )
+
+        if not self._should_skip(config, "metrics"):
+            recs.append(
+                "📊 Add agents/METRICS.md: Track agent performance, success rates, and productivity. "
+                "Use metrics to optimize your fleet configuration and identify bottlenecks."
+            )
+
+        return recs
+
+    def _recommendations_level_7(
+        self, score: RepoScore, tools: List[str], config: Optional[RepoConfig]
+    ) -> List[str]:
+        """Generate recommendations for Level 7: Agent Fleet."""
+        recs: List[str] = []
+
+        self._add_tools_header(recs, tools)
+
+        recs.append(
+            "🎖️ AGENT FLEET: You're managing a full fleet. Now consider custom orchestration "
+            "for advanced coordination and meta-automation."
+        )
+
+        if not self._should_skip(config, "orchestration"):
+            recs.append(
+                "🏗️ Build orchestration/: Create custom orchestration logic for complex workflows. "
+                "Define how agents coordinate, share state, and handle failures at scale."
+            )
+
+        if not self._should_skip(config, "gastown"):
+            recs.append(
+                "🔧 Consider Gas Town: Set up .gastown/ configuration for Steve Yegge's "
+                "multi-agent orchestrator. It provides Kubernetes-like agent management."
+            )
+
+        if not self._should_skip(config, "meta"):
+            recs.append(
+                "⚙️ Add meta/: Create meta-automation that generates automation. "
+                "Templates and generators that create new agent configs, workflows, and skills."
+            )
+
+        if not self._should_skip(config, "experimental"):
+            recs.append(
+                "🧪 Explore experimental/: Document frontier techniques you're exploring. "
+                "New patterns, frameworks, and approaches for AI-assisted development."
+            )
+
+        if not self._should_skip(config, "protocols"):
+            recs.append(
+                "📬 Consider agent communication protocols (Gas Town/ClawdBot patterns): "
+                "MAIL_PROTOCOL.md for inter-agent messaging, FEDERATION.md for distributed agents, "
+                "ESCALATION.md for handling failures, watchdog/ for monitoring agents."
+            )
+
+        return recs
+
+    def _recommendations_level_8(self, score: RepoScore, tools: List[str]) -> List[str]:
+        """Generate recommendations for Level 8: Custom Orchestration."""
+        recs: List[str] = []
+
+        self._add_tools_header(recs, tools, suffix="You're at the frontier!")
+
+        recs.append(
+            "🌟 FRONTIER: You're at Level 8 - building custom orchestration! "
+            "You're among the most advanced AI-assisted development setups in existence."
+        )
+        recs.append(
+            "🎓 Share your learnings: Write blog posts, create templates, or contribute patterns "
+            "back to the community. Your setup can help others level up their AI proficiency."
+        )
+        recs.append(
+            "📈 Track metrics: Monitor AI-assisted productivity gains, code quality improvements, "
+            "and developer satisfaction. Quantify your success to justify investment."
+        )
+        recs.append(
+            "🔬 Push boundaries: You're positioned to shape the future of AI-assisted development. "
+            "Experiment with new patterns and share what works."
+        )
+        recs.append(
+            "🤝 Mentor others: Help other teams in your organization adopt similar practices. "
+            "Create internal documentation and training on context engineering."
+        )
+
+        return recs
+
+    def _generate_recommendations(self, score: RepoScore) -> List[str]:
+        """Generate actionable recommendations based on the score and detected tools."""
+
+        tools = score.detected_tools if score.detected_tools else ["claude-code"]
+        config = score.config
+
+        # Dispatch to level-specific recommendation handlers
+        handlers = {
+            1: lambda: self._recommendations_level_1(score, tools),
+            2: lambda: self._recommendations_level_2(score, tools, config),
+            3: lambda: self._recommendations_level_3(score, tools, config),
+            4: lambda: self._recommendations_level_4(score, tools, config),
+            5: lambda: self._recommendations_level_5(score, tools, config),
+            6: lambda: self._recommendations_level_6(score, tools, config),
+            7: lambda: self._recommendations_level_7(score, tools, config),
+            8: lambda: self._recommendations_level_8(score, tools),
+        }
+
+        handler = handlers.get(score.overall_level)
+        if handler:
+            return handler()
+        return []
 
 
 def scan_multiple_repos(repo_paths: List[str], verbose: bool = False) -> List[RepoScore]:

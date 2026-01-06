@@ -138,13 +138,20 @@ Maturity Levels (aligned with Steve Yegge's 8-stage model):
     # Output
     output = sys.stdout
     if args.output:
-        output = open(args.output, "w")
+        try:
+            output = open(args.output, "w")
+        except (OSError, IOError) as e:
+            print(f"Error: Cannot write to file: {args.output} ({e})", file=sys.stderr)
+            sys.exit(1)
 
     try:
         if len(scores) == 1 and not args.org:
             reporter.report_single(scores[0], output)
         else:
             reporter.report_multiple(scores, output)
+    except (OSError, IOError) as e:
+        print(f"Error: Failed to write output: {e}", file=sys.stderr)
+        sys.exit(1)
     finally:
         if args.output:
             output.close()
