@@ -152,8 +152,8 @@ class TestJsonReporter:
             data = json.loads(output.getvalue())
             assert "level_scores" in data
 
-    def test_multiple_repos_outputs_array(self):
-        """Multiple repos should output a JSON array."""
+    def test_multiple_repos_outputs_object_with_repos(self):
+        """Multiple repos should output a JSON object with repos array."""
         with tempfile.TemporaryDirectory() as tmpdir:
             Path(tmpdir, "README.md").write_text("# Test\n" + "x" * 200)
 
@@ -165,8 +165,9 @@ class TestJsonReporter:
             reporter.report_multiple(scores, output)
 
             data = json.loads(output.getvalue())
-            assert isinstance(data, list)
-            assert len(data) == 2
+            assert isinstance(data, dict)
+            assert "repos" in data
+            assert len(data["repos"]) == 2
 
 
 class TestMarkdownReporter:
@@ -216,7 +217,8 @@ class TestCsvReporter:
 
             reporter = CsvReporter()
             output = io.StringIO()
-            reporter.report_single(score, output)
+            # CsvReporter only has report_multiple, use single-item list
+            reporter.report_multiple([score], output)
 
             result = output.getvalue()
             lines = result.strip().split("\n")

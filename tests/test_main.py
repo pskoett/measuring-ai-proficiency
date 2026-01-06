@@ -191,5 +191,7 @@ class TestCLIOrgMode:
 
             import json
             data = json.loads(result.stdout)
-            assert isinstance(data, list)
-            assert len(data) == 2
+            # JSON output is an object with "repos" array
+            assert isinstance(data, dict)
+            assert "repos" in data
+            assert len(data["repos"]) == 2

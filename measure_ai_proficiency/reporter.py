@@ -654,6 +654,10 @@ class MarkdownReporter:
 class CsvReporter:
     """Report results as CSV."""
 
+    def report_single(self, score: RepoScore, output: TextIO = sys.stdout) -> None:
+        """Report a single repository score as CSV."""
+        self.report_multiple([score], output)
+
     def report_multiple(self, scores: List[RepoScore], output: TextIO = sys.stdout) -> None:
         """Report multiple repository scores as CSV."""
 

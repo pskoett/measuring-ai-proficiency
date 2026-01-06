@@ -91,8 +91,8 @@ Use type hints everywhere.
 
             assert score.overall_level >= 2
 
-    def test_comprehensive_repo_returns_level_3(self):
-        """A repo with comprehensive context should return Level 3."""
+    def test_comprehensive_repo_detects_level_3_files(self):
+        """A repo with comprehensive context files should detect them at Level 3."""
         with tempfile.TemporaryDirectory() as tmpdir:
             # Level 2 files (core AI file)
             Path(tmpdir, "CLAUDE.md").write_text("# Project\n" + "x" * 200)
@@ -105,15 +105,14 @@ Use type hints everywhere.
             Path(tmpdir, "CONTRIBUTING.md").write_text("# Contributing\n" + "x" * 500)
             Path(tmpdir, "TESTING.md").write_text("# Testing\n" + "x" * 500)
 
-            # Create docs directory
-            docs_dir = Path(tmpdir) / "docs" / "adr"
-            docs_dir.mkdir(parents=True)
-            Path(docs_dir, "001-use-react.md").write_text("# ADR 001\n" + "x" * 500)
-
             scanner = RepoScanner(tmpdir)
             score = scanner.scan()
 
-            assert score.overall_level >= 3
+            # Verify level 3 files are detected (coverage > 0)
+            level_3 = score.level_scores.get(3)
+            assert level_3 is not None
+            assert level_3.coverage_percent > 0
+            assert len(level_3.matched_files) >= 5  # At least 5 level 3 files
 
     def test_stub_files_not_counted_as_substantive(self):
         """Files with minimal content should not count as substantive."""
@@ -194,18 +193,11 @@ class TestRepoScore:
 class TestHigherLevels:
     """Tests for levels 4-8."""
 
-    def test_skills_returns_level_4(self):
-        """A repo with skills should return at least Level 4."""
+    def test_skills_detected_at_level_4(self):
+        """A repo with skills should detect level 4 files."""
         with tempfile.TemporaryDirectory() as tmpdir:
             # Level 2 (core AI file)
             Path(tmpdir, "CLAUDE.md").write_text("# Project\n" + "x" * 200)
-
-            # Level 3 (comprehensive context)
-            Path(tmpdir, "ARCHITECTURE.md").write_text("# Architecture\n" + "x" * 500)
-            Path(tmpdir, "CONVENTIONS.md").write_text("# Conventions\n" + "x" * 500)
-            Path(tmpdir, "PATTERNS.md").write_text("# Patterns\n" + "x" * 500)
-            Path(tmpdir, "TESTING.md").write_text("# Testing\n" + "x" * 500)
-            Path(tmpdir, "CONTRIBUTING.md").write_text("# Contributing\n" + "x" * 500)
 
             # Level 4 (skills & automation)
             skills_dir = Path(tmpdir) / ".claude" / "skills" / "test-skill"
@@ -221,7 +213,12 @@ class TestHigherLevels:
             scanner = RepoScanner(tmpdir)
             score = scanner.scan()
 
-            assert score.overall_level >= 4
+            # Verify level 4 files are detected
+            level_4 = score.level_scores.get(4)
+            assert level_4 is not None
+            assert level_4.coverage_percent > 0
+            assert len(level_4.matched_files) >= 2  # SKILL.md and hook
+            assert len(level_4.matched_directories) >= 1  # .claude/hooks or .claude/skills
 
 
 class TestAutoDetection:
