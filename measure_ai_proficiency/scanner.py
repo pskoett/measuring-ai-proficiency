@@ -873,14 +873,15 @@ class RepoScanner:
             skills_dir = tool_path("skills_dir")
             if skills_dir and not should_skip("skills"):
                 has_skills = any(
-                    any(d in dir_name for d in [".claude/skills", ".github/skills", ".codex/skills"])
+                    any(d in dir_name for d in [".claude/skills", ".github/skills", ".cursor/skills", ".codex/skills"])
                     for dir_name in level_4.matched_directories
                 )
                 if not has_skills:
                     recommendations.append(
                         f"🛠️ Create {skills_dir}: Add custom skills for common tasks. Each skill should have "
                         "a SKILL.md describing its purpose, inputs, outputs, and usage. Examples: "
-                        "create-component, run-tests, deploy-staging, generate-api-client."
+                        "create-component, run-tests, deploy-staging, generate-api-client. "
+                        "Follows the Agent Skills standard (agentskills.io)."
                     )
 
             # Hooks (Claude-specific)
@@ -909,6 +910,14 @@ class RepoScanner:
                         "parts of your codebase. Examples: frontend.instructions.md, api.instructions.md."
                     )
 
+            # Cursor-specific recommendations
+            if "cursor" in tools and not should_skip("cursor"):
+                if not any(".cursor/rules" in d for d in level_4.matched_directories):
+                    recommendations.append(
+                        "🎯 Add .cursor/rules/: Create scoped rule files (.md or .mdc) for different "
+                        "parts of your codebase. Also consider .cursor/skills/ for reusable skills."
+                    )
+
             # Memory (universal)
             if not should_skip("memory"):
                 if not any(any(term in f.path.upper() for term in ["MEMORY", "LEARNINGS", "DECISIONS"])
@@ -917,6 +926,24 @@ class RepoScanner:
                         "💾 Add MEMORY.md or LEARNINGS.md: Document lessons learned, past decisions, "
                         "failed approaches, and architectural evolution. Helps AI avoid repeating mistakes "
                         "and understand historical context."
+                    )
+
+            # Boris Cherny's key insight: verification loops
+            if not should_skip("verification"):
+                recommendations.append(
+                    "✅ VERIFICATION (Boris Cherny's key insight): Give AI a way to verify its work - "
+                    "tests, linters, type checkers, or browser testing. This 2-3x the quality of results. "
+                    "Consider adding a verify script or PostToolUse hook for automatic validation."
+                )
+
+            # ClawdBot pattern: Agent personality/constitution
+            if not should_skip("soul"):
+                if not any(any(term in f.path.upper() for term in ["SOUL", "IDENTITY", "PERSONALITY"])
+                          for f in level_4.matched_files):
+                    recommendations.append(
+                        "🎭 Consider SOUL.md or IDENTITY.md (ClawdBot pattern): Define your agent's "
+                        "behavioral constitution - personality, tone, values, and guidelines for how "
+                        "it should interact with users and handle edge cases."
                     )
 
         if score.overall_level == 4:
@@ -960,8 +987,9 @@ class RepoScanner:
 
             if not any(".mcp" in d for d in level_5.matched_directories) and not should_skip("mcp"):
                 recommendations.append(
-                    "🔗 Set up MCP servers: Create .mcp/servers/ for integrations with external tools, "
-                    "databases, APIs, and services that agents need. This enables richer agent capabilities."
+                    "🔗 Set up MCP servers: Create .mcp.json at the root (Boris Cherny pattern) for "
+                    "team-shared tool integrations - Slack, databases, APIs. Also use .mcp/servers/ "
+                    "for complex configs. Enables richer agent capabilities."
                 )
 
             if not should_skip("handoffs"):
@@ -1054,6 +1082,14 @@ class RepoScanner:
                     "Break large tasks into molecules (atomic units) and convoys (coordinated groups)."
                 )
 
+            # Gas Town advanced patterns
+            if not any("swarm" in d or "wisps" in d or "polecats" in d for d in level_7.matched_directories) and not should_skip("swarm"):
+                recommendations.append(
+                    "🐝 Consider swarm/, wisps/, or polecats/ (Gas Town patterns): "
+                    "swarm/ for distributed agent coordination, wisps/ for lightweight ephemeral agents, "
+                    "polecats/ for aggressive cleanup and maintenance agents."
+                )
+
             if not should_skip("metrics"):
                 recommendations.append(
                     "📊 Add agents/METRICS.md: Track agent performance, success rates, and productivity. "
@@ -1096,6 +1132,14 @@ class RepoScanner:
                 recommendations.append(
                     "🧪 Explore experimental/: Document frontier techniques you're exploring. "
                     "New patterns, frameworks, and approaches for AI-assisted development."
+                )
+
+            # Gas Town/ClawdBot communication patterns
+            if not should_skip("protocols"):
+                recommendations.append(
+                    "📬 Consider agent communication protocols (Gas Town/ClawdBot patterns): "
+                    "MAIL_PROTOCOL.md for inter-agent messaging, FEDERATION.md for distributed agents, "
+                    "ESCALATION.md for handling failures, watchdog/ for monitoring agents."
                 )
 
         if score.overall_level == 8:

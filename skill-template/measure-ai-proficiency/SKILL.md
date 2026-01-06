@@ -77,9 +77,29 @@ After assessment, offer to create missing high-priority files:
 
 **Level 3 gaps:** Create ARCHITECTURE.md, CONVENTIONS.md, or TESTING.md
 
-**Level 4 gaps:** Create .claude/skills/ or .github/skills/, .claude/commands/, MEMORY.md
+**Level 4 gaps:**
+- Create skills directories: `.claude/skills/`, `.github/skills/`, or `.cursor/skills/`
+- Add `.claude/commands/` for slash commands
+- Create MEMORY.md or LEARNINGS.md
+- Consider SOUL.md or IDENTITY.md (ClawdBot pattern) for agent personality
+- **Boris Cherny's key insight:** Add verification loops (tests, linters) - this 2-3x quality
 
-**Level 5+ gaps:** Create specialized agents, MCP configs, orchestration workflows
+**Level 5 gaps:**
+- Create specialized agents in `.github/agents/` or `.claude/agents/`
+- Set up `.mcp.json` at root (Boris Cherny pattern) for team-shared tool configs
+- Add agents/HANDOFFS.md for agent coordination
+
+**Level 6 gaps:** Beads memory system, shared context, workflow pipelines
+
+**Level 7 gaps:**
+- Add GOVERNANCE.md for agent permissions and policies
+- Set up convoys/ or molecules/ (Gas Town work decomposition)
+- Consider swarm/, wisps/, polecats/ for advanced agent patterns
+
+**Level 8 gaps:**
+- Build custom orchestration in orchestration/
+- Consider .gastown/ for Kubernetes-like agent management
+- Add protocols: MAIL_PROTOCOL.md, FEDERATION.md, ESCALATION.md, watchdog/
 
 ### 4. Create Missing Files
 
