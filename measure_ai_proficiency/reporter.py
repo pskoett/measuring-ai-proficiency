@@ -231,9 +231,9 @@ class TerminalReporter:
             return
 
         print(file=output)
-        print(_color(f"{'='*70}", Colors.DIM), file=output)
+        print(_color(f"{'='*80}", Colors.DIM), file=output)
         print(_color(" AI Proficiency Summary", Colors.BOLD), file=output)
-        print(_color(f"{'='*70}", Colors.DIM), file=output)
+        print(_color(f"{'='*80}", Colors.DIM), file=output)
         print(file=output)
 
         # Sort by level descending, then score descending
@@ -243,22 +243,41 @@ class TerminalReporter:
             reverse=True,
         )
 
-        # Header
-        print(f"  {'Repository':<30} {'Level':<10} {'Score':<10} {'Status'}", file=output)
-        print(f"  {'-'*30} {'-'*10} {'-'*10} {'-'*15}", file=output)
+        # Header with bonus column
+        print(f"  {'Repository':<28} {'Level':<10} {'Score':<8} {'Bonus':<8} {'Quality':<8} {'Status'}", file=output)
+        print(f"  {'-'*28} {'-'*10} {'-'*8} {'-'*8} {'-'*8} {'-'*12}", file=output)
 
         # Distribution counters (levels 1-8)
         level_counts = {i: 0 for i in range(1, 9)}
 
+        # Aggregate cross-ref stats
+        total_refs = 0
+        total_quality = 0.0
+        repos_with_quality = 0
+
         for score in sorted_scores:
-            name = score.repo_name[:28] + ".." if len(score.repo_name) > 30 else score.repo_name
+            name = score.repo_name[:26] + ".." if len(score.repo_name) > 28 else score.repo_name
             level = f"Level {score.overall_level}"
             score_str = f"{score.overall_score:.1f}"
+
+            # Cross-reference bonus and quality
+            bonus_str = "-"
+            quality_str = "-"
+            if score.cross_references:
+                xref = score.cross_references
+                if xref.bonus_points > 0:
+                    bonus_str = f"+{xref.bonus_points:.1f}"
+                total_refs += xref.total_count
+                if xref.quality_scores:
+                    avg_quality = sum(q.quality_score for q in xref.quality_scores.values()) / len(xref.quality_scores)
+                    quality_str = f"{avg_quality:.1f}/10"
+                    total_quality += avg_quality
+                    repos_with_quality += 1
 
             status_text = _level_status(score.overall_level)
             status = _color(status_text, _level_color(score.overall_level))
 
-            print(f"  {name:<30} {level:<10} {score_str:<10} {status}", file=output)
+            print(f"  {name:<28} {level:<10} {score_str:<8} {bonus_str:<8} {quality_str:<8} {status}", file=output)
             level_counts[score.overall_level] += 1
 
         print(file=output)
@@ -271,8 +290,17 @@ class TerminalReporter:
             bar = "█" * bar_width + "░" * (20 - bar_width)
             print(f"    Level {level_num}: [{bar}] {count} repos ({pct:.1f}%)", file=output)
 
+        # Aggregate cross-reference stats
+        if total_refs > 0 or repos_with_quality > 0:
+            print(file=output)
+            print(_color("  Cross-References:", Colors.BOLD), file=output)
+            print(f"    Total references: {total_refs} across {total} repos", file=output)
+            if repos_with_quality > 0:
+                avg_org_quality = total_quality / repos_with_quality
+                print(f"    Average quality: {avg_org_quality:.1f}/10 ({repos_with_quality} repos with AI instruction files)", file=output)
+
         print(file=output)
-        print(_color(f"{'='*70}", Colors.DIM), file=output)
+        print(_color(f"{'='*80}", Colors.DIM), file=output)
         print(file=output)
 
 
@@ -375,6 +403,24 @@ class JsonReporter:
     def report_multiple(self, scores: List[RepoScore], output: TextIO = sys.stdout) -> None:
         """Report multiple repository scores as JSON."""
 
+        # Calculate aggregate cross-reference stats
+        total_refs = 0
+        total_resolved = 0
+        total_quality = 0.0
+        repos_with_quality = 0
+        total_bonus = 0.0
+
+        for score in scores:
+            if score.cross_references:
+                xref = score.cross_references
+                total_refs += xref.total_count
+                total_resolved += xref.resolved_count
+                total_bonus += xref.bonus_points
+                if xref.quality_scores:
+                    avg_q = sum(q.quality_score for q in xref.quality_scores.values()) / len(xref.quality_scores)
+                    total_quality += avg_q
+                    repos_with_quality += 1
+
         result = {
             "scan_time": datetime.now().isoformat(),
             "total_repos": len(scores),
@@ -386,6 +432,13 @@ class JsonReporter:
                 sum(s.overall_score for s in scores) / len(scores) if scores else 0,
                 2,
             ),
+            "cross_references_summary": {
+                "total_references": total_refs,
+                "total_resolved": total_resolved,
+                "repos_with_ai_instructions": repos_with_quality,
+                "average_quality": round(total_quality / repos_with_quality, 2) if repos_with_quality > 0 else 0,
+                "total_bonus_points": round(total_bonus, 2),
+            },
             "repos": [self._score_to_dict(s) for s in scores],
         }
         json.dump(result, output, indent=self.indent)
@@ -530,23 +583,54 @@ class MarkdownReporter:
 
         print("## Repositories", file=output)
         print(file=output)
-        print("| Repository | Level | Score | Status |", file=output)
-        print("|------------|-------|-------|--------|", file=output)
+        print("| Repository | Level | Score | Bonus | Quality | Status |", file=output)
+        print("|------------|-------|-------|-------|---------|--------|", file=output)
 
         sorted_scores = sorted(
             scores,
             key=lambda s: (s.overall_level, s.overall_score),
             reverse=True,
         )
+
+        # Aggregate cross-ref stats
+        total_refs = 0
+        total_quality = 0.0
+        repos_with_quality = 0
+
         for score in sorted_scores:
             status = _level_status(score.overall_level)
+
+            # Cross-reference bonus and quality
+            bonus_str = "-"
+            quality_str = "-"
+            if score.cross_references:
+                xref = score.cross_references
+                if xref.bonus_points > 0:
+                    bonus_str = f"+{xref.bonus_points:.1f}"
+                total_refs += xref.total_count
+                if xref.quality_scores:
+                    avg_quality = sum(q.quality_score for q in xref.quality_scores.values()) / len(xref.quality_scores)
+                    quality_str = f"{avg_quality:.1f}/10"
+                    total_quality += avg_quality
+                    repos_with_quality += 1
+
             print(
                 f"| {score.repo_name} | Level {score.overall_level} | "
-                f"{score.overall_score:.1f} | {status} |",
+                f"{score.overall_score:.1f} | {bonus_str} | {quality_str} | {status} |",
                 file=output,
             )
 
         print(file=output)
+
+        # Cross-reference aggregate stats
+        if total_refs > 0 or repos_with_quality > 0:
+            print("## Cross-References Summary", file=output)
+            print(file=output)
+            print(f"- **Total References:** {total_refs} across {total} repos", file=output)
+            if repos_with_quality > 0:
+                avg_org_quality = total_quality / repos_with_quality
+                print(f"- **Average Quality:** {avg_org_quality:.1f}/10 ({repos_with_quality} repos with AI instruction files)", file=output)
+            print(file=output)
 
 
 class CsvReporter:
@@ -555,8 +639,8 @@ class CsvReporter:
     def report_multiple(self, scores: List[RepoScore], output: TextIO = sys.stdout) -> None:
         """Report multiple repository scores as CSV."""
 
-        # Header with levels 1-8
-        header = "repo_name,repo_path,overall_level,overall_score"
+        # Header with levels 1-8 and cross-reference columns
+        header = "repo_name,repo_path,overall_level,overall_score,bonus_points,avg_quality,ref_count,resolved_count"
         for i in range(1, 9):
             header += f",level_{i}_coverage"
         print(header, file=output)
@@ -566,7 +650,21 @@ class CsvReporter:
                 score.level_scores.get(i, type("obj", (object,), {"coverage_percent": 0})).coverage_percent
                 for i in range(1, 9)
             ]
-            line = f'"{score.repo_name}","{score.repo_path}",{score.overall_level},{score.overall_score:.2f}'
+
+            # Cross-reference data
+            bonus = 0.0
+            avg_quality = 0.0
+            ref_count = 0
+            resolved_count = 0
+            if score.cross_references:
+                xref = score.cross_references
+                bonus = xref.bonus_points
+                ref_count = xref.total_count
+                resolved_count = xref.resolved_count
+                if xref.quality_scores:
+                    avg_quality = sum(q.quality_score for q in xref.quality_scores.values()) / len(xref.quality_scores)
+
+            line = f'"{score.repo_name}","{score.repo_path}",{score.overall_level},{score.overall_score:.2f},{bonus:.2f},{avg_quality:.2f},{ref_count},{resolved_count}'
             for cov in coverages:
                 line += f",{cov:.2f}"
             print(line, file=output)
