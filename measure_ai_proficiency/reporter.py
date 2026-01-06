@@ -169,21 +169,22 @@ class TerminalReporter:
                     # Show indicators as compact symbols
                     indicators = []
                     if quality.has_sections:
-                        indicators.append("sections")
+                        indicators.append("§")  # sections
                     if quality.has_specific_paths:
-                        indicators.append("paths")
+                        indicators.append("⌘")  # paths
                     if quality.has_tool_commands:
-                        indicators.append("commands")
+                        indicators.append("$")  # commands
                     if quality.has_constraints:
-                        indicators.append("constraints")
-                    indicator_str = ", ".join(indicators) if indicators else "minimal"
-                    print(f"      {file_path}: {_color(f'{quality.quality_score:.1f}/10', q_color)} ({quality.word_count} words, {indicator_str})", file=output)
+                        indicators.append("!")  # constraints
+                    if quality.commit_count >= 3:
+                        indicators.append(f"↻{quality.commit_count}")  # commits
+                    indicator_str = " ".join(indicators) if indicators else "minimal"
+                    print(f"      {file_path}: {_color(f'{quality.quality_score:.1f}/10', q_color)} ({quality.word_count} words) [{indicator_str}]", file=output)
 
                 # Add quality scoring legend
                 print(file=output)
-                print(f"    {_color('Quality scoring (0-10):', Colors.DIM)}", file=output)
-                print(f"      {_color('sections', Colors.DIM)}: markdown headers (##)  {_color('paths', Colors.DIM)}: file/dir paths (/src/, ~/)", file=output)
-                print(f"      {_color('commands', Colors.DIM)}: CLI in backticks       {_color('constraints', Colors.DIM)}: never/avoid/don't/must not", file=output)
+                print(f"    {_color('Quality indicators:', Colors.DIM)}", file=output)
+                print(f"      {_color('§', Colors.DIM)}=sections  {_color('⌘', Colors.DIM)}=paths  {_color('$', Colors.DIM)}=commands  {_color('!', Colors.DIM)}=constraints  {_color('↻N', Colors.DIM)}=commits", file=output)
 
             if xref.bonus_points > 0:
                 print(file=output)
@@ -365,6 +366,7 @@ class JsonReporter:
                         "commands": {"max_points": 2, "description": "CLI commands in backticks"},
                         "constraints": {"max_points": 2, "description": "Directive language (never, avoid, don't, must not)"},
                         "substance": {"max_points": 2, "description": "Word count (200+ words = 2 pts, 50-200 = 1 pt)"},
+                        "commits": {"max_points": 2, "description": "Git commit history (5+ commits = 2 pts, 3-4 = 1 pt)"},
                     },
                 },
                 "references": [
@@ -386,6 +388,7 @@ class JsonReporter:
                         "has_cross_refs": q.has_cross_refs,
                         "word_count": q.word_count,
                         "section_count": q.section_count,
+                        "commit_count": q.commit_count,
                         "quality_score": round(q.quality_score, 2),
                     }
                     for path, q in xref.quality_scores.items()
@@ -520,11 +523,11 @@ class MarkdownReporter:
             if xref.quality_scores:
                 print("### Content Quality", file=output)
                 print(file=output)
-                print("| File | Score | Words | Sections | Has Sections | Has Paths | Has Commands | Has Constraints |", file=output)
-                print("|------|-------|-------|----------|--------------|-----------|--------------|-----------------|", file=output)
+                print("| File | Score | Words | Commits | Sections | Paths | Commands | Constraints |", file=output)
+                print("|------|-------|-------|---------|----------|-------|----------|-------------|", file=output)
                 for path, q in xref.quality_scores.items():
                     print(
-                        f"| `{path}` | {q.quality_score:.1f}/10 | {q.word_count} | {q.section_count} | "
+                        f"| `{path}` | {q.quality_score:.1f}/10 | {q.word_count} | {q.commit_count} | "
                         f"{'✓' if q.has_sections else '○'} | {'✓' if q.has_specific_paths else '○'} | "
                         f"{'✓' if q.has_tool_commands else '○'} | {'✓' if q.has_constraints else '○'} |",
                         file=output,
@@ -538,6 +541,7 @@ class MarkdownReporter:
                 print("- **Commands** (0-2 pts): CLI commands in backticks (`` `npm test` ``)", file=output)
                 print("- **Constraints** (0-2 pts): Directive language (\"never\", \"avoid\", \"don't\", \"must not\")", file=output)
                 print("- **Substance** (0-2 pts): Word count (200+ words = 2 pts)", file=output)
+                print("- **Commits** (0-2 pts): Git history (5+ commits = 2 pts, 3-4 = 1 pt)", file=output)
                 print(file=output)
 
             if xref.references:

@@ -42,6 +42,33 @@ measure-ai-proficiency -v
 
 **Score interpretation:** File count matters more than percentage. The tool includes hundreds of patterns for comprehensive detection.
 
+### Understanding Quality Scoring
+
+Each AI instruction file is scored 0-10 based on quality indicators:
+
+| Symbol | Indicator | What It Means | Points |
+|--------|-----------|---------------|--------|
+| § | Sections | Markdown headers (`##`) | 0-2 |
+| ⌘ | Paths | File/dir paths (`/src/`) | 0-2 |
+| $ | Commands | CLI in backticks | 0-2 |
+| ! | Constraints | never/avoid/don't | 0-2 |
+| ↻N | Commits | Git history (N commits) | 0-2 |
+
+**Commit scoring:** Files with 5+ commits get full points (indicates active maintenance). 3-4 commits = 1pt.
+
+### Cross-Reference Detection
+
+The tool detects links between your AI instruction files:
+
+- **Markdown links:** `[architecture](ARCHITECTURE.md)`
+- **File mentions:** `"CONVENTIONS.md"` or `` `TESTING.md` ``
+- **Relative paths:** `./docs/API.md`
+- **Directory refs:** `skills/`, `.claude/commands/`
+
+Resolution tracking shows if referenced files exist (helps find broken links).
+
+**Bonus points:** Up to +10 points from cross-references (5 pts) + quality (5 pts).
+
 ### 3. Provide Recommendations
 
 After assessment, offer to create missing high-priority files:

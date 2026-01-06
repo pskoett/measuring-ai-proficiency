@@ -30,7 +30,7 @@ measure_ai_proficiency/
 - **RepoScanner**: Scans a repository and builds a RepoScore
 - **RepoScore**: Contains level scores, overall level, cross-references, and recommendations
 - **CrossReference**: A detected reference between files (source, target, type, resolved status)
-- **ContentQuality**: Quality metrics for an instruction file (sections, commands, constraints)
+- **ContentQuality**: Quality metrics for an instruction file (sections, commands, constraints, commits)
 - **CrossReferenceResult**: Summary of all cross-references and quality scores
 - **Reporter**: Formats output in various formats
 
@@ -78,10 +78,11 @@ The scanner analyzes the content of AI instruction files to detect references:
 - `relative_path`: `./path/file.md` relative paths
 - `directory_ref`: `skills/`, `.claude/commands/` directory references
 
-**Quality Indicators** (defined in `QUALITY_PATTERNS`):
+**Quality Indicators** (defined in `QUALITY_PATTERNS` + git history):
 - `sections`: Markdown headers (`##`)
 - `paths`: Concrete file paths (`/src/`, `~/config/`)
 - `commands`: CLI commands in backticks
 - `constraints`: "never", "avoid", "don't", "must not"
+- `commits`: Git commit count via `git log --follow` (5+ = 2pts, 3-4 = 1pt)
 
 **Bonus Calculation**: Up to +10 points based on cross-references and quality scores.

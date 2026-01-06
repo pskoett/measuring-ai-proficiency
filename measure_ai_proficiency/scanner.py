@@ -8,6 +8,7 @@ Uses levels 1-8 aligned with Steve Yegge's 8-stage AI coding proficiency model.
 import fnmatch
 import os
 import re
+import subprocess
 from dataclasses import dataclass, field
 from datetime import datetime
 from pathlib import Path
@@ -108,6 +109,7 @@ class ContentQuality:
     has_cross_refs: bool       # References other docs
     word_count: int
     section_count: int
+    commit_count: int          # Number of git commits touching this file
     quality_score: float       # 0-10 based on indicators
 
 
@@ -393,8 +395,11 @@ class RepoScanner:
                 refs = self._extract_references(source, content)
                 references.extend(refs)
 
+                # Get commit count for this file
+                commit_count = self._get_file_commit_count(source)
+
                 # Evaluate content quality
-                quality = self._evaluate_quality(content)
+                quality = self._evaluate_quality(content, commit_count)
                 # Update has_cross_refs based on actual references found
                 quality = ContentQuality(
                     has_sections=quality.has_sections,
@@ -404,6 +409,7 @@ class RepoScanner:
                     has_cross_refs=len(refs) > 0,
                     word_count=quality.word_count,
                     section_count=quality.section_count,
+                    commit_count=commit_count,
                     quality_score=quality.quality_score,
                 )
                 rel_path = str(source.relative_to(self.repo_path))
@@ -461,6 +467,28 @@ class RepoScanner:
             return path.read_text(encoding='utf-8', errors='ignore')
         except (OSError, PermissionError, UnicodeDecodeError):
             return None
+
+    def _get_file_commit_count(self, file_path: Path) -> int:
+        """Get number of git commits that touched this file.
+
+        Uses git log with --follow to track renames.
+        Returns 0 if not a git repo or git command fails.
+        """
+        try:
+            # Get relative path from repo root
+            rel_path = file_path.relative_to(self.repo_path)
+            result = subprocess.run(
+                ["git", "log", "--oneline", "--follow", "--", str(rel_path)],
+                cwd=self.repo_path,
+                capture_output=True,
+                text=True,
+                timeout=5,  # Prevent hanging on large repos
+            )
+            if result.returncode == 0 and result.stdout.strip():
+                return len(result.stdout.strip().split('\n'))
+            return 0
+        except (subprocess.TimeoutExpired, subprocess.SubprocessError, OSError, ValueError):
+            return 0
 
     def _extract_references(self, source: Path, content: str) -> List[CrossReference]:
         """Extract cross-references from a single file's content."""
@@ -528,7 +556,7 @@ class RepoScanner:
 
         return False
 
-    def _evaluate_quality(self, content: str) -> ContentQuality:
+    def _evaluate_quality(self, content: str, commit_count: int = 0) -> ContentQuality:
         """Evaluate the quality of an AI instruction file's content."""
 
         sections = QUALITY_PATTERNS["sections"].findall(content)
@@ -537,13 +565,21 @@ class RepoScanner:
         constraints = QUALITY_PATTERNS["constraints"].findall(content)
         words = content.split()
 
-        # Calculate quality score (0-10)
+        # Calculate quality score (0-12, normalized to 0-10)
+        # Content indicators (up to 10 pts)
         score = 0.0
         score += min(len(sections) / 5, 2.0)       # Up to 2 pts for sections
         score += min(len(paths) / 3, 2.0)          # Up to 2 pts for paths
         score += min(len(commands) / 3, 2.0)       # Up to 2 pts for commands
         score += min(len(constraints) / 2, 2.0)    # Up to 2 pts for constraints
         score += 2.0 if len(words) > 200 else (1.0 if len(words) > 50 else 0.0)  # Substance
+
+        # Commit history bonus (up to 2 pts) - indicates active maintenance
+        # 1 commit = 0 pts (just created), 3+ commits = 1 pt, 5+ commits = 2 pts
+        if commit_count >= 5:
+            score += 2.0
+        elif commit_count >= 3:
+            score += 1.0
 
         return ContentQuality(
             has_sections=len(sections) > 0,
@@ -553,7 +589,8 @@ class RepoScanner:
             has_cross_refs=False,  # Updated later with actual refs
             word_count=len(words),
             section_count=len(sections),
-            quality_score=min(score, 10.0),
+            commit_count=commit_count,
+            quality_score=min(score, 10.0),  # Cap at 10
         )
 
     def _calculate_cross_ref_bonus(

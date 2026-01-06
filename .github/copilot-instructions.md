@@ -88,8 +88,9 @@ The scanner analyzes AI instruction file content to detect references:
 - `relative_path`: `./path/file.md` relative paths
 - `directory_ref`: `skills/`, `.claude/commands/` directory refs
 
-**Quality Indicators** (`QUALITY_PATTERNS`):
+**Quality Indicators** (`QUALITY_PATTERNS` + git history):
 - Markdown headers, file paths, CLI commands, constraint language
+- Git commit count via `git log --follow` (5+ commits = 2pts, 3-4 = 1pt)
 
 **Bonus**: Up to +10 points added to overall score based on cross-references and quality.
 

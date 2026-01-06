@@ -490,6 +490,7 @@ Each instruction file is scored (0-10) based on quality indicators inspired by [
 | **Commands** | CLI commands in backticks (`` `npm test` ``) | 0-2 |
 | **Constraints** | "never", "avoid", "don't", "must not" | 0-2 |
 | **Substance** | Word count (200+ words = full points) | 0-2 |
+| **Commits** | Git history (5+ commits = full points) | 0-2 |
 
 ### Bonus Points
 
@@ -512,10 +513,13 @@ Cross-References & Quality:
   Resolved: 10/12 (83%)
 
   Content Quality:
-    CLAUDE.md: 7.2/10 (450 words, 8 sections)
-    AGENTS.md: 8.5/10 (820 words, 14 sections)
+    CLAUDE.md: 8.2/10 (450 words) [§ ⌘ $ ! ↻8]
+    AGENTS.md: 9.5/10 (820 words) [§ ⌘ $ ↻12]
 
-  Bonus: +6.2 points
+  Quality indicators:
+    §=sections  ⌘=paths  $=commands  !=constraints  ↻N=commits
+
+  Bonus: +7.2 points
 ```
 
 ### Improving Your Cross-Reference Score
