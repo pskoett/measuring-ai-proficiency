@@ -7,8 +7,8 @@ on:
 
 permissions:
   contents: read
-  pull-requests: write
   issues: read
+  pull-requests: read
 
 network: defaults
 
@@ -18,7 +18,7 @@ tools:
   edit:
 
 safe-outputs:
-  create-comment:
+  add-comment:
 ---
 
 # AI Proficiency Assessment for Pull Requests

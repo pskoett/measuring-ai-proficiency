@@ -1,12 +1,13 @@
 ---
 on:
   schedule:
-    - cron: "0 9 * * 1"  # Every Monday at 9am UTC
+    - cron: "0 9 * * 1"
   workflow_dispatch:
 
 permissions:
   contents: read
-  issues: write
+  issues: read
+  pull-requests: read
 
 network: defaults
 
