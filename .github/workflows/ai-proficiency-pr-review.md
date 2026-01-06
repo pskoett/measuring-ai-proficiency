@@ -4,6 +4,7 @@ on:
     types: [opened, synchronize]
   issue_comment:
     types: [created]
+  workflow_dispatch:
 
 permissions:
   contents: read

@@ -29,6 +29,7 @@ name: "AI Proficiency Assessment for Pull Requests"
     types:
     - opened
     - synchronize
+  workflow_dispatch:
 
 permissions:
   contents: read
