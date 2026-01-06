@@ -483,7 +483,7 @@ When you add this skill to your repository, Claude Code, GitHub Copilot, Cursor,
 
 ### Installing the Skill
 
-Agent Skills follow an [open standard](https://agentskills.io/) and work with Claude Code, GitHub Copilot, Cursor, and OpenAI Codex. Copy the skill to your repository:
+Agent Skills follow an [open standard](https://agentskills.io/) and work with [Claude Code](https://code.claude.com/docs/en/skills), [GitHub Copilot](https://docs.github.com/en/copilot/concepts/agents/about-agent-skills), [Cursor](https://cursor.com/docs/context/skills), and [OpenAI Codex](https://developers.openai.com/codex/skills). Copy the skill to your repository:
 
 **For Claude Code:**
 ```bash

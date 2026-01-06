@@ -54,7 +54,7 @@ Supports all major AI coding tools and scans **all directories** for context eng
 - **OpenAI Codex CLI**: `.codex/*.md`, `.codex/skills/`, `AGENTS.md`
 - **Documentation**: `docs/`, `*/docs/` (recursively scans all subdirectories)
 
-**Agent Skills**: Claude Code, GitHub Copilot, Cursor, and OpenAI Codex all support the [Agent Skills](https://agentskills.io/) open standard. Skills are stored in `.claude/skills/`, `.github/skills/`, `.cursor/skills/`, or `.codex/skills/` directories with `SKILL.md` files containing instructions for specialized tasks.
+**Agent Skills**: [Claude Code](https://code.claude.com/docs/en/skills), [GitHub Copilot](https://docs.github.com/en/copilot/concepts/agents/about-agent-skills), [Cursor](https://cursor.com/docs/context/skills), and [OpenAI Codex](https://developers.openai.com/codex/skills) all support the [Agent Skills](https://agentskills.io/) open standard. Skills are stored in `.claude/skills/`, `.github/skills/`, `.cursor/skills/`, or `.codex/skills/` directories with `SKILL.md` files containing instructions for specialized tasks.
 
 **Smart Scanning**: Automatically excludes `node_modules/`, `venv/`, `dist/`, `build/`, and other dependency folders.
 
@@ -661,5 +661,11 @@ MIT
 
 - [Context Engineering Article](./measuring-ai-proficiency-context-engineering.md) - The thinking behind this tool
 - [Steve Yegge's Gas Town](https://steve-yegge.medium.com/welcome-to-gas-town-4f25ee16dd04) - Behavioral maturity model inspiration
-- [Anthropic Claude Code Docs](https://docs.anthropic.com/en/docs/claude-code)
-- [GitHub Copilot Custom Instructions](https://docs.github.com/en/copilot)
+
+**Official Skills Documentation:**
+- [Claude Code Skills](https://code.claude.com/docs/en/skills) - Claude Code skills documentation
+- [Claude Code Best Practices](https://www.anthropic.com/engineering/claude-code-best-practices) - Anthropic's official best practices
+- [GitHub Copilot Agent Skills](https://docs.github.com/en/copilot/concepts/agents/about-agent-skills) - Copilot skills documentation
+- [Cursor Skills](https://cursor.com/docs/context/skills) - Cursor skills documentation
+- [OpenAI Codex Skills](https://developers.openai.com/codex/skills) - OpenAI Codex skills documentation
+- [Agent Skills Standard](https://agentskills.io/) - Open standard for AI agent skills
