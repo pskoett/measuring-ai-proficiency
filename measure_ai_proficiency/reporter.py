@@ -193,37 +193,31 @@ class TerminalReporter:
         has_custom_thresholds = score.default_level is not None
 
         if has_custom_thresholds:
-            # Show custom level and score
+            # Show custom level
             custom_level_text = score.level_scores[score.overall_level].name
             print(
                 f"  Overall Level (Custom): {_color(custom_level_text, _level_color(score.overall_level))}",
                 file=output,
             )
-            print(
-                f"  Overall Score (Custom): {_color(f'{score.overall_score:.1f}/100', Colors.BOLD)}",
-                file=output,
-            )
-            # Show default level and score
+            # Show default level
             default_level_text = score.level_scores[score.default_level].name
             print(
                 f"  Overall Level (Default): {_color(default_level_text, _level_color(score.default_level))}",
                 file=output,
             )
-            print(
-                f"  Overall Score (Default): {_color(f'{score.default_score:.1f}/100', Colors.BOLD)}",
-                file=output,
-            )
         else:
-            # Show single level and score
+            # Show single level
             level_text = score.level_scores[score.overall_level].name
             print(
                 f"  Overall Level: {_color(level_text, _level_color(score.overall_level))}",
                 file=output,
             )
-            print(
-                f"  Overall Score: {_color(f'{score.overall_score:.1f}/100', Colors.BOLD)}",
-                file=output,
-            )
+
+        # Show score (same for both custom and default - objective measurement)
+        print(
+            f"  Overall Score: {_color(f'{score.overall_score:.1f}/100', Colors.BOLD)}",
+            file=output,
+        )
 
         # Show detected tools
         if score.detected_tools:

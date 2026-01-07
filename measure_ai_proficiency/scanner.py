@@ -192,7 +192,6 @@ class RepoScore:
     cross_references: Optional[CrossReferenceResult] = None
     effective_thresholds: Dict[int, int] = field(default_factory=dict)  # Level -> % threshold
     default_level: Optional[int] = None  # Level with default thresholds (when custom are used)
-    default_score: Optional[float] = None  # Score with default thresholds (when custom are used)
 
     @property
     def has_any_ai_files(self) -> bool:
@@ -267,17 +266,10 @@ class RepoScanner:
 
         # Calculate overall level and score (using custom thresholds if configured)
         score.overall_level, score.effective_thresholds, score.default_level = self._calculate_overall_level(score.level_scores)
-
-        # Calculate score with achieved level (custom thresholds)
-        base_score = self._calculate_overall_score(score.level_scores, max_level=score.overall_level)
+        base_score = self._calculate_overall_score(score.level_scores)
 
         # Add cross-reference bonus to overall score (capped at 100)
         score.overall_score = min(100, base_score + score.cross_references.bonus_points)
-
-        # If custom thresholds are used, also calculate score with default thresholds
-        if score.default_level is not None:
-            default_base_score = self._calculate_overall_score(score.level_scores, max_level=score.default_level)
-            score.default_score = min(100, default_base_score + score.cross_references.bonus_points)
 
         # Generate recommendations (tool-specific)
         score.recommendations = self._generate_recommendations(score)
@@ -725,26 +717,13 @@ class RepoScanner:
                 break
         return current_level
 
-    def _calculate_overall_score(self, level_scores: Dict[int, LevelScore], max_level: int = 8) -> float:
-        """
-        Calculate a weighted overall score (0-100).
-
-        Args:
-            level_scores: Dict of level scores
-            max_level: Maximum level to include in score calculation (only count levels <= max_level)
-
-        Returns:
-            Score from 0-100
-        """
+    def _calculate_overall_score(self, level_scores: Dict[int, LevelScore]) -> float:
+        """Calculate a weighted overall score (0-100)."""
 
         total_score = 0.0
         max_possible = 0.0
 
         for level_num, level_score in level_scores.items():
-            # Only count levels up to and including max_level
-            if level_num > max_level:
-                continue
-
             config = LEVELS[level_num]
             weight = config.weight
 
