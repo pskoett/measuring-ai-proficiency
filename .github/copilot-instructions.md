@@ -22,6 +22,10 @@ measure_ai_proficiency/
 ├── scanner.py       # Repository scanning logic + cross-reference detection
 ├── reporter.py      # Output formatting (terminal, JSON, markdown, CSV)
 └── repo_config.py   # Repository configuration and tool auto-detection
+
+scripts/
+├── find-org-repos.sh  # GitHub org discovery script (uses gh CLI + jq)
+└── README.md          # Script documentation
 ```
 
 ## Key Patterns
@@ -73,6 +77,7 @@ pytest tests/ -v
 | Add recommendations | `scanner.py` → `_generate_recommendations()` |
 | Add cross-ref patterns | `scanner.py` → `CROSS_REF_PATTERNS` |
 | Add quality indicators | `scanner.py` → `QUALITY_PATTERNS` |
+| Discover org repos | `scripts/find-org-repos.sh <org-name>` |
 
 ## Cross-Reference Detection
 
@@ -101,4 +106,25 @@ The scanner analyzes AI instruction file content to detect references:
 - `CLAUDE.md` - Claude Code context
 - `CUSTOMIZATION.md` - How to customize patterns
 - `AGENT_REFERENCES.md` - Best practices for agent references
+- `GITHUB_ACTION.md` - GitHub Action integration guide
+- `scripts/README.md` - Discovery script documentation
 - `measuring-ai-proficiency-context-engineering.md` - Full article on context engineering
+
+## Organizational Discovery
+
+Use `scripts/find-org-repos.sh` to discover which repositories in a GitHub organization have context engineering artifacts:
+
+```bash
+# Find active repos (commits in last 90 days) with AI context files
+./scripts/find-org-repos.sh your-org-name
+
+# JSON output for automation
+./scripts/find-org-repos.sh your-org-name --json > repos.json
+```
+
+**What it finds:**
+- CLAUDE.md, AGENTS.md, .cursorrules, .github/copilot-instructions.md, CODEX.md
+- Shows percentage of active repos with AI context artifacts (your baseline)
+- Lists repos to scan with measure-ai-proficiency
+
+**Requirements:** GitHub CLI (gh) and jq

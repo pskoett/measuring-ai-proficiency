@@ -19,13 +19,36 @@ pip install measure-ai-proficiency
 
 ## Workflow
 
-### 1. Run Assessment
+### 1. Discover Repositories (Optional - For Organizations)
+
+For organizations wanting to assess multiple repositories, first discover which repos have AI context artifacts:
+
+```bash
+# Find active repos (commits in last 90 days) with AI context files
+./scripts/find-org-repos.sh your-org-name
+
+# JSON output for automation
+./scripts/find-org-repos.sh your-org-name --json > repos.json
+```
+
+**What you get:**
+- Total repos in organization
+- Active repos (with recent commits)
+- Repos with AI context artifacts (CLAUDE.md, AGENTS.md, .cursorrules, etc.)
+- Percentage baseline for your org
+- List of repos to scan
+
+**Requirements:** [GitHub CLI (gh)](https://cli.github.com/) and [jq](https://stedolan.github.io/jq/)
+
+Then clone and scan the identified repos.
+
+### 2. Run Assessment
 
 ```bash
 measure-ai-proficiency
 ```
 
-### 2. Interpret Results
+### 3. Interpret Results
 
 **Maturity Levels (aligned with Steve Yegge's 8-stage model):**
 
@@ -69,7 +92,7 @@ Resolution tracking shows if referenced files exist (helps find broken links).
 
 **Bonus points:** Up to +10 points from cross-references (5 pts) + quality (5 pts).
 
-### 3. Provide Recommendations
+### 4. Provide Recommendations
 
 After assessment, offer to create missing high-priority files:
 
@@ -101,7 +124,7 @@ After assessment, offer to create missing high-priority files:
 - Consider .gastown/ for Kubernetes-like agent management
 - Add protocols: MAIL_PROTOCOL.md, FEDERATION.md, ESCALATION.md, watchdog/
 
-### 4. Create Missing Files
+### 5. Create Missing Files
 
 When creating context files, include:
 

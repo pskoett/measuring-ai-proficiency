@@ -240,8 +240,122 @@ Add labels to weekly report issues by modifying the workflow to include label as
 
 ---
 
+---
+
+## Organizational Discovery
+
+Before setting up automated proficiency tracking, discover which repositories in your organization have context engineering artifacts:
+
+### Discovery Script
+
+Use the included `scripts/find-org-repos.sh` script:
+
+```bash
+# Find active repos with AI context artifacts
+./scripts/find-org-repos.sh your-org-name
+
+# JSON output for automation
+./scripts/find-org-repos.sh your-org-name --json > repos.json
+```
+
+**What it does:**
+- Searches your GitHub organization for repositories with commits in the last 90 days
+- Checks for AI instruction files: CLAUDE.md, AGENTS.md, .cursorrules, .github/copilot-instructions.md
+- Shows percentage of active repos with context engineering artifacts
+- Outputs list of repos to scan
+
+**Requirements:**
+- [GitHub CLI (gh)](https://cli.github.com/) installed and authenticated
+- [jq](https://stedolan.github.io/jq/) for JSON processing
+
+### Automated Discovery Workflow
+
+You can automate organizational discovery with a GitHub Action:
+
+```yaml
+# .github/workflows/discover-ai-proficiency.yml
+name: Discover AI Proficiency Repos
+
+on:
+  schedule:
+    - cron: '0 0 1 * *'  # Monthly on 1st
+  workflow_dispatch:
+
+jobs:
+  discover:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y jq
+
+      - name: Find repos with AI artifacts
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          ./scripts/find-org-repos.sh ${{ github.repository_owner }} --json > discovery-results.json
+
+      - name: Create tracking issue
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const results = JSON.parse(fs.readFileSync('discovery-results.json', 'utf8'));
+
+            const body = `## AI Proficiency Discovery Report
+
+            **Organization:** ${results.org}
+            **Scan Date:** ${results.scan_date}
+            **Activity Window:** Last ${results.days_active} days
+
+            ### Summary
+
+            | Metric | Count |
+            |--------|-------|
+            | Total Repositories | ${results.total_repos} |
+            | Active Repositories | ${results.active_repos} |
+            | Repos with AI Artifacts | ${results.repos_with_artifacts} |
+            | **Coverage** | **${results.percentage}%** |
+
+            ### Repositories with AI Context
+
+            ${results.repositories.map(r =>
+              \`- **[\${r.name}](\${r.url})**\\n  Artifacts: \${r.artifacts.join(', ')}\`
+            ).join('\\n\\n')}
+
+            ---
+
+            *Next steps:* Clone these repositories and run \`measure-ai-proficiency\` to assess maturity levels.`;
+
+            await github.rest.issues.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              title: \`AI Proficiency Discovery - \${results.scan_date}\`,
+              body: body,
+              labels: ['ai-proficiency', 'discovery']
+            });
+
+      - name: Upload results
+        uses: actions/upload-artifact@v4
+        with:
+          name: discovery-results
+          path: discovery-results.json
+```
+
+This workflow:
+- Runs monthly to track adoption over time
+- Creates a GitHub issue with discovery results
+- Shows percentage of repos with context engineering artifacts
+- Lists all repos to scan with measure-ai-proficiency
+
+---
+
 ## Resources
 
 - [GitHub Agentic Workflows Docs](https://githubnext.github.io/gh-aw/)
 - [Claude Code Action Docs](https://github.com/anthropics/claude-code-action)
 - [measure-ai-proficiency Tool](https://github.com/pskoett/measuring-ai-proficiency)
+- [Discovery Script Documentation](scripts/README.md)

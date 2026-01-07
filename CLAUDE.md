@@ -22,6 +22,10 @@ measure_ai_proficiency/
 ├── scanner.py       # Repository scanning logic + cross-reference detection
 ├── reporter.py      # Output formatting (terminal, JSON, markdown, CSV)
 └── repo_config.py   # Repository configuration and tool auto-detection
+
+scripts/
+├── find-org-repos.sh  # GitHub org discovery script (uses gh CLI)
+└── README.md          # Script documentation
 ```
 
 ## Key Abstractions
@@ -63,6 +67,7 @@ pytest tests/ -v
 - Adjust scoring thresholds: Edit `_calculate_overall_level` in `scanner.py`
 - Add new cross-reference patterns: Edit `CROSS_REF_PATTERNS` in `scanner.py`
 - Add new quality indicators: Edit `QUALITY_PATTERNS` in `scanner.py`
+- Discover repos in GitHub org: Run `scripts/find-org-repos.sh <org-name>` to find active repos with AI artifacts
 
 ## Cross-Reference Detection
 
