@@ -44,10 +44,10 @@ pip install measure-ai-proficiency
 
 ### Step 2: Run the Assessment
 
-Run the proficiency scanner on the repository with verbose output:
+Run the proficiency scanner on the repository:
 
 ```bash
-measure-ai-proficiency -v --format json --output proficiency-report.json
+measure-ai-proficiency --format json --output proficiency-report.json
 ```
 
 Also generate a markdown report:

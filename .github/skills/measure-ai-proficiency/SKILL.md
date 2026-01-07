@@ -22,7 +22,7 @@ pip install measure-ai-proficiency
 ### 1. Run Assessment
 
 ```bash
-measure-ai-proficiency -v
+measure-ai-proficiency
 ```
 
 ### 2. Interpret Results

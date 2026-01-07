@@ -18,7 +18,7 @@ measure-ai-proficiency [OPTIONS] [PATHS...]
 |--------|-------------|
 | `-f, --format FORMAT` | Output format: `terminal`, `json`, `markdown`, `csv` |
 | `-o, --output FILE` | Write output to file instead of stdout |
-| `-v, --verbose` | Show detailed file matches |
+| `-q, --quiet` | Hide detailed file matches (summary only) |
 | `--min-level N` | Only show repos at or above level N (1-8) |
 | `--org PATH` | Scan all subdirectories as separate repos |
 | `--version` | Show version and exit |
@@ -38,8 +38,8 @@ measure-ai-proficiency [OPTIONS] [PATHS...]
 # Scan current directory
 measure-ai-proficiency
 
-# Scan with verbose output
-measure-ai-proficiency -v
+# Scan with quiet output (summary only)
+measure-ai-proficiency -q
 
 # Scan specific repo
 measure-ai-proficiency /path/to/repo
@@ -67,12 +67,16 @@ measure-ai-proficiency --org ~/work --format csv -o proficiency.csv
 ```python
 from measure_ai_proficiency import RepoScanner
 
-scanner = RepoScanner("/path/to/repo", verbose=True)
+# Default: verbose=True (shows detailed file matches)
+scanner = RepoScanner("/path/to/repo")
 score = scanner.scan()
 
 print(f"Level: {score.overall_level}")
 print(f"Score: {score.overall_score}")
 print(f"Tools: {score.detected_tools}")
+
+# For quiet mode (summary only):
+scanner = RepoScanner("/path/to/repo", verbose=False)
 ```
 
 ### RepoScore Properties
@@ -122,8 +126,12 @@ for score in scores:
 ```python
 from measure_ai_proficiency import get_reporter
 
-# Terminal output
-reporter = get_reporter("terminal", verbose=True)
+# Terminal output (verbose=True is now the default)
+reporter = get_reporter("terminal")
+reporter.report_single(score)
+
+# Quiet mode (summary only)
+reporter = get_reporter("terminal", verbose=False)
 reporter.report_single(score)
 
 # JSON output

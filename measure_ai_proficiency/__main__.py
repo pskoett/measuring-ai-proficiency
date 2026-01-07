@@ -23,8 +23,8 @@ Usage:
     # Save to file
     python -m measure_ai_proficiency --output report.md --format markdown
 
-    # Verbose mode (show matched files)
-    python -m measure_ai_proficiency -v
+    # Quiet mode (hide detailed file matches)
+    python -m measure_ai_proficiency -q
 """
 
 import argparse
@@ -49,7 +49,7 @@ Examples:
   %(prog)s --org /path/to/org        Scan all repos in directory
   %(prog)s --format json             Output as JSON
   %(prog)s --format markdown -o report.md  Save markdown report
-  %(prog)s -v                        Verbose output with file details
+  %(prog)s -q                        Quiet mode (hide file details)
 
 Maturity Levels (aligned with Steve Yegge's 8-stage model):
   Level 1: Zero AI (no context engineering, autocomplete only)
@@ -92,10 +92,10 @@ Maturity Levels (aligned with Steve Yegge's 8-stage model):
     )
 
     parser.add_argument(
-        "-v",
-        "--verbose",
+        "-q",
+        "--quiet",
         action="store_true",
-        help="Show detailed file matches",
+        help="Hide detailed file matches (show summary only)",
     )
 
     parser.add_argument(
@@ -113,27 +113,30 @@ Maturity Levels (aligned with Steve Yegge's 8-stage model):
 
     args = parser.parse_args()
 
+    # Verbose is now the default; use --quiet to suppress
+    verbose = not args.quiet
+
     # Collect repositories to scan
     if args.org:
-        scores = scan_github_org(args.org, verbose=args.verbose)
+        scores = scan_github_org(args.org, verbose=verbose)
     elif len(args.paths) == 1:
         # Single repo
         repo_path = Path(args.paths[0]).resolve()
         if not repo_path.exists():
             print(f"Error: Path does not exist: {repo_path}", file=sys.stderr)
             sys.exit(1)
-        scanner = RepoScanner(str(repo_path), verbose=args.verbose)
+        scanner = RepoScanner(str(repo_path), verbose=verbose)
         scores = [scanner.scan()]
     else:
         # Multiple repos
-        scores = scan_multiple_repos(args.paths, verbose=args.verbose)
+        scores = scan_multiple_repos(args.paths, verbose=verbose)
 
     # Filter by minimum level if specified
     if args.min_level is not None:
         scores = [s for s in scores if s.overall_level >= args.min_level]
 
     # Get reporter
-    reporter = get_reporter(args.format, verbose=args.verbose)
+    reporter = get_reporter(args.format, verbose=verbose)
 
     # Output
     output = sys.stdout

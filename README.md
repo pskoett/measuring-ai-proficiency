@@ -247,7 +247,7 @@ pip install measure-ai-proficiency
 **Step 2: Run initial assessment**
 ```bash
 cd your-project
-measure-ai-proficiency -v
+measure-ai-proficiency
 ```
 
 **Step 3: Add the skills (optional but recommended)**
@@ -357,11 +357,11 @@ measure-ai-proficiency --format markdown --output report.md
 measure-ai-proficiency --format json --output results.json
 ```
 
-### Verbose Mode
+### Quiet Mode
 
 ```bash
-# Show matched files
-measure-ai-proficiency -v
+# Hide detailed file matches (summary only)
+measure-ai-proficiency -q
 ```
 
 ### Filter by Level
@@ -642,7 +642,7 @@ Cross-References & Quality:
 
 **How to interpret:**
 - **File count matters more than percentage**: If you see 50+ documentation files detected, you have good context engineering regardless of the percentage
-- **Focus on what you have**: Look at the actual files detected in verbose mode (`-v`) to see your context engineering artifacts
+- **Focus on what you have**: Look at the actual files detected in the report to see your context engineering artifacts
 - **Customize the patterns**: Add your team's specific file names to `config.py` to get more accurate scores
 - **The maturity model is a guide**: Level 1 with 100+ files is better than Level 3 with 5 files
 
@@ -721,7 +721,7 @@ measure-ai-proficiency --org /path/to/all-repos --format json --output q1-2025.j
 
 ```bash
 # Show new team members what context engineering looks like
-measure-ai-proficiency -v
+measure-ai-proficiency
 ```
 
 ## Contributing

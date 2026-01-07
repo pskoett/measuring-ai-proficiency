@@ -137,7 +137,7 @@ skip_recommendations:
 After generating the config:
 
 ```bash
-measure-ai-proficiency -v
+measure-ai-proficiency
 ```
 
 Verify the output matches expectations. Adjust config if needed.
@@ -218,7 +218,7 @@ Claude: Based on your responses, here's your customized config:
  - skip_recommendations: mcp, gastown
  - focus_areas: documentation, testing]
 
-Run `measure-ai-proficiency -v` to validate.
+Run `measure-ai-proficiency` to validate.
 ```
 
 ## Quick Reference

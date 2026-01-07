@@ -127,7 +127,7 @@ def _progress_bar_with_threshold(coverage: float, threshold: float, width: int =
 class TerminalReporter:
     """Report results to terminal with colors and formatting."""
 
-    def __init__(self, verbose: bool = False):
+    def __init__(self, verbose: bool = True):
         self.verbose = verbose
 
     def _print_level_breakdown(
@@ -773,7 +773,7 @@ class CsvReporter:
 
 
 def get_reporter(
-    format: str, verbose: bool = False
+    format: str, verbose: bool = True
 ) -> Union["TerminalReporter", "JsonReporter", "MarkdownReporter", "CsvReporter"]:
     """Get a reporter for the specified format."""
 

@@ -30,7 +30,7 @@ print(score.level)  # 2
 Used for creating reporters based on format string.
 
 ```python
-def get_reporter(format: str, verbose: bool = False) -> Reporter:
+def get_reporter(format: str, verbose: bool = True) -> Reporter:
     reporters = {
         "terminal": TerminalReporter(verbose=verbose),
         "json": JsonReporter(),
@@ -39,7 +39,7 @@ def get_reporter(format: str, verbose: bool = False) -> Reporter:
     }
     return reporters.get(format, TerminalReporter(verbose=verbose))
 
-# Usage
+# Usage (verbose is now the default)
 reporter = get_reporter("json")
 reporter.report_single(score)
 ```

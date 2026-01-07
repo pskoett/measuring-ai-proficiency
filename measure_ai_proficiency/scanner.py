@@ -866,6 +866,29 @@ class RepoScanner:
                     "This ensures AI-generated code matches your project's style."
                 )
 
+        # Recommend scoped instructions for larger projects
+        level_3_dirs = level_3.matched_directories if level_3 else []
+
+        # Copilot scoped instructions
+        if "github-copilot" in tools and not self._should_skip(config, "scoped_instructions"):
+            has_instructions_dir = any(".github/instructions" in d for d in level_3_dirs)
+            if not has_instructions_dir and len(level_3.matched_files) > 10:
+                recs.append(
+                    "📂 Add scoped instructions for Copilot: Create .github/instructions/ with area-specific files "
+                    "like frontend.instructions.md, api.instructions.md, tests.instructions.md. "
+                    "Provides targeted context for different parts of your codebase."
+                )
+
+        # Cursor scoped rules
+        if "cursor" in tools and not self._should_skip(config, "scoped_instructions"):
+            has_cursor_rules_dir = any(".cursor/rules" in d for d in level_3_dirs)
+            if not has_cursor_rules_dir and len(level_3.matched_files) > 10:
+                recs.append(
+                    "📂 Add scoped rules for Cursor: Create .cursor/rules/ with area-specific files "
+                    "like frontend.md, backend.md, database.md. "
+                    "Provides targeted context for different parts of your codebase."
+                )
+
         # Check for missing critical docs
         missing_critical = []
         level_3_files = level_3.matched_files
@@ -1003,13 +1026,31 @@ class RepoScanner:
                     "parts of your codebase. Also consider .cursor/skills/ for reusable skills."
                 )
 
-        # Memory (universal)
+        # Memory (universal) - check files and .memory/ directory
         if not self._should_skip(config, "memory"):
-            if not any(any(t in f.path.upper() for t in ["MEMORY", "LEARNINGS", "DECISIONS"]) for f in level_4.matched_files):
+            has_memory_file = any(
+                any(t in f.path.upper() for t in ["MEMORY", "LEARNINGS", "DECISIONS"])
+                for f in level_4.matched_files
+            )
+            has_memory_dir = any(".memory" in d.lower() for d in level_4.matched_directories)
+            if not has_memory_file and not has_memory_dir:
                 recs.append(
-                    "💾 Add MEMORY.md or LEARNINGS.md: Document lessons learned, past decisions, "
-                    "failed approaches, and architectural evolution. Helps AI avoid repeating mistakes "
-                    "and understand historical context."
+                    "💾 Add MEMORY.md, LEARNINGS.md, or DECISIONS.md: Document lessons learned, "
+                    "past decisions, failed approaches, and architectural evolution. Helps AI avoid "
+                    "repeating mistakes. Alternatively, use a .memory/ directory for structured memory files."
+                )
+
+        # MCP basics (universal - shared tool configurations)
+        if not self._should_skip(config, "mcp"):
+            has_mcp = (
+                any(".mcp" in f.path.lower() for f in level_4.matched_files)
+                or any(".mcp" in d.lower() for d in level_4.matched_directories)
+            )
+            if not has_mcp:
+                recs.append(
+                    "🔗 Add .mcp.json: Configure shared MCP (Model Context Protocol) servers at the root "
+                    "(Boris Cherny pattern). This allows team-wide tool integrations like databases, APIs, "
+                    "or Slack. Start simple with filesystem or search servers, then add custom ones."
                 )
 
         # Boris Cherny's verification loops
@@ -1036,9 +1077,14 @@ class RepoScanner:
     ) -> List[str]:
         """Generate recommendations for Level 4: Skills & Automation."""
         recs: List[str] = []
+        level_4 = score.level_scores.get(4)
         level_5 = score.level_scores.get(5)
         if not level_5:
             return recs
+
+        # Get matched files/dirs for existence checks
+        matched_dirs_4 = level_4.matched_directories if level_4 else []
+        matched_files_4 = [f.path for f in level_4.matched_files] if level_4 else []
 
         self._add_tools_header(recs, tools)
 
@@ -1070,17 +1116,45 @@ class RepoScanner:
                     "Each agent should have specific expertise and evaluation criteria."
                 )
 
-        if not any(".mcp" in d for d in level_5.matched_directories) and not self._should_skip(config, "mcp"):
+        # Check for advanced MCP setup (basics covered in Level 3)
+        has_mcp_servers_dir = any(".mcp/servers" in d for d in level_5.matched_directories)
+        if not has_mcp_servers_dir and not self._should_skip(config, "mcp"):
             recs.append(
-                "🔗 Set up MCP servers: Create .mcp.json at the root (Boris Cherny pattern) for "
-                "team-shared tool integrations - Slack, databases, APIs. Also use .mcp/servers/ "
-                "for complex configs. Enables richer agent capabilities."
+                "🔗 Advanced MCP setup: Create .mcp/servers/ for custom server configurations. "
+                "Build domain-specific servers (database explorer, CI/CD status, internal docs). "
+                "Consider .mcp/prompts/ for reusable prompt templates across agents."
             )
 
         if not self._should_skip(config, "handoffs"):
             recs.append(
                 "🤝 Create agents/HANDOFFS.md: Document when and how specialized agents should "
                 "hand off work to each other. Define triggers, context passing, and success criteria."
+            )
+
+        # New: Workflow automation recommendations
+        has_makefile = any("Makefile" in f or "justfile" in f for f in matched_files_4)
+        if not has_makefile and not self._should_skip(config, "automation"):
+            recs.append(
+                "⚡ Add Makefile or justfile: Define common development tasks (build, test, lint, deploy) "
+                "so agents can execute them. Include AI-specific targets like 'make ai-review' or 'make context-update'."
+            )
+
+        # New: Scripts documentation
+        has_scripts = "scripts" in matched_dirs_4 or any("scripts/" in f for f in matched_files_4)
+        if has_scripts and not self._should_skip(config, "scripts"):
+            has_scripts_readme = any("scripts/README" in f or "scripts/SCRIPTS" in f for f in matched_files_4)
+            if not has_scripts_readme:
+                recs.append(
+                    "📜 Add scripts/README.md: Document your automation scripts so agents understand "
+                    "what each script does, its parameters, and when to use it."
+                )
+
+        # New: Context file for complex projects
+        has_context = any("context.yaml" in f or "context.json" in f for f in matched_files_4)
+        if not has_context and not self._should_skip(config, "context"):
+            recs.append(
+                "📦 Add context.yaml or context.json: Define structured project context that agents can parse. "
+                "Include key directories, important files, build commands, and testing patterns."
             )
 
         return recs
@@ -1138,6 +1212,14 @@ class RepoScanner:
                     "This helps agents understand boundaries and relationships between packages."
                 )
 
+        # Basic observability
+        if not self._should_skip(config, "observability"):
+            recs.append(
+                "📊 Add basic agent observability: Log agent actions, decisions, and outcomes. "
+                "Track metrics like task completion rate, error frequency, and common failure modes. "
+                "This helps identify where agents struggle and need better context."
+            )
+
         return recs
 
     def _recommendations_level_6(
@@ -1187,6 +1269,19 @@ class RepoScanner:
                 "Use metrics to optimize your fleet configuration and identify bottlenecks."
             )
 
+        # Fleet observability and health checks
+        if not self._should_skip(config, "observability"):
+            recs.append(
+                "🏥 Add fleet health checks: Define agents/HEALTH.md documenting how to verify agent fleet health. "
+                "Include: heartbeat patterns, stuck-task detection, memory leak indicators, and auto-recovery triggers."
+            )
+
+        if not self._should_skip(config, "recovery"):
+            recs.append(
+                "🔄 Document recovery patterns: Create agents/RECOVERY.md with strategies for common failures. "
+                "Include: context corruption, stuck loops, cascading failures, and graceful degradation procedures."
+            )
+
         return recs
 
     def _recommendations_level_7(
@@ -1194,6 +1289,14 @@ class RepoScanner:
     ) -> List[str]:
         """Generate recommendations for Level 7: Agent Fleet."""
         recs: List[str] = []
+        level_7 = score.level_scores.get(7)
+        level_8 = score.level_scores.get(8)
+
+        # Get existing files/directories to avoid redundant recommendations
+        matched_dirs_7 = level_7.matched_directories if level_7 else []
+        matched_dirs_8 = level_8.matched_directories if level_8 else []
+        matched_files_8 = [f.path.upper() for f in level_8.matched_files] if level_8 else []
+        all_dirs = matched_dirs_7 + matched_dirs_8
 
         self._add_tools_header(recs, tools)
 
@@ -1202,42 +1305,69 @@ class RepoScanner:
             "for advanced coordination and meta-automation."
         )
 
-        if not self._should_skip(config, "orchestration"):
+        # Only recommend if orchestration/ doesn't exist
+        has_orchestration = any("orchestration" in d for d in all_dirs)
+        if not has_orchestration and not self._should_skip(config, "orchestration"):
             recs.append(
                 "🏗️ Build orchestration/: Create custom orchestration logic for complex workflows. "
                 "Define how agents coordinate, share state, and handle failures at scale."
             )
 
-        if not self._should_skip(config, "gastown"):
+        # Gas Town alternative: explain what it solves, provide non-Google alternatives
+        has_gastown = any("gastown" in d for d in all_dirs)
+        if not has_gastown and not self._should_skip(config, "gastown"):
             recs.append(
-                "🔧 Consider Gas Town: Set up .gastown/ configuration for Steve Yegge's "
-                "multi-agent orchestrator. It provides Kubernetes-like agent management."
+                "🔧 Multi-agent orchestration: Consider orchestrator patterns for managing agent fleets. "
+                "Options: Gas Town (.gastown/) for Kubernetes-like management, or simpler approaches "
+                "like a central ORCHESTRATOR.md defining agent roles and handoff protocols."
             )
 
-        if not self._should_skip(config, "meta"):
+        # Meta-automation with existence check
+        has_meta = any("meta" in d or "generator" in d for d in all_dirs)
+        if not has_meta and not self._should_skip(config, "meta"):
             recs.append(
-                "⚙️ Add meta/: Create meta-automation that generates automation. "
+                "⚙️ Add meta/ or generators/: Create meta-automation that generates automation. "
                 "Templates and generators that create new agent configs, workflows, and skills."
             )
 
-        if not self._should_skip(config, "experimental"):
+        # Agent SDK/framework guidance
+        has_sdk = any("agent_sdk" in d or "agent_framework" in d for d in all_dirs)
+        if not has_sdk and not self._should_skip(config, "sdk"):
+            recs.append(
+                "🛠️ Build agent_sdk/ or agent_framework/: Create reusable components for agent development. "
+                "Shared utilities, base classes, and patterns that all agents can use."
+            )
+
+        # Experimental with existence check
+        has_experimental = any("experimental" in d or "frontier" in d for d in all_dirs)
+        if not has_experimental and not self._should_skip(config, "experimental"):
             recs.append(
                 "🧪 Explore experimental/: Document frontier techniques you're exploring. "
                 "New patterns, frameworks, and approaches for AI-assisted development."
             )
 
-        if not self._should_skip(config, "protocols"):
+        # Protocols with existence check - provide clearer explanation
+        has_protocols = any("protocol" in d or "watchdog" in d for d in all_dirs)
+        has_protocol_files = any("PROTOCOL" in f or "FEDERATION" in f or "ESCALATION" in f for f in matched_files_8)
+        if not has_protocols and not has_protocol_files and not self._should_skip(config, "protocols"):
             recs.append(
-                "📬 Consider agent communication protocols (Gas Town/ClawdBot patterns): "
-                "MAIL_PROTOCOL.md for inter-agent messaging, FEDERATION.md for distributed agents, "
-                "ESCALATION.md for handling failures, watchdog/ for monitoring agents."
+                "📬 Define agent communication protocols: Create protocols/ directory with "
+                "inter-agent messaging patterns, failure escalation procedures, and health monitoring. "
+                "Examples: PROTOCOL.md (message formats), ESCALATION.md (error handling), watchdog/ (monitoring)."
             )
 
         return recs
 
-    def _recommendations_level_8(self, score: RepoScore, tools: List[str]) -> List[str]:
+    def _recommendations_level_8(
+        self, score: RepoScore, tools: List[str], config: Optional[RepoConfig]
+    ) -> List[str]:
         """Generate recommendations for Level 8: Custom Orchestration."""
         recs: List[str] = []
+        level_8 = score.level_scores.get(8)
+
+        # Get existing files/directories
+        matched_dirs = level_8.matched_directories if level_8 else []
+        matched_files = [f.path.upper() for f in level_8.matched_files] if level_8 else []
 
         self._add_tools_header(recs, tools, suffix="You're at the frontier!")
 
@@ -1245,14 +1375,35 @@ class RepoScanner:
             "🌟 FRONTIER: You're at Level 8 - building custom orchestration! "
             "You're among the most advanced AI-assisted development setups in existence."
         )
+
+        # Conditional recommendations based on what's missing
+        has_tools_custom = any("tools/custom" in d or ".tools" in d for d in matched_dirs)
+        if not has_tools_custom and not self._should_skip(config, "tools"):
+            recs.append(
+                "🔧 Build tools/custom/: Create custom tool definitions and integrations. "
+                "Define reusable tool configurations that agents can discover and use."
+            )
+
+        has_agent_templates = any("agent_template" in d for d in matched_dirs)
+        if not has_agent_templates and not self._should_skip(config, "templates"):
+            recs.append(
+                "📋 Add agent_templates/: Create reusable agent configuration templates. "
+                "Document patterns for common agent types (reviewer, implementer, tester, etc.)."
+            )
+
+        # Always show celebratory/guidance recommendations
         recs.append(
             "🎓 Share your learnings: Write blog posts, create templates, or contribute patterns "
             "back to the community. Your setup can help others level up their AI proficiency."
         )
-        recs.append(
-            "📈 Track metrics: Monitor AI-assisted productivity gains, code quality improvements, "
-            "and developer satisfaction. Quantify your success to justify investment."
-        )
+
+        has_metrics = any("METRICS" in f or "PERFORMANCE" in f for f in matched_files)
+        if not has_metrics:
+            recs.append(
+                "📈 Track metrics: Monitor AI-assisted productivity gains, code quality improvements, "
+                "and developer satisfaction. Quantify your success to justify investment."
+            )
+
         recs.append(
             "🔬 Push boundaries: You're positioned to shape the future of AI-assisted development. "
             "Experiment with new patterns and share what works."
@@ -1260,6 +1411,12 @@ class RepoScanner:
         recs.append(
             "🤝 Mentor others: Help other teams in your organization adopt similar practices. "
             "Create internal documentation and training on context engineering."
+        )
+
+        # Community contribution
+        recs.append(
+            "🌐 Contribute to open source: Share your agent patterns, skills, or orchestration logic. "
+            "Publish to GitHub, write about your learnings, or contribute to AI coding tool documentation."
         )
 
         return recs
@@ -1279,7 +1436,7 @@ class RepoScanner:
             5: lambda: self._recommendations_level_5(score, tools, config),
             6: lambda: self._recommendations_level_6(score, tools, config),
             7: lambda: self._recommendations_level_7(score, tools, config),
-            8: lambda: self._recommendations_level_8(score, tools),
+            8: lambda: self._recommendations_level_8(score, tools, config),
         }
 
         handler = handlers.get(score.overall_level)

@@ -35,7 +35,7 @@ pip install measure-ai-proficiency
 ### Step 2: Run Full Assessment
 
 ```bash
-measure-ai-proficiency -v --format json --output proficiency-report.json
+measure-ai-proficiency --format json --output proficiency-report.json
 measure-ai-proficiency --format markdown --output proficiency-report.md
 ```
 

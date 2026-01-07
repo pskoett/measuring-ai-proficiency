@@ -57,7 +57,7 @@ For deeper customization, modify the Python source:
 
 1. **Run the tool first** to see what it detects:
    ```bash
-   measure-ai-proficiency -v
+   measure-ai-proficiency
    ```
 
 2. **Review the output**: Look at the files detected vs. your actual documentation
@@ -191,7 +191,7 @@ After customizing, test on a few repositories:
 
 ```bash
 # Single repo
-measure-ai-proficiency /path/to/repo -v
+measure-ai-proficiency /path/to/repo
 
 # Multiple repos to compare
 measure-ai-proficiency repo1 repo2 repo3 --format csv > results.csv
