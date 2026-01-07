@@ -96,6 +96,34 @@ def _progress_bar(percent: float, width: int = 20) -> str:
     return f"[{'█' * filled}{'░' * empty}]"
 
 
+def _progress_bar_with_threshold(coverage: float, threshold: float, width: int = 20) -> str:
+    """Create a progress bar with threshold marker.
+
+    The bar shows:
+    - Filled blocks up to current coverage
+    - A '|' marker at the threshold position
+    - Empty blocks for remaining space
+    """
+    # Calculate positions (scale to bar width)
+    threshold_pos = int(threshold / 100 * width)
+    coverage_pos = int(min(coverage, 100) / 100 * width)
+
+    bar_chars = []
+    for i in range(width):
+        if i == threshold_pos and coverage_pos <= threshold_pos:
+            # Show threshold marker when not yet reached
+            bar_chars.append("|")
+        elif i < coverage_pos:
+            bar_chars.append("█")
+        elif i == threshold_pos:
+            # Threshold marker (already passed)
+            bar_chars.append("|")
+        else:
+            bar_chars.append("░")
+
+    return f"[{''.join(bar_chars)}]"
+
+
 class TerminalReporter:
     """Report results to terminal with colors and formatting."""
 
@@ -116,23 +144,28 @@ class TerminalReporter:
             achieved = "✓" if level_num <= achieved_level else "○"
             achieved_color = Colors.GREEN if achieved == "✓" else Colors.DIM
 
-            bar = _progress_bar(level_score.coverage_percent)
-
-            # Show threshold for levels 3+
+            coverage = level_score.coverage_percent
             threshold = thresholds.get(level_num)
+
+            # Use threshold-aware progress bar for levels 3+
             if threshold is not None:
-                threshold_str = f" (≥{threshold}%)"
-                if level_score.coverage_percent >= threshold:
-                    threshold_display = _color(threshold_str, Colors.GREEN)
+                bar = _progress_bar_with_threshold(coverage, threshold)
+                # Show coverage/threshold and status
+                if coverage >= threshold:
+                    status_str = _color("✓", Colors.GREEN)
+                    pct_display = f"{coverage:.1f}%/{threshold}%"
                 else:
-                    threshold_display = _color(threshold_str, Colors.DIM)
+                    gap = threshold - coverage
+                    status_str = _color(f"needs +{gap:.1f}%", Colors.YELLOW)
+                    pct_display = f"{coverage:.1f}%/{threshold}%"
             else:
-                threshold_display = ""
+                bar = _progress_bar(coverage)
+                status_str = ""
+                pct_display = f"{coverage:.1f}%"
 
             print(f"    {_color(achieved, achieved_color)} {level_score.name}", file=output)
             print(
-                f"      {bar} {level_score.coverage_percent:.1f}%{threshold_display} "
-                f"({level_score.substantive_file_count} files)",
+                f"      {bar} {pct_display} {status_str} ({level_score.substantive_file_count} files)",
                 file=output,
             )
 
