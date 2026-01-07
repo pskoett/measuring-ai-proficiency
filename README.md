@@ -207,14 +207,70 @@ for skill in measure-ai-proficiency customize-measurement plan-interview agentic
 done
 ```
 
-### Usage Examples
+### Using Skills in Your Projects
 
-- **"Assess my AI proficiency"** - Uses measure-ai-proficiency skill
-- **"Customize measurement for my repo"** - Uses customize-measurement skill
-- **"/plan-interview Add OAuth authentication"** - Uses plan-interview skill
-- **"/agentic-workflow Auto-label issues"** - Uses agentic-workflow skill
+Once installed, ask your AI assistant naturally:
 
-See [skill-template/](skill-template/) for full skill content.
+**Measure your repository's AI proficiency:**
+```
+"Assess my AI proficiency"
+"How mature is my context engineering?"
+"What context files should I add?"
+```
+
+**Customize measurement for your team:**
+```
+"Customize measurement for my repo"
+"Set up .ai-proficiency.yaml for my project"
+```
+This runs a guided interview and generates a config file tailored to your conventions.
+
+**Plan features with structured requirements:**
+```
+"/plan-interview Add user authentication"
+"/plan-interview Refactor the database layer"
+```
+
+**Create agentic GitHub Actions workflows:**
+```
+"/agentic-workflow Auto-label new issues"
+"/agentic-workflow Review PRs for accessibility"
+```
+
+### Quick Start: Apply Measurement to Any Project
+
+**Step 1: Install the CLI tool**
+```bash
+pip install measure-ai-proficiency
+```
+
+**Step 2: Run initial assessment**
+```bash
+cd your-project
+measure-ai-proficiency -v
+```
+
+**Step 3: Add the skills (optional but recommended)**
+```bash
+# For Claude Code
+mkdir -p .claude/skills/measure-ai-proficiency
+curl -o .claude/skills/measure-ai-proficiency/SKILL.md \
+  https://raw.githubusercontent.com/pskoett/measuring-ai-proficiency/main/skill-template/measure-ai-proficiency/SKILL.md
+```
+
+**Step 4: Customize for your team**
+```bash
+# Copy the example config
+curl -o .ai-proficiency.yaml \
+  https://raw.githubusercontent.com/pskoett/measuring-ai-proficiency/main/.ai-proficiency.yaml.example
+
+# Or use the skill: "Customize measurement for my repo"
+```
+
+**Step 5: Follow recommendations**
+The tool will suggest which files to create (CLAUDE.md, ARCHITECTURE.md, etc.)
+
+See [skill-template/](skill-template/) for full skill content and [CUSTOMIZATION.md](CUSTOMIZATION.md) for advanced configuration.
 
 ## GitHub Action
 
