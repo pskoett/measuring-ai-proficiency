@@ -51,6 +51,26 @@ focus_areas:
 
 See `.ai-proficiency.yaml.example` in this repo for a full example.
 
+## Organizational Discovery
+
+Before customizing, discover which repositories in your organization already have context engineering artifacts:
+
+```bash
+# Find active repos with AI context files
+./scripts/find-org-repos.sh your-org-name
+
+# JSON output
+./scripts/find-org-repos.sh your-org-name --json > repos.json
+```
+
+This shows:
+- Total repositories in your organization
+- Active repositories (commits in last 90 days)
+- **Percentage with AI context artifacts** (your baseline)
+- Which repos to scan with measure-ai-proficiency
+
+See [scripts/README.md](scripts/README.md) for full documentation.
+
 ## Alternative: Edit Source Code
 
 For deeper customization, modify the Python source:

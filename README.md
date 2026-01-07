@@ -334,6 +334,40 @@ measure-ai-proficiency /path/to/repo1 /path/to/repo2 /path/to/repo3
 measure-ai-proficiency --org /path/to/cloned-org
 ```
 
+### Discover Active Repos in a GitHub Organization
+
+Before scanning, use the included script to find which repositories in your GitHub organization have context engineering artifacts:
+
+```bash
+# Find active repos with AI context artifacts
+./scripts/find-org-repos.sh your-org-name
+
+# Example output:
+# Organization: anthropics
+# Total repositories: 150
+# Active repositories: 45 (commits in last 90 days)
+# Repos with AI context artifacts: 12
+# ✓ 26.7% of active repositories have context engineering artifacts
+```
+
+**What it does:**
+- Searches your GitHub organization for repositories with commits in the last 90 days
+- Checks each active repo for common instruction files (CLAUDE.md, AGENTS.md, .cursorrules, .github/copilot-instructions.md)
+- Shows which files were found in each repo
+- Outputs a summary with percentage of active repos with context artifacts
+- Provides clone commands for discovered repositories
+
+**Requirements:**
+- [GitHub CLI (gh)](https://cli.github.com/) installed and authenticated
+- [jq](https://stedolan.github.io/jq/) for JSON processing
+
+**JSON output for automation:**
+```bash
+./scripts/find-org-repos.sh your-org-name --json > repos.json
+```
+
+This gives you a baseline for your organization and identifies which repos to scan with `measure-ai-proficiency`.
+
 ### Output Formats
 
 ```bash
