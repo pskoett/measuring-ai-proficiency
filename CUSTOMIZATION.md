@@ -11,7 +11,17 @@ The default configuration includes hundreds of common patterns, but every organi
 - **Custom conventions**: Your own standards for organizing context engineering files
 - **Domain-specific patterns**: Finance, healthcare, or other industry-specific documentation
 
-## Quick Start: Config File (Recommended)
+## Recommended: Use the Customize Skill
+
+The easiest way to create a customized config is through the **customize-measurement** skill:
+
+```
+You: "Customize measurement for my repo"
+```
+
+The skill will ask you questions about your team's setup and generate a `.ai-proficiency.yaml` file automatically. See [skill-template/customize-measurement/](skill-template/customize-measurement/) for details.
+
+## Quick Start: Config File
 
 The easiest way to customize is with a `.ai-proficiency.yaml` file in your repo:
 

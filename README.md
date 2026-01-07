@@ -152,53 +152,69 @@ cd measuring-ai-proficiency
 pip install -e .
 ```
 
-## Agent Skill
+## Agent Skills
 
-Want AI to help improve your context engineering automatically? Add the skill to your repository:
+Want AI to help improve your context engineering automatically? Add skills to your repository:
+
+### Available Skills
+
+| Skill | Description |
+|-------|-------------|
+| **measure-ai-proficiency** | Assess repository AI maturity and recommend improvements |
+| **customize-measurement** | Generate a customized `.ai-proficiency.yaml` through guided interview |
+| **plan-interview** | Structured requirements gathering before implementation |
+| **agentic-workflow** | Create natural language GitHub Actions workflows |
+
+### Installation
 
 **For Claude Code:**
 ```bash
-# Create the skills directory
-mkdir -p .claude/skills/measure-ai-proficiency
-
-# Download the skill
-curl -o .claude/skills/measure-ai-proficiency/SKILL.md \
-  https://raw.githubusercontent.com/pskoett/measuring-ai-proficiency/main/skill-template/measure-ai-proficiency/SKILL.md
+# Download all skills
+mkdir -p .claude/skills/{measure-ai-proficiency,customize-measurement,plan-interview,agentic-workflow}
+for skill in measure-ai-proficiency customize-measurement plan-interview agentic-workflow; do
+  curl -o .claude/skills/$skill/SKILL.md \
+    https://raw.githubusercontent.com/pskoett/measuring-ai-proficiency/main/skill-template/$skill/SKILL.md
+done
 ```
 
 **For GitHub Copilot:**
 ```bash
-# Create the skills directory
-mkdir -p .github/skills/measure-ai-proficiency
-
-# Download the skill
-curl -o .github/skills/measure-ai-proficiency/SKILL.md \
-  https://raw.githubusercontent.com/pskoett/measuring-ai-proficiency/main/skill-template/measure-ai-proficiency/SKILL.md
+# Download all skills
+mkdir -p .github/skills/{measure-ai-proficiency,customize-measurement,plan-interview,agentic-workflow}
+for skill in measure-ai-proficiency customize-measurement plan-interview agentic-workflow; do
+  curl -o .github/skills/$skill/SKILL.md \
+    https://raw.githubusercontent.com/pskoett/measuring-ai-proficiency/main/skill-template/$skill/SKILL.md
+done
 ```
 
 **For Cursor:**
 ```bash
-# Create the skills directory
-mkdir -p .cursor/skills/measure-ai-proficiency
-
-# Download the skill
-curl -o .cursor/skills/measure-ai-proficiency/SKILL.md \
-  https://raw.githubusercontent.com/pskoett/measuring-ai-proficiency/main/skill-template/measure-ai-proficiency/SKILL.md
+# Download all skills
+mkdir -p .cursor/skills/{measure-ai-proficiency,customize-measurement,plan-interview,agentic-workflow}
+for skill in measure-ai-proficiency customize-measurement plan-interview agentic-workflow; do
+  curl -o .cursor/skills/$skill/SKILL.md \
+    https://raw.githubusercontent.com/pskoett/measuring-ai-proficiency/main/skill-template/$skill/SKILL.md
+done
 ```
 
 **For OpenAI Codex:**
 ```bash
-# Create the skills directory
-mkdir -p .codex/skills/measure-ai-proficiency
-
-# Download the skill
-curl -o .codex/skills/measure-ai-proficiency/SKILL.md \
-  https://raw.githubusercontent.com/pskoett/measuring-ai-proficiency/main/skill-template/measure-ai-proficiency/SKILL.md
+# Download all skills
+mkdir -p .codex/skills/{measure-ai-proficiency,customize-measurement,plan-interview,agentic-workflow}
+for skill in measure-ai-proficiency customize-measurement plan-interview agentic-workflow; do
+  curl -o .codex/skills/$skill/SKILL.md \
+    https://raw.githubusercontent.com/pskoett/measuring-ai-proficiency/main/skill-template/$skill/SKILL.md
+done
 ```
 
-Then ask your AI assistant: "Assess my repository's AI proficiency" or "Help me improve my context engineering"
+### Usage Examples
 
-The skill will automatically scan your repo, explain your maturity level, and offer to create missing context files. See [skill-template/](skill-template/) for the full skill content.
+- **"Assess my AI proficiency"** - Uses measure-ai-proficiency skill
+- **"Customize measurement for my repo"** - Uses customize-measurement skill
+- **"/plan-interview Add OAuth authentication"** - Uses plan-interview skill
+- **"/agentic-workflow Auto-label issues"** - Uses agentic-workflow skill
+
+See [skill-template/](skill-template/) for full skill content.
 
 ## GitHub Action
 

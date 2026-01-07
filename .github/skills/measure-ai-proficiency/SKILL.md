@@ -136,5 +136,10 @@ Common triggers for this skill:
 
 ## Customization
 
-For organization-specific patterns, see:
+Use the **customize-measurement** skill for guided configuration:
+```
+"Customize measurement for my repo"
+```
+
+Or see the manual guide:
 https://github.com/pskoett/measuring-ai-proficiency/blob/main/CUSTOMIZATION.md
