@@ -10,7 +10,7 @@ import sys
 from datetime import datetime
 from typing import List, TextIO, Union
 
-from .scanner import RepoScore
+from .scanner import RepoScore, RepoScanner
 
 
 # Terminal colors
@@ -102,6 +102,51 @@ class TerminalReporter:
     def __init__(self, verbose: bool = False):
         self.verbose = verbose
 
+    def _print_level_breakdown(
+        self,
+        score: RepoScore,
+        achieved_level: int,
+        thresholds: dict,
+        output: TextIO,
+        show_files: bool = True,
+    ) -> None:
+        """Print level breakdown with thresholds."""
+        for level_num in sorted(score.level_scores.keys()):
+            level_score = score.level_scores[level_num]
+            achieved = "✓" if level_num <= achieved_level else "○"
+            achieved_color = Colors.GREEN if achieved == "✓" else Colors.DIM
+
+            bar = _progress_bar(level_score.coverage_percent)
+
+            # Show threshold for levels 3+
+            threshold = thresholds.get(level_num)
+            if threshold is not None:
+                threshold_str = f" (≥{threshold}%)"
+                if level_score.coverage_percent >= threshold:
+                    threshold_display = _color(threshold_str, Colors.GREEN)
+                else:
+                    threshold_display = _color(threshold_str, Colors.DIM)
+            else:
+                threshold_display = ""
+
+            print(f"    {_color(achieved, achieved_color)} {level_score.name}", file=output)
+            print(
+                f"      {bar} {level_score.coverage_percent:.1f}%{threshold_display} "
+                f"({level_score.substantive_file_count} files)",
+                file=output,
+            )
+
+            if show_files and self.verbose and level_score.matched_files:
+                for f in level_score.matched_files[:5]:
+                    status = "●" if f.is_substantive else "○"
+                    print(f"        {_color(status, Colors.DIM)} {f.path}", file=output)
+                if len(level_score.matched_files) > 5:
+                    print(
+                        f"        {_color(f'... and {len(level_score.matched_files) - 5} more', Colors.DIM)}",
+                        file=output,
+                    )
+            print(file=output)
+
     def report_single(self, score: RepoScore, output: TextIO = sys.stdout) -> None:
         """Report a single repository score."""
 
@@ -134,33 +179,28 @@ class TerminalReporter:
 
         print(file=output)
 
-        # Level breakdown
-        print(_color("  Level Breakdown:", Colors.BOLD), file=output)
+        # Check if custom thresholds are in use
+        has_custom_thresholds = score.default_level is not None
+        default_thresholds = RepoScanner.DEFAULT_THRESHOLDS
+
+        # Level breakdown with custom thresholds (if defined)
+        if has_custom_thresholds:
+            print(_color("  Level Breakdown (Custom Thresholds):", Colors.BOLD), file=output)
+        else:
+            print(_color("  Level Breakdown:", Colors.BOLD), file=output)
         print(file=output)
 
-        for level_num in sorted(score.level_scores.keys()):
-            level_score = score.level_scores[level_num]
-            achieved = "✓" if level_num <= score.overall_level else "○"
-            achieved_color = Colors.GREEN if achieved == "✓" else Colors.DIM
+        self._print_level_breakdown(
+            score, score.overall_level, score.effective_thresholds, output
+        )
 
-            bar = _progress_bar(level_score.coverage_percent)
-            print(f"    {_color(achieved, achieved_color)} {level_score.name}", file=output)
-            print(
-                f"      {bar} {level_score.coverage_percent:.1f}% "
-                f"({level_score.substantive_file_count} files)",
-                file=output,
-            )
-
-            if self.verbose and level_score.matched_files:
-                for f in level_score.matched_files[:5]:
-                    status = "●" if f.is_substantive else "○"
-                    print(f"        {_color(status, Colors.DIM)} {f.path}", file=output)
-                if len(level_score.matched_files) > 5:
-                    print(
-                        f"        {_color(f'... and {len(level_score.matched_files) - 5} more', Colors.DIM)}",
-                        file=output,
-                    )
+        # Show default threshold breakdown when custom thresholds are in use
+        if has_custom_thresholds:
+            print(_color("  Level Breakdown (Default Thresholds):", Colors.BOLD), file=output)
             print(file=output)
+            self._print_level_breakdown(
+                score, score.default_level, default_thresholds, output, show_files=False
+            )
 
         # Cross-references section
         xref = score.cross_references

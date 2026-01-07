@@ -190,6 +190,8 @@ class RepoScore:
     detected_tools: List[str] = field(default_factory=list)
     config: Optional[RepoConfig] = None
     cross_references: Optional[CrossReferenceResult] = None
+    effective_thresholds: Dict[int, int] = field(default_factory=dict)  # Level -> % threshold
+    default_level: Optional[int] = None  # Level with default thresholds (when custom are used)
 
     @property
     def has_any_ai_files(self) -> bool:
@@ -263,7 +265,7 @@ class RepoScanner:
         score.cross_references = self._scan_cross_references()
 
         # Calculate overall level and score (using custom thresholds if configured)
-        score.overall_level = self._calculate_overall_level(score.level_scores)
+        score.overall_level, score.effective_thresholds, score.default_level = self._calculate_overall_level(score.level_scores)
         base_score = self._calculate_overall_score(score.level_scores)
 
         # Add cross-reference bonus to overall score (capped at 100)
@@ -654,61 +656,65 @@ class RepoScanner:
 
         return min(bonus, 10.0)
 
-    def _calculate_overall_level(self, level_scores: Dict[int, LevelScore]) -> int:
-        """
-        Calculate the overall maturity level (1-8).
+    # Default thresholds for level advancement (percentage coverage required)
+    DEFAULT_THRESHOLDS: Dict[int, int] = {
+        3: 15,   # Comprehensive context
+        4: 12,   # Skills & automation
+        5: 10,   # Multi-agent ready
+        6: 8,    # Fleet infrastructure
+        7: 6,    # Agent fleet
+        8: 5,    # Custom orchestration (frontier)
+    }
 
-        Levels aligned with Steve Yegge's 8-stage model:
-        - Level 1: Baseline - no AI-specific files (just README)
-        - Level 2: Core AI file exists (CLAUDE.md, .cursorrules, etc.)
-        - Level 3: Level 2 + significant Level 3 coverage (>15%)
-        - Level 4: Level 3 + significant Level 4 coverage (>12%)
-        - Level 5: Level 4 + significant Level 5 coverage (>10%)
-        - Level 6: Level 5 + significant Level 6 coverage (>8%)
-        - Level 7: Level 6 + significant Level 7 coverage (>6%)
-        - Level 8: Level 7 + significant Level 8 coverage (>5%)
-
-        Custom thresholds can be configured via .ai-proficiency.yaml
+    def _calculate_overall_level(self, level_scores: Dict[int, LevelScore]) -> tuple:
         """
+        Calculate the overall maturity level (1-8) and return effective thresholds.
+
+        Returns:
+            tuple: (overall_level, effective_thresholds, default_level)
+            - overall_level: Level achieved with effective thresholds
+            - effective_thresholds: Dict of thresholds used (custom if configured)
+            - default_level: Level that would be achieved with default thresholds (None if no custom)
+        """
+
+        # Use custom thresholds from config if available
+        has_custom = self.config and self.config.thresholds
+        thresholds = self.DEFAULT_THRESHOLDS.copy()
+        if has_custom:
+            for level_num, custom_threshold in self.config.thresholds.items():
+                thresholds[level_num] = custom_threshold
 
         # Check for core AI files (Level 2 requirement)
         level_2 = level_scores.get(2)
         if not level_2 or level_2.substantive_file_count == 0:
-            return 1  # No AI files = Level 1
+            return 1, thresholds, None  # No AI files = Level 1
 
         has_core_file = any(
             any(core in f.path for core in CORE_AI_FILES) for f in level_2.matched_files
         )
         if not has_core_file:
-            return 1  # No core AI file = Level 1
+            return 1, thresholds, None  # No core AI file = Level 1
 
+        # Calculate level with effective thresholds
+        current_level = self._calc_level_with_thresholds(level_scores, thresholds)
+
+        # Calculate default level if custom thresholds are in use
+        default_level = None
+        if has_custom:
+            default_level = self._calc_level_with_thresholds(level_scores, self.DEFAULT_THRESHOLDS)
+
+        return current_level, thresholds, default_level
+
+    def _calc_level_with_thresholds(self, level_scores: Dict[int, LevelScore], thresholds: Dict[int, int]) -> int:
+        """Calculate level using given thresholds."""
         current_level = 2
-
-        # Default thresholds (can be overridden by config)
-        default_thresholds = {
-            3: 15,   # Comprehensive context
-            4: 12,   # Skills & automation
-            5: 10,   # Multi-agent ready
-            6: 8,    # Fleet infrastructure
-            7: 6,    # Agent fleet
-            8: 5,    # Custom orchestration (frontier)
-        }
-
-        # Use custom thresholds from config if available
-        thresholds = default_thresholds.copy()
-        if self.config and self.config.thresholds:
-            for level_num, custom_threshold in self.config.thresholds.items():
-                thresholds[level_num] = custom_threshold
-
         for level_num in range(3, 9):
             level_score = level_scores.get(level_num)
             threshold = thresholds.get(level_num, 5)
-
             if level_score and level_score.coverage_percent >= threshold:
                 current_level = level_num
             else:
                 break
-
         return current_level
 
     def _calculate_overall_score(self, level_scores: Dict[int, LevelScore]) -> float:
