@@ -210,6 +210,13 @@ class TerminalReporter:
             if score.config and score.config.from_file:
                 print(f"  Config: {_color('.ai-proficiency.yaml loaded', Colors.DIM)}", file=output)
 
+        # Show custom thresholds indicator
+        if score.default_level is not None and score.config and score.config.thresholds:
+            threshold_vals = ", ".join(
+                f"L{k}:{v}%" for k, v in sorted(score.config.thresholds.items())
+            )
+            print(f"  Thresholds: {_color(f'Custom ({threshold_vals})', Colors.MAGENTA)}", file=output)
+
         print(file=output)
 
         # Check if custom thresholds are in use
