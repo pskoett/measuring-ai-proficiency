@@ -1,0 +1,51 @@
+# .ai-proficiency.yaml
+# Configuration for the measure-ai-proficiency project itself
+#
+# This file serves dual purposes:
+# 1. Configure how the tool measures THIS repository
+# 2. Serve as a real-world example for users of the tool
+#
+# Generated using the customize-measurement skill
+
+# AI tools in use for this project
+# Auto-detection would find these, but explicit is clearer
+tools:
+  - claude-code
+  - github-copilot
+
+# Custom file locations
+# This project uses standard names, so no custom mappings needed
+# Example of what this could look like:
+# documentation:
+#   architecture: "docs/SYSTEM_DESIGN.md"
+#   conventions: "CODING_STANDARDS.md"
+
+# Level thresholds (adjusted for smaller project)
+# Lower thresholds make it easier to advance levels
+thresholds:
+  level_3: 10   # Comprehensive Context (default: 15)
+  level_4: 8    # Skills & Automation (default: 12)
+  level_5: 10   # Multi-Agent Ready (default: 10)
+  level_6: 8    # Fleet Infrastructure (default: 8)
+  level_7: 6    # Agent Fleet (default: 6)
+  level_8: 5    # Custom Orchestration (default: 5)
+
+# No recommendations skipped - this project demonstrates all features
+# skip_recommendations:
+#   - hooks
+#   - gastown
+#   - beads
+
+# No focus areas - show all recommendations for template purposes
+# focus_areas:
+#   - documentation
+#   - skills
+
+# Quality scoring thresholds (using defaults)
+# Uncomment to customize:
+# quality:
+#   max_file_size: 100000       # Max bytes to scan for cross-refs
+#   min_substantive_bytes: 100  # Min bytes for file to count
+#   word_threshold_partial: 50  # Words for partial quality points
+#   word_threshold_full: 200    # Words for full quality points
+#   git_timeout: 5              # Git command timeout in seconds
