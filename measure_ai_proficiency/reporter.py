@@ -189,13 +189,30 @@ class TerminalReporter:
         print(_color(f"{'='*60}", Colors.DIM), file=output)
         print(file=output)
 
-        # Overall level
-        level_text = score.level_scores[score.overall_level].name
+        # Overall level - show both custom and default if custom thresholds are used
+        has_custom_thresholds = score.default_level is not None
 
-        print(
-            f"  Overall Level: {_color(level_text, _level_color(score.overall_level))}",
-            file=output,
-        )
+        if has_custom_thresholds:
+            # Show custom level
+            custom_level_text = score.level_scores[score.overall_level].name
+            print(
+                f"  Overall Level (Custom): {_color(custom_level_text, _level_color(score.overall_level))}",
+                file=output,
+            )
+            # Show default level
+            default_level_text = score.level_scores[score.default_level].name
+            print(
+                f"  Overall Level (Default): {_color(default_level_text, _level_color(score.default_level))}",
+                file=output,
+            )
+        else:
+            # Show single level
+            level_text = score.level_scores[score.overall_level].name
+            print(
+                f"  Overall Level: {_color(level_text, _level_color(score.overall_level))}",
+                file=output,
+            )
+
         print(
             f"  Overall Score: {_color(f'{score.overall_score:.1f}/100', Colors.BOLD)}",
             file=output,
@@ -219,11 +236,8 @@ class TerminalReporter:
 
         print(file=output)
 
-        # Check if custom thresholds are in use
-        has_custom_thresholds = score.default_level is not None
-        default_thresholds = RepoScanner.DEFAULT_THRESHOLDS
-
         # Level breakdown with custom thresholds (if defined)
+        default_thresholds = RepoScanner.DEFAULT_THRESHOLDS
         if has_custom_thresholds:
             print(_color("  Level Breakdown (Custom Thresholds):", Colors.BOLD), file=output)
         else:
