@@ -14,7 +14,7 @@ from datetime import datetime
 from pathlib import Path
 from typing import Dict, List, Optional, Set
 
-from .config import LEVELS, CORE_AI_FILES, LevelConfig
+from .config import LEVELS, CORE_AI_FILES, LevelConfig, filter_patterns_for_tools
 from .repo_config import (
     RepoConfig,
     load_repo_config,
@@ -283,14 +283,19 @@ class RepoScanner:
             description=config.description,
         )
 
-        # Count total unique patterns for coverage calculation
-        all_patterns = set(config.file_patterns + config.directory_patterns)
+        # Filter patterns based on configured tools
+        configured_tools = self.config.tools if self.config else []
+        file_patterns = filter_patterns_for_tools(config.file_patterns, configured_tools)
+        dir_patterns = filter_patterns_for_tools(config.directory_patterns, configured_tools)
+
+        # Count total unique patterns for coverage calculation (filtered)
+        all_patterns = set(file_patterns + dir_patterns)
         level_score.total_patterns = len(all_patterns)
 
         matched_patterns: Set[str] = set()
 
         # Check file patterns
-        for pattern in config.file_patterns:
+        for pattern in file_patterns:
             matches = self._find_matches(pattern)
             for match_path in matches:
                 file_match = self._create_file_match(match_path, pattern, level_num)
@@ -298,7 +303,7 @@ class RepoScanner:
                 matched_patterns.add(pattern)
 
         # Check directory patterns
-        for pattern in config.directory_patterns:
+        for pattern in dir_patterns:
             if self._directory_exists(pattern):
                 level_score.matched_directories.append(pattern)
                 matched_patterns.add(pattern)
@@ -816,11 +821,44 @@ class RepoScanner:
     ) -> List[str]:
         """Generate recommendations for Level 2: Basic Instructions."""
         recs: List[str] = []
+        level_2 = score.level_scores.get(2)
         level_3 = score.level_scores.get(3)
         if not level_3:
             return recs
 
         self._add_tools_header(recs, tools)
+
+        # First, check for missing Level 2 files (complete Level 2 before moving to Level 3)
+        level_2_files = [f.path for f in level_2.matched_files] if level_2 else []
+
+        # Check for missing AGENTS.md (for claude-code users)
+        if "claude-code" in tools or not tools:
+            has_claude_md = any("CLAUDE.md" in f for f in level_2_files)
+            has_agents_md = any(f == "AGENTS.md" for f in level_2_files)
+            if has_claude_md and not has_agents_md:
+                recs.append(
+                    "📋 Add AGENTS.md: Define agent roles, responsibilities, and behavioral guidelines. "
+                    "Complements CLAUDE.md by separating 'what the project is' from 'how agents should behave'. "
+                    "Include sections for different agent types (reviewer, implementer, etc.)."
+                )
+
+        # Check for missing copilot instructions (for github-copilot users)
+        if "github-copilot" in tools:
+            has_copilot_instructions = any("copilot-instructions.md" in f for f in level_2_files)
+            if not has_copilot_instructions:
+                recs.append(
+                    "📝 Add .github/copilot-instructions.md: Provide GitHub Copilot with project-specific context. "
+                    "Include coding patterns, naming conventions, and common pitfalls to avoid."
+                )
+
+        # Check for missing cursorrules (for cursor users)
+        if "cursor" in tools:
+            has_cursorrules = any(".cursorrules" in f for f in level_2_files)
+            if not has_cursorrules:
+                recs.append(
+                    "🎯 Add .cursorrules: Configure Cursor with your team's coding standards. "
+                    "This ensures AI-generated code matches your project's style."
+                )
 
         # Check for missing critical docs
         missing_critical = []

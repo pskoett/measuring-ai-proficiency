@@ -7,7 +7,7 @@ Focused on the big four: Claude Code, GitHub Copilot, Cursor, and OpenAI Codex.
 """
 
 from dataclasses import dataclass, field
-from typing import Dict, List, Set
+from typing import Dict, List, Optional, Set
 
 
 @dataclass
@@ -42,9 +42,10 @@ LEVEL_2_PATTERNS = LevelConfig(
         "AGENTS.md",
         # GitHub Copilot
         ".github/copilot-instructions.md",
-        ".github/AGENTS.md",
         # Cursor
         ".cursorrules",
+        # OpenAI Codex
+        "CODEX.md",
     ],
     weight=1.0
 )
@@ -602,5 +603,70 @@ CORE_AI_FILES: Set[str] = {
     "AGENTS.md",
     ".github/copilot-instructions.md",
     ".cursorrules",
+    "CODEX.md",
 }
+
+# Tool-specific pattern mapping
+# Maps patterns to the tools they belong to. Patterns not listed are considered generic (all tools).
+# Used to filter patterns when user specifies tools in .ai-proficiency.yaml
+TOOL_SPECIFIC_PATTERNS: Dict[str, List[str]] = {
+    # Claude Code specific
+    "claude-code": [
+        "CLAUDE.md",
+        "AGENTS.md",
+        ".claude/",
+    ],
+    # GitHub Copilot specific
+    "github-copilot": [
+        ".github/copilot-instructions.md",
+        ".github/instructions/",
+        ".github/agents/",
+        ".github/skills/",
+        ".copilot/",
+    ],
+    # Cursor specific
+    "cursor": [
+        ".cursorrules",
+        ".cursor/",
+    ],
+    # OpenAI Codex specific
+    "openai-codex": [
+        "CODEX.md",
+        ".codex/",
+    ],
+}
+
+
+def get_tool_for_pattern(pattern: str) -> Optional[str]:
+    """
+    Determine which tool a pattern belongs to.
+    Returns None if the pattern is generic (applies to all tools).
+    """
+    for tool, patterns in TOOL_SPECIFIC_PATTERNS.items():
+        for tool_pattern in patterns:
+            if tool_pattern.endswith("/"):
+                # Directory prefix match
+                if pattern.startswith(tool_pattern) or pattern.startswith(tool_pattern.rstrip("/")):
+                    return tool
+            else:
+                # Exact match
+                if pattern == tool_pattern:
+                    return tool
+    return None  # Generic pattern, applies to all tools
+
+
+def filter_patterns_for_tools(patterns: List[str], tools: List[str]) -> List[str]:
+    """
+    Filter patterns to only include those relevant to the specified tools.
+    Generic patterns (not tool-specific) are always included.
+    """
+    if not tools:
+        return patterns  # No filtering if no tools specified
+
+    filtered = []
+    for pattern in patterns:
+        tool = get_tool_for_pattern(pattern)
+        if tool is None or tool in tools:
+            filtered.append(pattern)
+    return filtered
 
