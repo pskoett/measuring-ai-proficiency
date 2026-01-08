@@ -82,6 +82,36 @@ measure-ai-proficiency /path/to/repo1 /path/to/repo2
 measure-ai-proficiency --org /path/to/cloned-org
 ```
 
+### GitHub Integration (No Cloning Required!)
+
+Scan GitHub repositories directly without cloning them using the GitHub CLI:
+
+```bash
+# Scan a single GitHub repository
+measure-ai-proficiency --github-repo owner/repo
+
+# Scan an entire GitHub organization
+measure-ai-proficiency --github-org anthropic
+
+# Limit the number of repos scanned
+measure-ai-proficiency --github-org anthropic --limit 50
+
+# Combine with output formats
+measure-ai-proficiency --github-org your-org --format json --output report.json
+```
+
+**Requirements:**
+- [GitHub CLI (gh)](https://cli.github.com/) must be installed
+- Must be authenticated: `gh auth login`
+
+**How it works:**
+1. Uses GitHub API to fetch repository file tree
+2. Downloads only relevant AI proficiency files (no full clone!)
+3. Scans the files locally in a temporary directory
+4. Cleans up automatically after scanning
+
+This is much faster than cloning hundreds of repositories and requires no disk space for the repositories themselves.
+
 ### Output Formats
 
 ```bash
@@ -406,11 +436,54 @@ curl -o .github/skills/measure-ai-proficiency/SKILL.md \
 
 Then ask your AI: *"Assess my AI proficiency"* or *"What context files should I add?"*
 
+### AI Agents
+
+For systematic improvement workflows, use the **AI Context Improvement Agent**:
+
+**Available in this repo:**
+- `.github/agents/improve-ai-context.agent.md` - For GitHub Copilot
+- `.claude/agents/improve-ai-context.agent.md` - For Claude Code
+
+**Integrated workflow using three skills:**
+
+1. **plan-interview** - Gathers requirements about your team's goals and constraints
+2. **customize-measurement** - Creates tailored `.ai-proficiency.yaml` configuration
+3. **measure-ai-proficiency** - Assesses and systematically improves your context
+
+**What it does:**
+- Interviews you about team goals, tools, and target maturity level
+- Creates custom configuration matching your needs
+- Runs AI proficiency assessment with your config
+- Analyzes gaps and quality scores
+- Creates missing context files systematically
+- Improves existing files with low quality scores
+- Re-scans to verify improvements
+- Works with single repos or entire organizations
+
+**How to use:**
+
+Ask your AI assistant:
+- *"Improve my AI proficiency"* (full workflow with interview and config)
+- *"Help me understand what context I need"* (starts with plan-interview)
+- *"Configure measurement for my team"* (uses customize-measurement)
+- *"Create missing context files"* (quick assessment and improvement)
+- *"Fix my low quality score"* (focused on quality improvements)
+- *"Advance to Level 4"* (goal-oriented improvement)
+
+The agent will guide you through requirements gathering, create a custom configuration, scan your repo, identify gaps, and systematically create or improve files to advance your maturity level.
+
 ---
 
-## Discover Repos in Your Organization
+## Discover & Scan GitHub Organizations
 
-Before scanning, find which repositories have context engineering artifacts:
+You can now scan entire GitHub organizations without cloning any repositories:
+
+```bash
+# Scan all repos in an organization
+measure-ai-proficiency --github-org your-org-name --format json --output report.json
+```
+
+Alternatively, use the discovery script to first see which repos have AI artifacts:
 
 ```bash
 ./scripts/find-org-repos.sh your-org-name
@@ -421,7 +494,7 @@ Before scanning, find which repositories have context engineering artifacts:
 # Repos with AI context artifacts: 12 (26.7%)
 ```
 
-Requires [GitHub CLI (gh)](https://cli.github.com/) and [jq](https://stedolan.github.io/jq/).
+Both methods require [GitHub CLI (gh)](https://cli.github.com/) to be installed and authenticated. The discovery script also requires [jq](https://stedolan.github.io/jq/).
 
 ---
 
@@ -474,7 +547,7 @@ measure-ai-proficiency
 
 Contributions welcome! Areas of interest:
 - Additional file patterns for new tools
-- Integration with GitHub API for remote scanning
+- ✅ ~~Integration with GitHub API for remote scanning~~ (implemented via GitHub CLI)
 - Historical tracking and trend analysis
 - IDE extensions
 

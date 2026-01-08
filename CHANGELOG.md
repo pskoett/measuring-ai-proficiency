@@ -5,6 +5,34 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.0] - 2026-01-08
+
+### Added
+- **GitHub CLI Integration**: Scan repositories without cloning them
+  - New `--github-repo OWNER/REPO` flag to scan single GitHub repositories
+  - New `--github-org ORG` flag to scan entire GitHub organizations
+  - New `--limit N` flag to control maximum repos scanned from organizations
+  - Smart file filtering - only downloads AI proficiency files (not full clones)
+  - Automatic temp directory management with cleanup
+  - Minimal .git structure creation for compatibility
+- **AI Context Improvement Agent**: Systematic repository context enhancement
+  - Integrated workflow using plan-interview, customize-measurement, and measure-ai-proficiency skills
+  - Available in `.github/agents/improve-ai-context.agent.md` and `.claude/agents/improve-ai-context.agent.md`
+  - Context-aware configuration and requirements gathering
+  - Quality templates for CLAUDE.md, ARCHITECTURE.md, CONVENTIONS.md, SKILL.md
+  - Intelligent workflow mode selection (full, quick, config-only)
+- Rate limit handling with exponential backoff retry logic
+- Comprehensive test suite for GitHub scanner module
+
+### Changed
+- Documentation updates across 7+ files (README, CLAUDE.md, copilot-instructions, skills, etc.)
+- Skill templates restructured with three scanning methods (GitHub direct, discover+clone, local)
+- scripts/README.md now recommends direct GitHub scanning over discovery script
+
+### Fixed
+- GitHub API rate limit handling with retry logic
+- Temporary directory cleanup in all error scenarios
+
 ## [0.2.0] - 2025-01-07
 
 ### Added

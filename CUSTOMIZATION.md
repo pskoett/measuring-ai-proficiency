@@ -53,7 +53,25 @@ See `.ai-proficiency.yaml.example` in this repo for a full example.
 
 ## Organizational Discovery
 
-Before customizing, discover which repositories in your organization already have context engineering artifacts:
+Before customizing, scan repositories in your organization to see what context engineering artifacts exist:
+
+### Option A: Direct GitHub Scanning (Recommended)
+
+Scan your organization directly without cloning:
+
+```bash
+# Scan entire organization
+measure-ai-proficiency --github-org your-org-name
+
+# Output to JSON for analysis
+measure-ai-proficiency --github-org your-org-name --format json --output org-report.json
+```
+
+**Requirements:** GitHub CLI (gh) authenticated with `gh auth login`
+
+### Option B: Discovery Script
+
+Or use the discovery script to preview which repos have artifacts:
 
 ```bash
 # Find active repos with AI context files

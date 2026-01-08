@@ -6,6 +6,20 @@ Utility scripts for measuring AI proficiency across organizations.
 
 Find active repositories in a GitHub organization that have context engineering artifacts.
 
+### Note: Direct GitHub Scanning Available!
+
+**For most use cases, you can now skip this script and use the built-in GitHub integration:**
+
+```bash
+# Scan entire organization directly (no cloning!)
+measure-ai-proficiency --github-org your-org-name --format json --output report.json
+```
+
+This discovery script is still useful when you need:
+- Just a quick preview of which repos have artifacts (without full scanning)
+- Filtering by activity (repos with commits in last 90 days)
+- JSON output for custom automation pipelines
+
 ### Purpose
 
 This script helps you answer: **"What percentage of active repositories in our organization have context engineering artifacts?"**
@@ -127,6 +141,27 @@ To scan these repositories:
 ```
 
 ### Workflow
+
+#### Option A: Direct GitHub Scanning (Recommended)
+
+The easiest approach is to use the built-in GitHub integration:
+
+```bash
+# Scan entire organization directly (no cloning!)
+measure-ai-proficiency --github-org your-org-name
+
+# Generate JSON report
+measure-ai-proficiency --github-org your-org-name --format json --output report.json
+
+# Limit number of repos scanned
+measure-ai-proficiency --github-org your-org-name --limit 50
+```
+
+**Requirements:** GitHub CLI (gh) authenticated with `gh auth login`
+
+#### Option B: Traditional Workflow (Discovery → Clone → Scan)
+
+If you prefer more control or need to work with local clones:
 
 1. **Discover repositories with artifacts:**
    ```bash

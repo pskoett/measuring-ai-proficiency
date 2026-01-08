@@ -244,11 +244,38 @@ Add labels to weekly report issues by modifying the workflow to include label as
 
 ## Organizational Discovery
 
-Before setting up automated proficiency tracking, discover which repositories in your organization have context engineering artifacts:
+Before setting up automated proficiency tracking, discover and assess repositories in your organization.
 
-### Discovery Script
+### Option 1: Direct GitHub Scanning (Recommended)
 
-Use the included `scripts/find-org-repos.sh` script:
+Scan repositories directly without cloning using the built-in GitHub CLI integration:
+
+```bash
+# Scan entire organization (no cloning required!)
+measure-ai-proficiency --github-org your-org-name
+
+# Generate JSON report for CI/CD
+measure-ai-proficiency --github-org your-org-name --format json --output proficiency-report.json
+
+# Limit number of repos scanned
+measure-ai-proficiency --github-org your-org-name --limit 50
+
+# Scan single repository without cloning
+measure-ai-proficiency --github-repo owner/repo
+```
+
+**What it does:**
+- Uses GitHub API to fetch only AI proficiency files (no full clones)
+- Scans repositories in temporary directories with automatic cleanup
+- Much faster than cloning hundreds of repos
+- Full proficiency assessment with all metrics and recommendations
+
+**Requirements:**
+- [GitHub CLI (gh)](https://cli.github.com/) installed and authenticated (`gh auth login`)
+
+### Option 2: Discovery Script
+
+Use the included `scripts/find-org-repos.sh` script to preview which repos have artifacts before scanning:
 
 ```bash
 # Find active repos with AI context artifacts
@@ -270,11 +297,11 @@ Use the included `scripts/find-org-repos.sh` script:
 
 ### Automated Discovery Workflow
 
-You can automate organizational discovery with a GitHub Action:
+You can automate organizational scanning with a GitHub Action:
 
 ```yaml
-# .github/workflows/discover-ai-proficiency.yml
-name: Discover AI Proficiency Repos
+# .github/workflows/scan-org-ai-proficiency.yml
+name: Scan Organization AI Proficiency
 
 on:
   schedule:
@@ -282,74 +309,112 @@ on:
   workflow_dispatch:
 
 jobs:
-  discover:
+  scan:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
 
-      - name: Install dependencies
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y jq
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
 
-      - name: Find repos with AI artifacts
+      - name: Install measure-ai-proficiency
+        run: |
+          pip install measure-ai-proficiency
+
+      - name: Scan organization
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          ./scripts/find-org-repos.sh ${{ github.repository_owner }} --json > discovery-results.json
+          # Scan entire org with direct GitHub API access (no cloning!)
+          measure-ai-proficiency --github-org ${{ github.repository_owner }} \
+            --format json --output proficiency-report.json
+
+          # Also generate markdown report
+          measure-ai-proficiency --github-org ${{ github.repository_owner }} \
+            --format markdown --output proficiency-report.md
 
       - name: Create tracking issue
         uses: actions/github-script@v7
         with:
           script: |
             const fs = require('fs');
-            const results = JSON.parse(fs.readFileSync('discovery-results.json', 'utf8'));
+            const report = JSON.parse(fs.readFileSync('proficiency-report.json', 'utf8'));
 
-            const body = `## AI Proficiency Discovery Report
+            // Calculate summary stats
+            const totalRepos = report.repositories.length;
+            const avgLevel = (report.repositories.reduce((sum, r) => sum + r.overall_level, 0) / totalRepos).toFixed(1);
+            const avgScore = (report.repositories.reduce((sum, r) => sum + r.overall_score, 0) / totalRepos).toFixed(1);
 
-            **Organization:** ${results.org}
-            **Scan Date:** ${results.scan_date}
-            **Activity Window:** Last ${results.days_active} days
+            const levelCounts = {};
+            for (let i = 1; i <= 8; i++) levelCounts[i] = 0;
+            report.repositories.forEach(r => levelCounts[r.overall_level]++);
 
-            ### Summary
+            const body = `## AI Proficiency Organization Report
 
-            | Metric | Count |
+            **Organization:** ${{ github.repository_owner }}
+            **Scan Date:** ${new Date().toISOString().split('T')[0]}
+            **Repositories Scanned:** ${totalRepos}
+
+            ### Summary Statistics
+
+            | Metric | Value |
             |--------|-------|
-            | Total Repositories | ${results.total_repos} |
-            | Active Repositories | ${results.active_repos} |
-            | Repos with AI Artifacts | ${results.repos_with_artifacts} |
-            | **Coverage** | **${results.percentage}%** |
+            | **Average Level** | **${avgLevel}** |
+            | **Average Score** | **${avgScore}/100** |
+            | Level 1 (No Context) | ${levelCounts[1]} repos |
+            | Level 2 (Basic) | ${levelCounts[2]} repos |
+            | Level 3 (Comprehensive) | ${levelCounts[3]} repos |
+            | Level 4 (Skills) | ${levelCounts[4]} repos |
+            | Level 5+ (Advanced) | ${levelCounts[5] + levelCounts[6] + levelCounts[7] + levelCounts[8]} repos |
 
-            ### Repositories with AI Context
+            ### Top Repositories
 
-            ${results.repositories.map(r =>
-              \`- **[\${r.name}](\${r.url})**\\n  Artifacts: \${r.artifacts.join(', ')}\`
-            ).join('\\n\\n')}
+            ${report.repositories
+              .sort((a, b) => b.overall_score - a.overall_score)
+              .slice(0, 10)
+              .map((r, i) => \`\${i+1}. **${r.repo_path}** - Level ${r.overall_level} (${r.overall_score.toFixed(1)} pts)\`)
+              .join('\\n')}
+
+            ### Repositories Needing Attention (Level 1-2)
+
+            ${report.repositories
+              .filter(r => r.overall_level <= 2)
+              .slice(0, 10)
+              .map(r => \`- **${r.repo_path}** - Level ${r.overall_level}\`)
+              .join('\\n') || '*None - great job!*'}
 
             ---
 
-            *Next steps:* Clone these repositories and run \`measure-ai-proficiency\` to assess maturity levels.`;
+            *View full report in workflow artifacts*`;
 
             await github.rest.issues.create({
               owner: context.repo.owner,
               repo: context.repo.repo,
-              title: \`AI Proficiency Discovery - \${results.scan_date}\`,
+              title: \`AI Proficiency Org Scan - ${new Date().toISOString().split('T')[0]}\`,
               body: body,
-              labels: ['ai-proficiency', 'discovery']
+              labels: ['ai-proficiency', 'org-scan']
             });
 
       - name: Upload results
         uses: actions/upload-artifact@v4
         with:
-          name: discovery-results
-          path: discovery-results.json
+          name: proficiency-reports
+          path: |
+            proficiency-report.json
+            proficiency-report.md
 ```
 
 This workflow:
-- Runs monthly to track adoption over time
-- Creates a GitHub issue with discovery results
-- Shows percentage of repos with context engineering artifacts
-- Lists all repos to scan with measure-ai-proficiency
+- Runs monthly to track organization-wide AI proficiency
+- Scans all repos without cloning (fast!)
+- Creates a GitHub issue with summary statistics
+- Shows average level/score and distribution
+- Highlights top-performing repos and those needing attention
+- Uploads full JSON and markdown reports as artifacts
+
+**For discovery only (without full scanning)**, use the alternative workflow with `scripts/find-org-repos.sh` to just list repos with AI artifacts
 
 ---
 

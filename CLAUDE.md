@@ -11,17 +11,19 @@ The tool scans repositories for files like `CLAUDE.md`, `.cursorrules`, `.github
 - Cross-reference detection between AI instruction files
 - Content quality evaluation (sections, commands, constraints)
 - Multiple output formats (terminal, JSON, markdown, CSV)
+- GitHub CLI integration for scanning repos without cloning (--github-repo, --github-org)
 
 ## Architecture
 
 ```
 measure_ai_proficiency/
-├── __init__.py      # Package exports
-├── __main__.py      # CLI entry point
-├── config.py        # Level definitions and file patterns
-├── scanner.py       # Repository scanning logic + cross-reference detection
-├── reporter.py      # Output formatting (terminal, JSON, markdown, CSV)
-└── repo_config.py   # Repository configuration and tool auto-detection
+├── __init__.py        # Package exports
+├── __main__.py        # CLI entry point
+├── config.py          # Level definitions and file patterns
+├── scanner.py         # Repository scanning logic + cross-reference detection
+├── github_scanner.py  # GitHub CLI integration for remote scanning
+├── reporter.py        # Output formatting (terminal, JSON, markdown, CSV)
+└── repo_config.py     # Repository configuration and tool auto-detection
 
 scripts/
 ├── find-org-repos.sh  # GitHub org discovery script (uses gh CLI)
@@ -67,7 +69,9 @@ pytest tests/ -v
 - Adjust scoring thresholds: Edit `_calculate_overall_level` in `scanner.py`
 - Add new cross-reference patterns: Edit `CROSS_REF_PATTERNS` in `scanner.py`
 - Add new quality indicators: Edit `QUALITY_PATTERNS` in `scanner.py`
-- Discover repos in GitHub org: Run `scripts/find-org-repos.sh <org-name>` to find active repos with AI artifacts
+- Scan GitHub repos without cloning: Use `measure-ai-proficiency --github-repo owner/repo` or `--github-org org-name`
+- Discover repos in GitHub org: Run `scripts/find-org-repos.sh <org-name>` to find active repos with AI artifacts (or just use `--github-org` to scan directly)
+- Improve repo AI context: Use the **AI Context Improvement Agent** in `.claude/agents/improve-ai-context.agent.md` to systematically create/improve context files
 
 ## Cross-Reference Detection
 
