@@ -17,10 +17,8 @@ This tool scans repositories for context engineering artifacts and calculates a 
 ## Quick Start
 
 ```bash
-# Install from source
-git clone https://github.com/pskoett/measuring-ai-proficiency
-cd measuring-ai-proficiency
-pip install -e .
+# Install from PyPI
+pip install measure-ai-proficiency
 
 # Run on any repository
 cd /path/to/your-project
