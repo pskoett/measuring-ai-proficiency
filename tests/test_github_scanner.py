@@ -211,7 +211,7 @@ class TestGetRelevantFiles:
 
         assert "CLAUDE.md" in result
         assert ".cursorrules" in result
-        assert "README.md" not in result
+        assert "README.md" in result  # README.md is included (Level 1 pattern)
         assert "src/main.py" not in result
 
     def test_get_relevant_files_skills(self):
@@ -220,7 +220,8 @@ class TestGetRelevantFiles:
             {"path": ".claude/skills/test-skill/SKILL.md", "type": "blob"},
             {"path": ".github/skills/deploy/SKILL.md", "type": "blob"},
             {"path": "skills/custom/SKILL.md", "type": "blob"},
-            {"path": ".claude/skills/README.md", "type": "blob"},  # Not a SKILL.md
+            {"path": ".claude/skills/README.md", "type": "blob"},  # Also included (matches README.md pattern)
+            {"path": "unrelated/file.txt", "type": "blob"},  # Not included
         ]
 
         result = get_relevant_files(tree)
@@ -228,7 +229,8 @@ class TestGetRelevantFiles:
         assert ".claude/skills/test-skill/SKILL.md" in result
         assert ".github/skills/deploy/SKILL.md" in result
         assert "skills/custom/SKILL.md" in result
-        assert ".claude/skills/README.md" not in result
+        assert ".claude/skills/README.md" in result  # README.md is always included
+        assert "unrelated/file.txt" not in result
 
     def test_get_relevant_files_commands(self):
         """Test filtering command files."""
@@ -333,8 +335,7 @@ class TestScanGithubRepo:
     @patch('measure_ai_proficiency.github_scanner.ensure_gh_cli')
     @patch('measure_ai_proficiency.github_scanner.get_repo_default_branch')
     @patch('measure_ai_proficiency.github_scanner.download_repo_files')
-    @patch('measure_ai_proficiency.github_scanner.create_minimal_git_repo')
-    def test_scan_github_repo_success(self, mock_git, mock_download, mock_branch, mock_ensure):
+    def test_scan_github_repo_success(self, mock_download, mock_branch, mock_ensure):
         """Test successful repository scan."""
         mock_branch.return_value = "main"
         mock_download.return_value = True
@@ -343,7 +344,10 @@ class TestScanGithubRepo:
 
         assert result is not None
         assert result.exists()
+        # Check that .git directory was created
         assert (result / ".git").exists()
+        assert (result / ".git" / "config").exists()
+        assert (result / ".git" / "HEAD").exists()
 
         # Cleanup
         import shutil

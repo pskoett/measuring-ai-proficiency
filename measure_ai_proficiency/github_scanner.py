@@ -239,8 +239,8 @@ def get_relevant_files(tree: List[Dict[str, Any]]) -> List[str]:
 
     # Collect all patterns from levels
     patterns_to_check = set()
-    for level in LEVELS:
-        for pattern in level.file_patterns:
+    for level_config in LEVELS.values():
+        for pattern in level_config.file_patterns:
             patterns_to_check.add(pattern)
 
     # Common AI instruction files to always check
@@ -298,10 +298,8 @@ def download_repo_files(owner: str, repo: str, branch: str, target_dir: Path) ->
     """
     try:
         # Get repository tree (with retry logic built-in)
+        # Note: empty list is valid (means no files or all filtered), errors raise exceptions
         tree = get_repo_tree(owner, repo, branch)
-        if not tree:
-            print(f"Warning: Could not fetch tree for {owner}/{repo}", file=sys.stderr)
-            return False
 
         # Get relevant files
         relevant_files = get_relevant_files(tree)
