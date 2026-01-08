@@ -185,10 +185,11 @@ def fetch_file_from_github(owner: str, repo: str, file_path: str, branch: str = 
     """
     try:
         # Try to get file content via GitHub API
+        # Note: When using raw accept header, response is plain text (not JSON),
+        # so we don't use --jq flag
         result = subprocess.run(
             ["gh", "api", f"repos/{owner}/{repo}/contents/{file_path}",
-             "-H", "Accept: application/vnd.github.raw",
-             "--jq", "."],
+             "-H", "Accept: application/vnd.github.raw"],
             capture_output=True,
             text=True,
             timeout=10
