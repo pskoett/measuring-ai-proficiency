@@ -36,18 +36,21 @@ That's it! The tool scans for files like `CLAUDE.md`, `.cursorrules`, `.github/c
  AI Proficiency Report: my-project
 ============================================================
 
-  Overall Level: Level 2: Basic Instructions
-  Overall Score: 24.5/100
+  Overall Level: Level 4: Skills & Automation
+  Overall Score: 18.8/100
   AI Tools: Claude Code, GitHub Copilot
 
   Level Breakdown:
-    ✓ Level 1: Zero AI           [████████████████████] 100.0%
-    ✓ Level 2: Basic Instructions [████████░░░░░░░░░░░░] 40.0%
-    ○ Level 3: Comprehensive      [██░|░░░░░░░░░░░░░░░░] 12.7%/15%
+    ✓ Level 1: Zero AI            [████████████████████] 100.0%
+    ✓ Level 2: Basic Instructions [█████████████░░░░░░░] 66.7%
+    ✓ Level 3: Comprehensive      [███|░░░░░░░░░░░░░░░░] 19.0%/15% ✓
+    ✓ Level 4: Skills & Automation[██|░░░░░░░░░░░░░░░░░] 14.5%/12% ✓
+    ○ Level 5: Multi-Agent Ready  [█░|░░░░░░░░░░░░░░░░░] 8.3%/10% needs +1.7%
 
   Recommendations:
-    → 📚 Add ARCHITECTURE.md, CONVENTIONS.md, TESTING.md
-    → 🎨 Add PATTERNS.md: Document common design patterns
+    → 🚀 Configure multiple specialized agents and MCP integrations
+    → 🔗 Create .mcp/servers/ for custom server configurations
+    → 🤝 Create agents/HANDOFFS.md for agent coordination
 ```
 
 ## Installation
@@ -137,64 +140,67 @@ The tool auto-detects and supports all major AI coding tools:
 
 ## Example Output
 
-### Terminal (Full)
+### Terminal
 
 ```
 ============================================================
- AI Proficiency Report: my-project
+ AI Proficiency Report: measuring-ai-proficiency
 ============================================================
 
-  Overall Level: Level 3: Comprehensive Context
-  Overall Score: 32.4/100
+  Overall Level: Level 4: Skills & Automation
+  Overall Score: 18.8/100
   AI Tools: Claude Code, GitHub Copilot
 
   Level Breakdown:
 
     ✓ Level 1: Zero AI
       [████████████████████] 100.0%  (1 files)
+        ● README.md
 
     ✓ Level 2: Basic Instructions
-      [████████░░░░░░░░░░░░] 40.0%  (2 files)
+      [█████████████░░░░░░░] 66.7%  (2 files)
+        ● CLAUDE.md
+        ● .github/copilot-instructions.md
 
     ✓ Level 3: Comprehensive Context
-      [██████|░░░░░░░░░░░░░] 28.5%/15% ✓ (12 files)
+      [███|░░░░░░░░░░░░░░░░] 19.0%/15% ✓ (59 files)
+        ● docs/ARCHITECTURE.md
+        ● CONVENTIONS.md
+        ● CONTRIBUTING.md
+        ... and 56 more
 
-    ○ Level 4: Skills & Automation
-      [██░|░░░░░░░░░░░░░░░░] 8.2%/12% needs +3.8% (4 files)
+    ✓ Level 4: Skills & Automation
+      [██|░░░░░░░░░░░░░░░░░] 14.5%/12% ✓ (20 files)
+        ● .claude/skills/measure-ai-proficiency/SKILL.md
+        ● .github/skills/agentic-workflow/SKILL.md
+        ... and 18 more
 
     ○ Level 5: Multi-Agent Ready
-      [░|░░░░░░░░░░░░░░░░░░] 0.0%/10% needs +10.0% (0 files)
-
-    ○ Level 6: Fleet Infrastructure
-      [░|░░░░░░░░░░░░░░░░░░] 0.0%/8% needs +8.0% (0 files)
-
-    ○ Level 7: Agent Fleet
-      [░|░░░░░░░░░░░░░░░░░░] 0.0%/6% needs +6.0% (0 files)
-
-    ○ Level 8: Custom Orchestration
-      [░|░░░░░░░░░░░░░░░░░░] 0.0%/5% needs +5.0% (0 files)
+      [█░|░░░░░░░░░░░░░░░░░] 8.3%/10% needs +1.7% (5 files)
+        ● .github/agents/create-agentic-workflow.agent.md
+        ● .github/agents/debug-agentic-workflow.agent.md
 
   Cross-References & Quality:
 
-    References: 12 found in 3 files
-    Unique targets: 8
-    Resolved: 10/12 (83%)
+    References: 102 found in 10 files
+    Unique targets: 33
+    Resolved: 62/102 (61%)
 
     Content Quality:
-      CLAUDE.md: 8.2/10 (450 words) [§ ⌘ $ ! ↻8]
-      AGENTS.md: 9.5/10 (820 words) [§ ⌘ $ ↻12]
-      .github/copilot-instructions.md: 7.8/10 (320 words) [§ ⌘ $ ↻5]
+      CLAUDE.md: 10.0/10 (565 words) [§ ⌘ $ ! ↻8]
+      .github/copilot-instructions.md: 10.0/10 (598 words) [§ ⌘ $ ↻6]
+      .claude/skills/measure-ai-proficiency/SKILL.md: 10.0/10 (851 words) [§ ⌘ $ ! ↻9]
 
     Quality indicators:
       §=sections  ⌘=paths  $=commands  !=constraints  ↻N=commits
 
-    Bonus: +7.2 points
+    Bonus: +8.8 points
 
   Recommendations:
 
-    → 🔍 Detected AI tools: Claude Code, GitHub Copilot. Recommendations tailored accordingly.
-    → 📚 Add comprehensive documentation - ARCHITECTURE.md, API.md, CONVENTIONS.md, TESTING.md.
-    → 🎨 Add PATTERNS.md: Document common design patterns used in your codebase.
+    → 🔍 Detected AI tools: Claude Code, GitHub Copilot.
+    → 🚀 Configure multiple specialized agents and MCP integrations.
+    → 🤝 Create agents/HANDOFFS.md for agent coordination.
 
 ============================================================
 ```
@@ -203,23 +209,45 @@ The tool auto-detects and supports all major AI coding tools:
 
 ```json
 {
-  "repo_path": "/path/to/my-project",
-  "repo_name": "my-project",
-  "overall_level": 3,
-  "overall_score": 32.4,
+  "repo_name": "measuring-ai-proficiency",
+  "overall_level": 4,
+  "overall_score": 18.83,
   "detected_tools": ["claude-code", "github-copilot"],
   "level_scores": {
-    "1": {"name": "Level 1: Zero AI", "coverage_percent": 100.0},
-    "2": {"name": "Level 2: Basic Instructions", "coverage_percent": 40.0}
+    "1": {"name": "Level 1: Zero AI", "coverage_percent": 100.0, "file_count": 1},
+    "2": {"name": "Level 2: Basic Instructions", "coverage_percent": 66.67, "file_count": 2},
+    "3": {"name": "Level 3: Comprehensive Context", "coverage_percent": 18.99, "file_count": 59},
+    "4": {"name": "Level 4: Skills & Automation", "coverage_percent": 14.49, "file_count": 20}
   },
   "cross_references": {
-    "total_count": 12,
-    "resolved_count": 10,
-    "bonus_points": 7.2
+    "total_count": 102,
+    "resolved_count": 62,
+    "resolution_rate": 60.78,
+    "bonus_points": 8.83
   },
   "recommendations": ["..."]
 }
 ```
+
+### Markdown
+
+The markdown format produces a detailed report with tables:
+
+| Level | Coverage | Files | Status |
+|-------|----------|-------|--------|
+| Level 1: Zero AI | 100.0% | 1 | ✓ |
+| Level 2: Basic Instructions | 66.7% | 2 | ✓ |
+| Level 3: Comprehensive Context | 19.0% | 59 | ✓ |
+| Level 4: Skills & Automation | 14.5% | 20 | ✓ |
+| Level 5: Multi-Agent Ready | 8.3% | 5 | ○ |
+
+**Content Quality:**
+
+| File | Score | Words | Commits |
+|------|-------|-------|---------|
+| `CLAUDE.md` | 10.0/10 | 565 | 8 |
+| `.github/copilot-instructions.md` | 10.0/10 | 598 | 6 |
+| `.claude/skills/measure-ai-proficiency/SKILL.md` | 10.0/10 | 851 | 9 |
 
 ---
 
