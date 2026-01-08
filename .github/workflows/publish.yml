@@ -51,7 +51,7 @@ jobs:
 
     steps:
     - name: Download distribution artifacts
-      uses: actions/download-artifact@v4
+      uses: actions/download-artifact@v4.1.3
       with:
         name: python-package-distributions
         path: dist/
@@ -73,7 +73,7 @@ jobs:
 
     steps:
     - name: Download distribution artifacts
-      uses: actions/download-artifact@v4
+      uses: actions/download-artifact@v4.1.3
       with:
         name: python-package-distributions
         path: dist/
