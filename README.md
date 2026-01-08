@@ -436,6 +436,32 @@ curl -o .github/skills/measure-ai-proficiency/SKILL.md \
 
 Then ask your AI: *"Assess my AI proficiency"* or *"What context files should I add?"*
 
+### AI Agents
+
+For systematic improvement workflows, use the **AI Context Improvement Agent**:
+
+**Available in this repo:**
+- `.github/agents/improve-ai-context.agent.md` - For GitHub Copilot
+- `.claude/agents/improve-ai-context.agent.md` - For Claude Code
+
+**What it does:**
+- Runs AI proficiency assessment
+- Analyzes gaps and quality scores
+- Creates missing context files systematically
+- Improves existing files with low quality scores
+- Re-scans to verify improvements
+- Works with single repos or entire organizations
+
+**How to use:**
+
+Ask your AI assistant:
+- *"Improve my AI proficiency"*
+- *"Create missing context files"*
+- *"Fix my low quality score"*
+- *"Advance to Level 4"*
+
+The agent will scan your repo, identify gaps, and systematically create or improve files to advance your maturity level.
+
 ---
 
 ## Discover & Scan GitHub Organizations

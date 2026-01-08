@@ -81,6 +81,7 @@ pytest tests/ -v
 | Add quality indicators | `scanner.py` → `QUALITY_PATTERNS` |
 | Scan GitHub repos | `measure-ai-proficiency --github-repo owner/repo` or `--github-org org` |
 | Discover org repos | `scripts/find-org-repos.sh <org-name>` (or use `--github-org` directly) |
+| Improve AI context | Use `.github/agents/improve-ai-context.agent.md` to systematically create/improve files |
 
 ## Cross-Reference Detection
 
