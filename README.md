@@ -70,7 +70,7 @@ The tool automatically detects which AI tools you're using based on files in you
 ============================================================
 
   Overall Level: Level 2: Basic Instructions
-  Overall Score: 45.3/100
+  Overall Score: 24.5/100
   AI Tools: Claude Code, GitHub Copilot    ← Auto-detected!
 ```
 
@@ -415,34 +415,34 @@ measure-ai-proficiency --org /path/to/org --min-level 2
 ============================================================
 
   Overall Level: Level 3: Comprehensive Context
-  Overall Score: 38.7/100
+  Overall Score: 32.4/100
   AI Tools: Claude Code, GitHub Copilot
 
   Level Breakdown:
 
     ✓ Level 1: Zero AI
-      [████████████████████] 100.0% (1 files)
+      [████████████████████] 100.0%  (1 files)
 
     ✓ Level 2: Basic Instructions
-      [████████░░░░░░░░░░░░] 40.0% (2 files)
+      [████████░░░░░░░░░░░░] 40.0%  (2 files)
 
     ✓ Level 3: Comprehensive Context
-      [██████░░░░░░░░░░░░░░] 28.5% (12 files)
+      [██████|░░░░░░░░░░░░░] 28.5%/15% ✓ (12 files)
 
     ○ Level 4: Skills & Automation
-      [██░░░░░░░░░░░░░░░░░░] 8.2% (4 files)
+      [██░|░░░░░░░░░░░░░░░░] 8.2%/12% needs +3.8% (4 files)
 
     ○ Level 5: Multi-Agent Ready
-      [░░░░░░░░░░░░░░░░░░░░] 0.0% (0 files)
+      [░|░░░░░░░░░░░░░░░░░░] 0.0%/10% needs +10.0% (0 files)
 
     ○ Level 6: Fleet Infrastructure
-      [░░░░░░░░░░░░░░░░░░░░] 0.0% (0 files)
+      [░|░░░░░░░░░░░░░░░░░░] 0.0%/8% needs +8.0% (0 files)
 
     ○ Level 7: Agent Fleet
-      [░░░░░░░░░░░░░░░░░░░░] 0.0% (0 files)
+      [░|░░░░░░░░░░░░░░░░░░] 0.0%/6% needs +6.0% (0 files)
 
     ○ Level 8: Custom Orchestration
-      [░░░░░░░░░░░░░░░░░░░░] 0.0% (0 files)
+      [░|░░░░░░░░░░░░░░░░░░] 0.0%/5% needs +5.0% (0 files)
 
   Cross-References & Quality:
 
@@ -451,11 +451,14 @@ measure-ai-proficiency --org /path/to/org --min-level 2
     Resolved: 10/12 (83%)
 
     Content Quality:
-      CLAUDE.md: 7.2/10 (450 words, 8 sections)
-      AGENTS.md: 8.5/10 (820 words, 14 sections)
-      .github/copilot-instructions.md: 6.8/10 (320 words, 10 sections)
+      CLAUDE.md: 8.2/10 (450 words) [§ ⌘ $ ! ↻8]
+      AGENTS.md: 9.5/10 (820 words) [§ ⌘ $ ↻12]
+      .github/copilot-instructions.md: 7.8/10 (320 words) [§ ⌘ $ ↻5]
 
-    Bonus: +6.2 points
+    Quality indicators:
+      §=sections  ⌘=paths  $=commands  !=constraints  ↻N=commits
+
+    Bonus: +7.2 points
 
   Recommendations:
 
@@ -474,7 +477,7 @@ measure-ai-proficiency --org /path/to/org --min-level 2
   "repo_name": "my-project",
   "scan_time": "2026-01-05T12:00:00.000000",
   "overall_level": 3,
-  "overall_score": 38.7,
+  "overall_score": 32.4,
   "detected_tools": ["claude-code", "github-copilot"],
   "config_loaded": false,
   "level_scores": {
@@ -498,14 +501,25 @@ measure-ai-proficiency --org /path/to/org --min-level 2
     "unique_targets": ["ARCHITECTURE.md", "CONVENTIONS.md", "AGENTS.md", "docs/"],
     "resolved_count": 10,
     "resolution_rate": 83.33,
-    "bonus_points": 6.2,
+    "bonus_points": 7.2,
+    "quality_scoring_legend": {
+      "max_score": 10,
+      "indicators": {
+        "sections": {"max_points": 2, "description": "Markdown headers (##) for organization"},
+        "paths": {"max_points": 2, "description": "Concrete file/directory paths (/src/, ~/)"},
+        "commands": {"max_points": 2, "description": "CLI commands in backticks"},
+        "constraints": {"max_points": 2, "description": "Directive language (never, avoid, don't, do not, must not, always, required)"},
+        "substance": {"max_points": 2, "description": "Word count (200+ words = 2 pts, 50-200 = 1 pt)"},
+        "commits": {"max_points": 2, "description": "Git commit history (5+ commits = 2 pts, 3-4 = 1 pt)"}
+      }
+    },
     "references": [
       {"source_file": "CLAUDE.md", "target": "ARCHITECTURE.md", "reference_type": "markdown_link", "line_number": 12, "is_resolved": true},
       {"source_file": "CLAUDE.md", "target": "AGENTS.md", "reference_type": "file_mention", "line_number": 8, "is_resolved": true}
     ],
     "quality_scores": {
-      "CLAUDE.md": {"quality_score": 7.2, "word_count": 450, "section_count": 8, "has_sections": true, "has_constraints": true},
-      "AGENTS.md": {"quality_score": 8.5, "word_count": 820, "section_count": 14, "has_sections": true, "has_constraints": true}
+      "CLAUDE.md": {"quality_score": 8.2, "word_count": 450, "section_count": 8, "has_sections": true, "has_constraints": true, "commit_count": 8},
+      "AGENTS.md": {"quality_score": 9.5, "word_count": 820, "section_count": 14, "has_sections": true, "has_constraints": false, "commit_count": 12}
     }
   },
   "recommendations": [
@@ -609,12 +623,14 @@ Each instruction file is scored (0-10) based on quality indicators inspired by [
 
 | Indicator | What We Look For | Points |
 |-----------|------------------|--------|
-| **Sections** | Markdown headers (`##`) | 0-2 |
-| **Paths** | Concrete file/dir paths (`/src/`, `~/config/`) | 0-2 |
-| **Commands** | CLI commands in backticks (`` `npm test` ``) | 0-2 |
-| **Constraints** | "never", "avoid", "don't", "must not" | 0-2 |
+| **Sections** | Markdown headers (`##`) - 5+ headers = full points | 0-2 |
+| **Paths** | Concrete file/dir paths (`/src/`, `~/config/`) - 3+ paths = full points | 0-2 |
+| **Commands** | CLI commands in backticks (`` `npm test` ``) - 3+ commands = full points | 0-2 |
+| **Constraints** | "never", "avoid", "don't", "do not", "must not", "always", "required" - 2+ = full points | 0-2 |
 | **Substance** | Word count (200+ = 2pts, 50-200 = 1pt) | 0-2 |
 | **Commits** | Git history (5+ = 2pts, 3-4 = 1pt) | 0-2 |
+
+*Note: Total raw points can reach 12, but the quality score is capped at 10. Having 5 of 6 indicators at full score achieves maximum quality.*
 
 ### Bonus Points
 
@@ -632,18 +648,19 @@ Cross-references and quality contribute up to **+10 bonus points** to your overa
 ```
 Cross-References & Quality:
 
-  References: 12 found in 3 files
-  Unique targets: 8
-  Resolved: 10/12 (83%)
+    References: 12 found in 3 files
+    Unique targets: 8
+    Resolved: 10/12 (83%)
 
-  Content Quality:
-    CLAUDE.md: 8.2/10 (450 words) [§ ⌘ $ ! ↻8]
-    AGENTS.md: 9.5/10 (820 words) [§ ⌘ $ ↻12]
+    Content Quality:
+      CLAUDE.md: 8.2/10 (450 words) [§ ⌘ $ ! ↻8]
+      AGENTS.md: 9.5/10 (820 words) [§ ⌘ $ ↻12]
+      .github/copilot-instructions.md: 7.8/10 (320 words) [§ ⌘ $ ↻5]
 
-  Quality indicators:
-    §=sections  ⌘=paths  $=commands  !=constraints  ↻N=commits
+    Quality indicators:
+      §=sections  ⌘=paths  $=commands  !=constraints  ↻N=commits
 
-  Bonus: +7.2 points
+    Bonus: +7.2 points
 ```
 
 ### Improving Your Cross-Reference Score

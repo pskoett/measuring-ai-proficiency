@@ -473,7 +473,7 @@ class JsonReporter:
                         "sections": {"max_points": 2, "description": "Markdown headers (##) for organization"},
                         "paths": {"max_points": 2, "description": "Concrete file/directory paths (/src/, ~/)"},
                         "commands": {"max_points": 2, "description": "CLI commands in backticks"},
-                        "constraints": {"max_points": 2, "description": "Directive language (never, avoid, don't, must not)"},
+                        "constraints": {"max_points": 2, "description": "Directive language (never, avoid, don't, do not, must not, always, required)"},
                         "substance": {"max_points": 2, "description": "Word count (200+ words = 2 pts, 50-200 = 1 pt)"},
                         "commits": {"max_points": 2, "description": "Git commit history (5+ commits = 2 pts, 3-4 = 1 pt)"},
                     },
@@ -648,7 +648,7 @@ class MarkdownReporter:
                 print("- **Sections** (0-2 pts): Markdown headers (`##`) for organization", file=output)
                 print("- **Paths** (0-2 pts): Concrete file/directory paths (`/src/`, `~/config/`)", file=output)
                 print("- **Commands** (0-2 pts): CLI commands in backticks (`` `npm test` ``)", file=output)
-                print("- **Constraints** (0-2 pts): Directive language (\"never\", \"avoid\", \"don't\", \"must not\")", file=output)
+                print("- **Constraints** (0-2 pts): Directive language (\"never\", \"avoid\", \"don't\", \"do not\", \"must not\", \"always\", \"required\")", file=output)
                 print("- **Substance** (0-2 pts): Word count (200+ words = 2 pts)", file=output)
                 print("- **Commits** (0-2 pts): Git history (5+ commits = 2 pts, 3-4 = 1 pt)", file=output)
                 print(file=output)
