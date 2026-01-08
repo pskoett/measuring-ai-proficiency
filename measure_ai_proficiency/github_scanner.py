@@ -11,10 +11,118 @@ import shutil
 import subprocess
 import sys
 import tempfile
+import time
 from pathlib import Path
-from typing import List, Optional, Dict, Any
+from typing import List, Optional, Dict, Any, Callable, TypeVar
+from functools import wraps
 
 from .config import LEVELS
+
+T = TypeVar('T')
+
+
+def retry_with_backoff(max_retries: int = 4, initial_delay: float = 2.0):
+    """
+    Decorator to retry a function with exponential backoff.
+
+    Handles rate limiting and transient GitHub API errors.
+
+    Args:
+        max_retries: Maximum number of retry attempts
+        initial_delay: Initial delay in seconds (doubles each retry)
+    """
+    def decorator(func: Callable[..., T]) -> Callable[..., T]:
+        @wraps(func)
+        def wrapper(*args, **kwargs) -> T:
+            delay = initial_delay
+            last_error = None
+
+            for attempt in range(max_retries + 1):
+                try:
+                    result = func(*args, **kwargs)
+                    return result
+                except subprocess.CalledProcessError as e:
+                    last_error = e
+
+                    # Check for rate limit in stderr
+                    stderr = e.stderr if hasattr(e, 'stderr') and e.stderr else ""
+                    if isinstance(stderr, bytes):
+                        stderr = stderr.decode('utf-8', errors='ignore')
+
+                    is_rate_limit = (
+                        "rate limit" in stderr.lower() or
+                        "api rate limit exceeded" in stderr.lower() or
+                        e.returncode == 403
+                    )
+
+                    if is_rate_limit:
+                        if attempt < max_retries:
+                            print(f"Rate limit detected. Waiting {delay:.1f}s before retry {attempt + 1}/{max_retries}...", file=sys.stderr)
+                            time.sleep(delay)
+                            delay *= 2  # Exponential backoff
+                            continue
+                        else:
+                            print("Rate limit exceeded. Max retries reached.", file=sys.stderr)
+                            raise
+
+                    # For non-rate-limit errors, retry with shorter delay
+                    if attempt < max_retries:
+                        print(f"API error (attempt {attempt + 1}/{max_retries + 1}). Retrying in {delay:.1f}s...", file=sys.stderr)
+                        time.sleep(delay)
+                        delay *= 2
+                        continue
+                    else:
+                        raise
+
+                except subprocess.TimeoutExpired as e:
+                    last_error = e
+                    if attempt < max_retries:
+                        print(f"Timeout (attempt {attempt + 1}/{max_retries + 1}). Retrying in {delay:.1f}s...", file=sys.stderr)
+                        time.sleep(delay)
+                        delay *= 2
+                        continue
+                    else:
+                        raise
+
+                except Exception as e:
+                    # Don't retry unexpected errors
+                    raise
+
+            # Should never reach here, but just in case
+            if last_error:
+                raise last_error
+            return None  # type: ignore
+
+        return wrapper
+    return decorator
+
+
+def check_rate_limit_status() -> Dict[str, Any]:
+    """
+    Check GitHub API rate limit status.
+
+    Returns a dict with rate limit info: limit, remaining, reset timestamp.
+    """
+    try:
+        result = subprocess.run(
+            ["gh", "api", "rate_limit"],
+            capture_output=True,
+            text=True,
+            timeout=10
+        )
+
+        if result.returncode == 0:
+            data = json.loads(result.stdout)
+            core = data.get("resources", {}).get("core", {})
+            return {
+                "limit": core.get("limit", 0),
+                "remaining": core.get("remaining", 0),
+                "reset": core.get("reset", 0),
+            }
+    except Exception:
+        pass
+
+    return {"limit": 0, "remaining": 0, "reset": 0}
 
 
 def check_gh_cli() -> bool:
@@ -93,36 +201,32 @@ def fetch_file_from_github(owner: str, repo: str, file_path: str, branch: str = 
         return None
 
 
+@retry_with_backoff(max_retries=4, initial_delay=2.0)
 def get_repo_tree(owner: str, repo: str, branch: str = "main") -> List[Dict[str, Any]]:
     """
     Get the complete file tree of a repository using GitHub API.
 
     Returns a list of file entries with path, type, and size information.
     """
-    try:
-        # Get the tree SHA for the branch
-        result = subprocess.run(
-            ["gh", "api", f"repos/{owner}/{repo}/git/trees/{branch}?recursive=1"],
-            capture_output=True,
-            text=True,
-            timeout=30
-        )
+    # Get the tree SHA for the branch
+    result = subprocess.run(
+        ["gh", "api", f"repos/{owner}/{repo}/git/trees/{branch}?recursive=1"],
+        capture_output=True,
+        text=True,
+        timeout=30,
+        check=True  # Raise CalledProcessError on non-zero exit
+    )
 
-        if result.returncode != 0:
-            return []
+    data = json.loads(result.stdout)
+    tree = data.get("tree", [])
 
-        data = json.loads(result.stdout)
-        tree = data.get("tree", [])
+    # Filter for files only (not directories) and exclude large files
+    files = [
+        entry for entry in tree
+        if entry.get("type") == "blob" and entry.get("size", 0) < 1_000_000  # Max 1MB
+    ]
 
-        # Filter for files only (not directories) and exclude large files
-        files = [
-            entry for entry in tree
-            if entry.get("type") == "blob" and entry.get("size", 0) < 1_000_000  # Max 1MB
-        ]
-
-        return files
-    except (subprocess.TimeoutExpired, json.JSONDecodeError):
-        return []
+    return files
 
 
 def get_relevant_files(tree: List[Dict[str, Any]]) -> List[str]:
@@ -193,7 +297,7 @@ def download_repo_files(owner: str, repo: str, branch: str, target_dir: Path) ->
     Returns True if successful, False otherwise.
     """
     try:
-        # Get repository tree
+        # Get repository tree (with retry logic built-in)
         tree = get_repo_tree(owner, repo, branch)
         if not tree:
             print(f"Warning: Could not fetch tree for {owner}/{repo}", file=sys.stderr)
@@ -225,6 +329,12 @@ def download_repo_files(owner: str, repo: str, branch: str, target_dir: Path) ->
         print(f"Downloaded {downloaded}/{len(relevant_files)} files from {owner}/{repo}")
         return True
 
+    except subprocess.CalledProcessError as e:
+        print(f"Error: GitHub API call failed for {owner}/{repo}: {e}", file=sys.stderr)
+        return False
+    except subprocess.TimeoutExpired:
+        print(f"Error: Timeout while fetching files from {owner}/{repo}", file=sys.stderr)
+        return False
     except Exception as e:
         print(f"Error downloading files from {owner}/{repo}: {e}", file=sys.stderr)
         return False
