@@ -102,28 +102,88 @@ LEVEL_MINIMUM_SCORES: Dict[int, float] = {
 }
 
 # Template markers for detecting copy-pasted boilerplate (Improvement 2c)
+# These should be markers that indicate ACTUAL uncustomized content, NOT documentation
+# examples showing users what to replace (like "your-org-name" in CLI examples)
 TEMPLATE_MARKERS: List[str] = [
+    # Action items that indicate incomplete customization
     "TODO: fill this in",
-    "TODO: add",
-    "TODO: update",
-    "your-project-name",
-    "your-org-name",
-    "example.com",
-    "your-",
-    "[INSERT",
-    "[YOUR",
-    "{{",
-    "}}",
+    "TODO: add your",
+    "TODO: update this",
+    "TODO: describe",
+    "TODO: document",
+    # Clear template placeholders
+    "[INSERT ",
+    "[YOUR ",
+    "[DESCRIBE ",
+    "[ADD ",
+    # Mustache/handlebars templates (uncustomized)
+    "{{project",
+    "{{org",
+    "{{name",
+    "{{description",
+    # Generic placeholder markers
     "PLACEHOLDER",
-    "<project-name>",
-    "<your-",
-    "FIXME:",
-    "XXX:",
+    "REPLACE_THIS",
+    "CHANGE_ME",
+    # Code template markers
+    "FIXME: customize",
+    "XXX: fill in",
 ]
 
 # Staleness thresholds in days (Improvement 3)
 STALENESS_THRESHOLD_STALE: int = 90  # Days behind code to be considered stale
 STALENESS_THRESHOLD_AGING: int = 30  # Days behind code to be considered aging
+
+# Generic/example paths to skip during validation (documentation examples, not real refs)
+EXAMPLE_PATH_PATTERNS: Set[str] = {
+    # Generic documentation examples
+    "file.md",
+    "FILE.md",
+    "path/file.md",
+    "path/to/file.md",
+    "your-file.md",
+    "your-new-pattern.md",
+    "example.md",
+    "example.yaml",
+    "example.json",
+    "frontend.instructions.md",
+    "api.instructions.md",
+    "tests.instructions.md",
+    "frontend.md",
+    "backend.md",
+    "database.md",
+    # Pattern demonstration examples (used in docs to show format)
+    "*.md",
+    "*.yaml",
+    "*.yml",
+    "*.json",
+    # Partial path examples that appear in regex/pattern documentation
+    ".md",
+    ".yaml",
+    ".yml",
+    ".json",
+    # Best practices/configuration files that may be mentioned but not present yet
+    ".mcp.json",
+    "mcp.json",
+    ".claude/settings.json",
+    ".copilot-instructions.md",
+    "docs/api/README.md",
+    # Config file examples
+    "ai-proficiency.yaml",
+    ".ai-proficiency.yaml",
+    # Compliance/domain-specific examples used in customization docs
+    "HIPAA.md",
+    "PCI_DSS.md",
+    "PHI_HANDLING.md",
+    "COMPLIANCE.md",
+    "SYSTEM_DESIGN.md",
+    "CODING_STANDARDS.md",
+    "SECURITY_COMPLIANCE.md",
+    "SECURITY_STANDARDS.md",
+    "MAINTAINERS.md",
+    "docs/TESTING_GUIDE.md",
+    "docs/SYSTEM_DESIGN.md",
+}
 
 
 @dataclass
@@ -1031,8 +1091,14 @@ class RepoScanner:
             if ref_path.startswith(('http://', 'https://', 'mailto:', '#')):
                 continue
 
-            # Normalize path
-            normalized = ref_path.lstrip('./')
+            # Normalize: strip leading "./" but preserve leading "." for dotfiles/directories
+            normalized = ref_path
+            if normalized.startswith('./'):
+                normalized = normalized[2:]
+
+            # Skip known documentation example patterns
+            if self._is_example_path(normalized):
+                continue
 
             if self._resolve_target(normalized):
                 existing.append(normalized)
@@ -1087,7 +1153,15 @@ class RepoScanner:
             if ref_path.startswith(('http://', 'https://', 'mailto:', '#')):
                 continue
 
-            normalized = ref_path.lstrip('./')
+            # Normalize: strip leading "./" but preserve leading "." for dotfiles/directories
+            normalized = ref_path
+            if normalized.startswith('./'):
+                normalized = normalized[2:]
+
+            # Skip known documentation example patterns
+            if self._is_example_path(normalized):
+                continue
+
             target = self.repo_path / normalized
 
             if not target.exists():
@@ -1101,6 +1175,51 @@ class RepoScanner:
                 ))
 
         return stale
+
+    def _is_example_path(self, path: str) -> bool:
+        """Check if a path is a generic documentation example that should be skipped."""
+        # Direct match against known example patterns
+        if path in EXAMPLE_PATH_PATTERNS:
+            return True
+
+        # Skip paths that are clearly regex/glob patterns (contain wildcards)
+        if '*' in path or '?' in path:
+            return True
+
+        # Get just the filename for pattern checks
+        parts = path.split('/')
+        filename = parts[-1] if parts else path
+
+        # Skip files that are "known targets" but don't exist yet in this repo
+        # These are valid AI context file types mentioned in documentation as examples
+        # We only want to flag files that are:
+        # 1. Referenced as if they should exist in THIS repo
+        # 2. Not generic file type examples
+        # If a file is in KNOWN_TARGETS, it's being mentioned as a file TYPE, not a reference
+        if filename in KNOWN_TARGETS and not (self.repo_path / path).exists():
+            # Only skip if this looks like a documentation mention, not a real reference
+            # Real references usually have a path context (./CODEX.md, docs/CODEX.md)
+            if filename == path:  # No directory path = likely documentation example
+                return True
+
+        # Skip if filename is a generic word + extension pattern
+        generic_names = {
+            'file', 'files', 'doc', 'docs', 'document', 'path', 'example',
+            'your', 'my', 'the', 'a', 'test', 'sample', 'demo', 'foo', 'bar',
+            'baz', 'text', 'data', 'config', 'name', 'item', 'thing',
+        }
+
+        # Extract base name without extension
+        if '.' in filename:
+            basename = filename.rsplit('.', 1)[0].lower()
+            if basename in generic_names:
+                return True
+
+        # Skip paths that look like pattern examples (e.g., "*.md", "**/*.yaml")
+        if path.startswith('*') or path.startswith('**'):
+            return True
+
+        return False
 
     def _existed_in_git_history(self, path: str) -> bool:
         """Check if a file path ever existed in git history."""
@@ -1171,7 +1290,15 @@ class RepoScanner:
             if ref.startswith(('http://', 'https://', 'mailto:', '#')):
                 continue
 
-            normalized = ref.lstrip('./')
+            # Normalize: strip leading "./" but preserve leading "." for dotfiles/directories
+            normalized = ref
+            if normalized.startswith('./'):
+                normalized = normalized[2:]
+
+            # Skip known documentation example patterns
+            if self._is_example_path(normalized):
+                continue
+
             if self._resolve_target(normalized):
                 valid_refs.append(normalized)
             else:

@@ -66,11 +66,11 @@ pytest tests/ -v
 
 ## Common Tasks
 
-- Add new file patterns: Edit `config.py`, add to appropriate `LevelConfig`
-- Add new output format: Add new reporter class in `reporter.py`
-- Adjust scoring thresholds: Edit `_calculate_overall_level` in `scanner.py`
-- Add new cross-reference patterns: Edit `CROSS_REF_PATTERNS` in `scanner.py`
-- Add new quality indicators: Edit `QUALITY_PATTERNS` in `scanner.py`
+- Add new file patterns: Edit `measure_ai_proficiency/config.py`, add to appropriate `LevelConfig`
+- Add new output format: Add new reporter class in `measure_ai_proficiency/reporter.py`
+- Adjust scoring thresholds: Edit `_calculate_overall_level` in `measure_ai_proficiency/scanner.py`
+- Add new cross-reference patterns: Edit `CROSS_REF_PATTERNS` in `measure_ai_proficiency/scanner.py`
+- Add new quality indicators: Edit `QUALITY_PATTERNS` in `measure_ai_proficiency/scanner.py`
 
 ## Scanning Options
 

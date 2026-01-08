@@ -34,7 +34,7 @@ scripts/
 
 ### Adding New File Patterns
 
-To add detection for new AI context files, edit `config.py`:
+To add detection for new AI context files, edit `measure_ai_proficiency/config.py`:
 
 ```python
 # Add to appropriate level (1-8) in the LevelConfig
@@ -54,7 +54,7 @@ All major AI tools now support the [Agent Skills](https://agentskills.io/) open 
 
 ### Output Formats
 
-The tool supports: terminal (default), JSON, markdown, CSV. Add new formats in `reporter.py`.
+The tool supports: terminal (default), JSON, markdown, CSV. Add new formats in `measure_ai_proficiency/reporter.py`.
 
 ## Coding Conventions
 
@@ -73,12 +73,12 @@ pytest tests/ -v
 
 | Task | Location |
 |------|----------|
-| Add file patterns | `config.py` → appropriate `LevelConfig` |
-| Add output format | `reporter.py` → new reporter class |
-| Adjust thresholds | `scanner.py` → `_calculate_overall_level()` |
-| Add recommendations | `scanner.py` → `_generate_recommendations()` |
-| Add cross-ref patterns | `scanner.py` → `CROSS_REF_PATTERNS` |
-| Add quality indicators | `scanner.py` → `QUALITY_PATTERNS` |
+| Add file patterns | `measure_ai_proficiency/config.py` → appropriate `LevelConfig` |
+| Add output format | `measure_ai_proficiency/reporter.py` → new reporter class |
+| Adjust thresholds | `measure_ai_proficiency/scanner.py` → `_calculate_overall_level()` |
+| Add recommendations | `measure_ai_proficiency/scanner.py` → `_generate_recommendations()` |
+| Add cross-ref patterns | `measure_ai_proficiency/scanner.py` → `CROSS_REF_PATTERNS` |
+| Add quality indicators | `measure_ai_proficiency/scanner.py` → `QUALITY_PATTERNS` |
 | Scan GitHub repos | `measure-ai-proficiency --github-repo owner/repo` or `--github-org org` |
 | Discover org repos | `scripts/find-org-repos.sh <org-name>` (or use `--github-org` directly) |
 | Improve AI context | Use `.github/agents/improve-ai-context.agent.md` to systematically create/improve files |
@@ -87,7 +87,7 @@ pytest tests/ -v
 
 The scanner analyzes AI instruction file content to detect references:
 
-**Key Data Structures** (in `scanner.py`):
+**Key Data Structures** (in `measure_ai_proficiency/scanner.py`):
 - `CrossReference`: A detected reference (source, target, type, resolved status)
 - `ContentQuality`: Quality metrics (sections, commands, constraints, score)
 - `CrossReferenceResult`: Summary of all cross-refs and quality scores
