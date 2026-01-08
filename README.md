@@ -231,9 +231,9 @@ The tool auto-detects and supports all major AI coding tools:
  AI Proficiency Report: measuring-ai-proficiency
 ============================================================
 
-  Overall Level: Level 4: Skills & Automation
-  Overall Score: 18.8/100
-  AI Tools: Claude Code, GitHub Copilot
+  Overall Level: Level 5: Multi-Agent Ready
+  Overall Score: 60.1/100
+  AI Tools: Claude Code, GitHub Copilot, OpenAI Codex
 
   Level Breakdown:
 
@@ -242,49 +242,54 @@ The tool auto-detects and supports all major AI coding tools:
         ● README.md
 
     ✓ Level 2: Basic Instructions
-      [█████████████░░░░░░░] 66.7%  (2 files)
+      [███████████████░░░░░] 75.0%  (3 files)
         ● CLAUDE.md
+        ● AGENTS.md
         ● .github/copilot-instructions.md
 
     ✓ Level 3: Comprehensive Context
-      [███|░░░░░░░░░░░░░░░░] 19.0%/15% ✓ (59 files)
-        ● docs/ARCHITECTURE.md
-        ● CONVENTIONS.md
-        ● CONTRIBUTING.md
-        ... and 56 more
+      [███|░░░░░░░░░░░░░░░░] 18.8%/15% ✓ (62 files)
+        ● .github/PULL_REQUEST_TEMPLATE.md
+        ● .github/copilot-instructions.md
+        ... and 60 more
 
     ✓ Level 4: Skills & Automation
-      [██|░░░░░░░░░░░░░░░░░] 14.5%/12% ✓ (20 files)
+      [██|░░░░░░░░░░░░░░░░░] 13.7%/12% ✓ (20 files)
         ● .claude/skills/measure-ai-proficiency/SKILL.md
-        ● .github/skills/agentic-workflow/SKILL.md
+        ● .claude/skills/agentic-workflow/SKILL.md
         ... and 18 more
 
-    ○ Level 5: Multi-Agent Ready
-      [█░|░░░░░░░░░░░░░░░░░] 8.3%/10% needs +1.7% (5 files)
-        ● .github/agents/create-agentic-workflow.agent.md
+    ✓ Level 5: Multi-Agent Ready
+      [██|░░░░░░░░░░░░░░░░░] 13.9%/10% ✓ (8 files)
         ● .github/agents/debug-agentic-workflow.agent.md
+        ● .github/agents/improve-ai-context.agent.md
+        ... and 6 more
+
+    ○ Level 6: Fleet Infrastructure
+      [░|░░░░░░░░░░░░░░░░░░] 0.0%/8% needs +8.0% (0 files)
 
   Cross-References & Quality:
 
-    References: 102 found in 10 files
-    Unique targets: 33
-    Resolved: 62/102 (61%)
+    References: 126 found in 11 files
+    Unique targets: 34
+    Resolved: 82/126 (65%)
 
     Content Quality:
-      CLAUDE.md: 10.0/10 (565 words) [§ ⌘ $ ! ↻8]
-      .github/copilot-instructions.md: 10.0/10 (598 words) [§ ⌘ $ ↻6]
-      .claude/skills/measure-ai-proficiency/SKILL.md: 10.0/10 (851 words) [§ ⌘ $ ! ↻9]
+      CLAUDE.md: 10.0/10 (797 words) [§ ⌘ $ ! ↻12]
+      AGENTS.md: 10.0/10 (513 words) [§ ⌘ $ !]
+      .github/copilot-instructions.md: 10.0/10 (755 words) [§ ⌘ $ ↻9]
+      .claude/skills/measure-ai-proficiency/SKILL.md: 10.0/10 (1099 words) [§ ⌘ $ ! ↻11]
 
     Quality indicators:
       §=sections  ⌘=paths  $=commands  !=constraints  ↻N=commits
 
-    Bonus: +8.8 points
+    Bonus: +9.1 points
 
   Recommendations:
 
-    → 🔍 Detected AI tools: Claude Code, GitHub Copilot.
-    → 🚀 Configure multiple specialized agents and MCP integrations.
-    → 🤝 Create agents/HANDOFFS.md for agent coordination.
+    → 🔍 Detected AI tools: Claude Code, GitHub Copilot, OpenAI Codex.
+    → 🎯 FLEET READY: You have multi-agent setup. Now add fleet infrastructure.
+    → 🧠 Set up Beads: Create .beads/ for persistent memory across agent sessions.
 
 ============================================================
 ```
@@ -294,20 +299,21 @@ The tool auto-detects and supports all major AI coding tools:
 ```json
 {
   "repo_name": "measuring-ai-proficiency",
-  "overall_level": 4,
-  "overall_score": 18.83,
-  "detected_tools": ["claude-code", "github-copilot"],
+  "overall_level": 5,
+  "overall_score": 60.09,
+  "detected_tools": ["claude-code", "github-copilot", "openai-codex"],
   "level_scores": {
     "1": {"name": "Level 1: Zero AI", "coverage_percent": 100.0, "file_count": 1},
-    "2": {"name": "Level 2: Basic Instructions", "coverage_percent": 66.67, "file_count": 2},
-    "3": {"name": "Level 3: Comprehensive Context", "coverage_percent": 18.99, "file_count": 59},
-    "4": {"name": "Level 4: Skills & Automation", "coverage_percent": 14.49, "file_count": 20}
+    "2": {"name": "Level 2: Basic Instructions", "coverage_percent": 75.0, "file_count": 3},
+    "3": {"name": "Level 3: Comprehensive Context", "coverage_percent": 18.75, "file_count": 62},
+    "4": {"name": "Level 4: Skills & Automation", "coverage_percent": 13.73, "file_count": 20},
+    "5": {"name": "Level 5: Multi-Agent Ready", "coverage_percent": 13.89, "file_count": 8}
   },
   "cross_references": {
-    "total_count": 102,
-    "resolved_count": 62,
-    "resolution_rate": 60.78,
-    "bonus_points": 8.83
+    "total_count": 126,
+    "resolved_count": 82,
+    "resolution_rate": 65.08,
+    "bonus_points": 9.08
   },
   "recommendations": ["..."]
 }
@@ -320,18 +326,20 @@ The markdown format produces a detailed report with tables:
 | Level | Coverage | Files | Status |
 |-------|----------|-------|--------|
 | Level 1: Zero AI | 100.0% | 1 | ✓ |
-| Level 2: Basic Instructions | 66.7% | 2 | ✓ |
-| Level 3: Comprehensive Context | 19.0% | 59 | ✓ |
-| Level 4: Skills & Automation | 14.5% | 20 | ✓ |
-| Level 5: Multi-Agent Ready | 8.3% | 5 | ○ |
+| Level 2: Basic Instructions | 75.0% | 3 | ✓ |
+| Level 3: Comprehensive Context | 18.8% | 62 | ✓ |
+| Level 4: Skills & Automation | 13.7% | 20 | ✓ |
+| Level 5: Multi-Agent Ready | 13.9% | 8 | ✓ |
+| Level 6: Fleet Infrastructure | 0.0% | 0 | ○ |
 
 **Content Quality:**
 
 | File | Score | Words | Commits |
 |------|-------|-------|---------|
-| `CLAUDE.md` | 10.0/10 | 565 | 8 |
-| `.github/copilot-instructions.md` | 10.0/10 | 598 | 6 |
-| `.claude/skills/measure-ai-proficiency/SKILL.md` | 10.0/10 | 851 | 9 |
+| `CLAUDE.md` | 10.0/10 | 797 | 12 |
+| `AGENTS.md` | 10.0/10 | 513 | - |
+| `.github/copilot-instructions.md` | 10.0/10 | 755 | 9 |
+| `.claude/skills/measure-ai-proficiency/SKILL.md` | 10.0/10 | 1099 | 11 |
 
 ---
 
