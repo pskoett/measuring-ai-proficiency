@@ -82,6 +82,36 @@ measure-ai-proficiency /path/to/repo1 /path/to/repo2
 measure-ai-proficiency --org /path/to/cloned-org
 ```
 
+### GitHub Integration (No Cloning Required!)
+
+Scan GitHub repositories directly without cloning them using the GitHub CLI:
+
+```bash
+# Scan a single GitHub repository
+measure-ai-proficiency --github-repo owner/repo
+
+# Scan an entire GitHub organization
+measure-ai-proficiency --github-org anthropic
+
+# Limit the number of repos scanned
+measure-ai-proficiency --github-org anthropic --limit 50
+
+# Combine with output formats
+measure-ai-proficiency --github-org your-org --format json --output report.json
+```
+
+**Requirements:**
+- [GitHub CLI (gh)](https://cli.github.com/) must be installed
+- Must be authenticated: `gh auth login`
+
+**How it works:**
+1. Uses GitHub API to fetch repository file tree
+2. Downloads only relevant AI proficiency files (no full clone!)
+3. Scans the files locally in a temporary directory
+4. Cleans up automatically after scanning
+
+This is much faster than cloning hundreds of repositories and requires no disk space for the repositories themselves.
+
 ### Output Formats
 
 ```bash
@@ -408,9 +438,16 @@ Then ask your AI: *"Assess my AI proficiency"* or *"What context files should I 
 
 ---
 
-## Discover Repos in Your Organization
+## Discover & Scan GitHub Organizations
 
-Before scanning, find which repositories have context engineering artifacts:
+You can now scan entire GitHub organizations without cloning any repositories:
+
+```bash
+# Scan all repos in an organization
+measure-ai-proficiency --github-org your-org-name --format json --output report.json
+```
+
+Alternatively, use the discovery script to first see which repos have AI artifacts:
 
 ```bash
 ./scripts/find-org-repos.sh your-org-name
@@ -421,7 +458,7 @@ Before scanning, find which repositories have context engineering artifacts:
 # Repos with AI context artifacts: 12 (26.7%)
 ```
 
-Requires [GitHub CLI (gh)](https://cli.github.com/) and [jq](https://stedolan.github.io/jq/).
+Both methods require [GitHub CLI (gh)](https://cli.github.com/) to be installed and authenticated. The discovery script also requires [jq](https://stedolan.github.io/jq/).
 
 ---
 
@@ -474,7 +511,7 @@ measure-ai-proficiency
 
 Contributions welcome! Areas of interest:
 - Additional file patterns for new tools
-- Integration with GitHub API for remote scanning
+- ✅ ~~Integration with GitHub API for remote scanning~~ (implemented via GitHub CLI)
 - Historical tracking and trend analysis
 - IDE extensions
 
