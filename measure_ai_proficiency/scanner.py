@@ -86,6 +86,45 @@ QUALITY_PATTERNS: Dict[str, re.Pattern] = {
     "constraints": re.compile(r'\b(?:never|avoid|don\'t|do not|must not|always|required)\b', re.IGNORECASE),
 }
 
+# =============================================================================
+# Scoring and Validation Constants
+# =============================================================================
+
+# Minimum scores guaranteed per level achieved (Improvement 1: Scoring recalibration)
+LEVEL_MINIMUM_SCORES: Dict[int, float] = {
+    2: 15.0,   # Basic instructions
+    3: 30.0,   # Comprehensive context
+    4: 45.0,   # Skills & automation
+    5: 55.0,   # Multi-agent ready
+    6: 70.0,   # Fleet infrastructure
+    7: 85.0,   # Agent fleet
+    8: 95.0,   # Custom orchestration
+}
+
+# Template markers for detecting copy-pasted boilerplate (Improvement 2c)
+TEMPLATE_MARKERS: List[str] = [
+    "TODO: fill this in",
+    "TODO: add",
+    "TODO: update",
+    "your-project-name",
+    "your-org-name",
+    "example.com",
+    "your-",
+    "[INSERT",
+    "[YOUR",
+    "{{",
+    "}}",
+    "PLACEHOLDER",
+    "<project-name>",
+    "<your-",
+    "FIXME:",
+    "XXX:",
+]
+
+# Staleness thresholds in days (Improvement 3)
+STALENESS_THRESHOLD_STALE: int = 90  # Days behind code to be considered stale
+STALENESS_THRESHOLD_AGING: int = 30  # Days behind code to be considered aging
+
 
 @dataclass
 class CrossReference:
@@ -111,6 +150,176 @@ class ContentQuality:
     section_count: int
     commit_count: int          # Number of git commits touching this file
     quality_score: float       # 0-10 based on indicators
+
+
+@dataclass
+class FreshnessScore:
+    """Freshness metrics for an AI instruction file (Improvement 3)."""
+
+    file_path: str
+    last_modified: Optional[datetime]     # When the file was last modified
+    days_since_update: int                # Days since file was updated
+    codebase_last_modified: Optional[datetime]  # Most recent code commit
+    days_behind_code: int                 # How many days behind the codebase
+    is_stale: bool                        # True if 90+ days behind code
+    staleness_level: str                  # "fresh", "aging", "stale"
+
+
+@dataclass
+class AlignmentScore:
+    """Codebase alignment metrics for content validation (Improvement 2a)."""
+
+    file_path: str
+    total_references: int           # Total file/path references found
+    existing_count: int             # References that resolve to existing files
+    missing_paths: List[str]        # Paths that don't exist
+    alignment_ratio: float          # Ratio of existing to total (0.0-1.0)
+
+
+@dataclass
+class StaleReference:
+    """A reference to a file that no longer exists (Improvement 2b)."""
+
+    path: str
+    status: str  # "deleted" (was in git history) or "never_existed"
+    source_file: str
+
+
+@dataclass
+class TemplateAnalysis:
+    """Template detection results (Improvement 2c)."""
+
+    file_path: str
+    is_template: bool              # True if template markers found
+    markers_found: List[str]       # Which template markers were detected
+    template_score: float          # 0.0 = fully customized, 1.0 = pure template
+
+
+@dataclass
+class SkillValidation:
+    """Skill file validation results (Improvement 4)."""
+
+    skill_path: str
+    valid_file_refs: List[str]     # Referenced files that exist
+    invalid_file_refs: List[str]   # Referenced files that don't exist
+    commands_found: List[str]      # CLI commands mentioned
+    is_valid: bool                 # True if no invalid references
+
+
+@dataclass
+class CIAgentIntegration:
+    """Level 6: CI/CD agent integration analysis (Improvement 5a)."""
+
+    has_ci_agents: bool              # True if CI uses agents
+    workflow_files: List[str]        # Workflow files found
+    agent_patterns_found: List[str]  # Agent-related patterns detected
+
+
+@dataclass
+class HandoffAnalysis:
+    """Level 7: Agent handoff validation (Improvement 5b)."""
+
+    valid: bool                      # True if proper handoffs exist
+    agent_count: int                 # Number of agent files found
+    has_handoff_docs: bool           # True if HANDOFFS.md or similar exists
+    cross_references: List[str]      # Cross-agent references found
+    reason: str                      # Why validation failed (if invalid)
+
+
+@dataclass
+class OutcomeAnalysis:
+    """Level 8: Measured outcomes check (Improvement 5c)."""
+
+    has_measured_outcomes: bool      # True if outcomes are tracked
+    indicators: Dict[str, bool]      # Individual indicators
+
+
+@dataclass
+class BehavioralAnalysis:
+    """Combined behavioral analysis for Levels 6-8 (Improvement 5)."""
+
+    ci_integration: Optional[CIAgentIntegration] = None
+    handoffs: Optional[HandoffAnalysis] = None
+    outcomes: Optional[OutcomeAnalysis] = None
+
+    @property
+    def level_6_ready(self) -> bool:
+        """True if repo demonstrates Level 6 behavioral patterns."""
+        return self.ci_integration is not None and self.ci_integration.has_ci_agents
+
+    @property
+    def level_7_ready(self) -> bool:
+        """True if repo demonstrates Level 7 behavioral patterns."""
+        return self.handoffs is not None and self.handoffs.valid
+
+    @property
+    def level_8_ready(self) -> bool:
+        """True if repo demonstrates Level 8 behavioral patterns."""
+        return self.outcomes is not None and self.outcomes.has_measured_outcomes
+
+
+@dataclass
+class ValidationResult:
+    """Combined validation results for a repository (Improvements 2-4)."""
+
+    freshness_scores: Dict[str, FreshnessScore] = field(default_factory=dict)
+    alignment_scores: Dict[str, AlignmentScore] = field(default_factory=dict)
+    template_analyses: Dict[str, TemplateAnalysis] = field(default_factory=dict)
+    skill_validations: Dict[str, SkillValidation] = field(default_factory=dict)
+    stale_references: List[StaleReference] = field(default_factory=list)
+    validation_penalty: float = 0.0  # Score reduction for validation issues
+    behavioral: Optional[BehavioralAnalysis] = None  # Level 6-8 behavioral analysis
+
+    @property
+    def has_stale_files(self) -> bool:
+        return any(f.is_stale for f in self.freshness_scores.values())
+
+    @property
+    def has_template_content(self) -> bool:
+        return any(t.is_template for t in self.template_analyses.values())
+
+    @property
+    def has_invalid_references(self) -> bool:
+        return len(self.stale_references) > 0 or any(
+            not s.is_valid for s in self.skill_validations.values()
+        )
+
+    @property
+    def warnings(self) -> List[str]:
+        """Generate warning messages for validation issues."""
+        warnings = []
+
+        # Freshness warnings
+        for path, freshness in self.freshness_scores.items():
+            if freshness.is_stale:
+                warnings.append(
+                    f"STALE: {path} last updated {freshness.days_behind_code} days ago "
+                    f"(code updated since)"
+                )
+
+        # Template warnings
+        for path, template in self.template_analyses.items():
+            if template.is_template:
+                markers = ", ".join(template.markers_found[:3])
+                warnings.append(
+                    f"TEMPLATE: {path} contains template markers ({markers})"
+                )
+
+        # Stale reference warnings
+        for ref in self.stale_references:
+            warnings.append(
+                f"MISSING REF: {ref.source_file} references '{ref.path}' ({ref.status})"
+            )
+
+        # Skill validation warnings
+        for path, skill in self.skill_validations.items():
+            if not skill.is_valid:
+                invalid = ", ".join(skill.invalid_file_refs[:3])
+                warnings.append(
+                    f"INVALID SKILL: {path} references non-existent files ({invalid})"
+                )
+
+        return warnings
 
 
 @dataclass
@@ -192,6 +401,7 @@ class RepoScore:
     cross_references: Optional[CrossReferenceResult] = None
     effective_thresholds: Dict[int, int] = field(default_factory=dict)  # Level -> % threshold
     default_level: Optional[int] = None  # Level with default thresholds (when custom are used)
+    validation: Optional[ValidationResult] = None  # Content validation results (Improvements 2-4)
 
     @property
     def has_any_ai_files(self) -> bool:
@@ -264,9 +474,19 @@ class RepoScanner:
         # Scan for cross-references and evaluate content quality
         score.cross_references = self._scan_cross_references()
 
+        # Perform content validation (Improvements 2-4)
+        score.validation = self._validate_content()
+
         # Calculate overall level and score (using custom thresholds if configured)
         score.overall_level, score.effective_thresholds, score.default_level = self._calculate_overall_level(score.level_scores)
-        base_score = self._calculate_overall_score(score.level_scores)
+
+        # Calculate base score with minimum per level and validation penalty
+        validation_penalty = score.validation.validation_penalty if score.validation else 0.0
+        base_score = self._calculate_overall_score(
+            score.level_scores,
+            score.overall_level,
+            validation_penalty
+        )
 
         # Add cross-reference bonus to overall score (capped at 100)
         score.overall_score = min(100, base_score + score.cross_references.bonus_points)
@@ -656,6 +876,561 @@ class RepoScanner:
 
         return min(bonus, 10.0)
 
+    # =========================================================================
+    # Content Validation Methods (Improvements 2-4)
+    # =========================================================================
+
+    def _validate_content(self) -> ValidationResult:
+        """Perform comprehensive content validation (Improvements 2-4).
+
+        Validates:
+        - Freshness: Are context files up-to-date with the codebase?
+        - Alignment: Do referenced files actually exist?
+        - Templates: Is this copy-pasted boilerplate?
+        - Skills: Do skill files reference valid paths?
+        """
+        result = ValidationResult()
+
+        # Get latest code commit time
+        codebase_last_modified = self._get_latest_code_commit_time()
+
+        # Find all instruction files to validate
+        instruction_files = self._find_instruction_files()
+
+        for file_path in instruction_files:
+            rel_path = str(file_path.relative_to(self.repo_path))
+            content = self._read_file_safe(file_path)
+            if not content:
+                continue
+
+            # Improvement 3: Freshness detection
+            freshness = self._calculate_freshness(file_path, codebase_last_modified)
+            result.freshness_scores[rel_path] = freshness
+
+            # Improvement 2a: Codebase alignment
+            alignment = self._analyze_codebase_alignment(content, rel_path)
+            result.alignment_scores[rel_path] = alignment
+
+            # Improvement 2b: Stale reference detection
+            stale_refs = self._detect_stale_references(content, rel_path)
+            result.stale_references.extend(stale_refs)
+
+            # Improvement 2c: Template detection
+            template = self._detect_template_content(content, rel_path)
+            result.template_analyses[rel_path] = template
+
+        # Improvement 4: Skill validation
+        skill_files = self._find_skill_files()
+        for skill_path in skill_files:
+            rel_path = str(skill_path.relative_to(self.repo_path))
+            content = self._read_file_safe(skill_path)
+            if content:
+                validation = self._validate_skill(content, skill_path, rel_path)
+                result.skill_validations[rel_path] = validation
+
+        # Calculate validation penalty
+        result.validation_penalty = self._calculate_validation_penalty(result)
+
+        # Improvement 5: Analyze behavioral patterns for Levels 6-8
+        result.behavioral = self._analyze_behavioral_patterns()
+
+        return result
+
+    def _get_latest_code_commit_time(self) -> Optional[datetime]:
+        """Get the timestamp of the most recent code commit (excluding context files)."""
+        try:
+            # Get latest commit that modified code files (not .md, not config)
+            result = subprocess.run(
+                [
+                    "git", "log", "-1", "--format=%ct",
+                    "--", "*.py", "*.js", "*.ts", "*.go", "*.rs", "*.java",
+                    "*.cpp", "*.c", "*.h", "*.rb", "*.php", "*.swift", "*.kt"
+                ],
+                cwd=self.repo_path,
+                capture_output=True,
+                text=True,
+                timeout=self._git_timeout,
+            )
+            if result.returncode == 0 and result.stdout.strip():
+                timestamp = int(result.stdout.strip())
+                return datetime.fromtimestamp(timestamp)
+
+            # Fallback: get latest commit overall
+            result = subprocess.run(
+                ["git", "log", "-1", "--format=%ct"],
+                cwd=self.repo_path,
+                capture_output=True,
+                text=True,
+                timeout=self._git_timeout,
+            )
+            if result.returncode == 0 and result.stdout.strip():
+                timestamp = int(result.stdout.strip())
+                return datetime.fromtimestamp(timestamp)
+        except (subprocess.TimeoutExpired, subprocess.SubprocessError, OSError, ValueError):
+            pass
+        return None
+
+    def _calculate_freshness(
+        self,
+        file_path: Path,
+        codebase_last_modified: Optional[datetime]
+    ) -> FreshnessScore:
+        """Calculate freshness score for a single file (Improvement 3)."""
+        rel_path = str(file_path.relative_to(self.repo_path))
+
+        try:
+            file_mtime = datetime.fromtimestamp(file_path.stat().st_mtime)
+        except OSError:
+            return FreshnessScore(
+                file_path=rel_path,
+                last_modified=None,
+                days_since_update=0,
+                codebase_last_modified=codebase_last_modified,
+                days_behind_code=0,
+                is_stale=False,
+                staleness_level="unknown"
+            )
+
+        now = datetime.now()
+        days_since_update = (now - file_mtime).days
+
+        # Calculate days behind codebase
+        days_behind_code = 0
+        if codebase_last_modified and file_mtime < codebase_last_modified:
+            days_behind_code = (codebase_last_modified - file_mtime).days
+
+        # Determine staleness level
+        is_stale = days_behind_code >= STALENESS_THRESHOLD_STALE
+        if days_behind_code >= STALENESS_THRESHOLD_STALE:
+            staleness_level = "stale"
+        elif days_behind_code >= STALENESS_THRESHOLD_AGING:
+            staleness_level = "aging"
+        else:
+            staleness_level = "fresh"
+
+        return FreshnessScore(
+            file_path=rel_path,
+            last_modified=file_mtime,
+            days_since_update=days_since_update,
+            codebase_last_modified=codebase_last_modified,
+            days_behind_code=days_behind_code,
+            is_stale=is_stale,
+            staleness_level=staleness_level
+        )
+
+    def _analyze_codebase_alignment(self, content: str, source_file: str) -> AlignmentScore:
+        """Check if content references files that actually exist (Improvement 2a)."""
+        # Extract file path references from content
+        referenced_paths = self._extract_path_references(content)
+
+        existing = []
+        missing = []
+
+        for ref_path in referenced_paths:
+            # Skip external URLs and anchors
+            if ref_path.startswith(('http://', 'https://', 'mailto:', '#')):
+                continue
+
+            # Normalize path
+            normalized = ref_path.lstrip('./')
+
+            if self._resolve_target(normalized):
+                existing.append(normalized)
+            else:
+                missing.append(normalized)
+
+        total = len(existing) + len(missing)
+        alignment_ratio = len(existing) / total if total > 0 else 1.0
+
+        return AlignmentScore(
+            file_path=source_file,
+            total_references=total,
+            existing_count=len(existing),
+            missing_paths=missing,
+            alignment_ratio=alignment_ratio
+        )
+
+    def _extract_path_references(self, content: str) -> List[str]:
+        """Extract file/directory path references from content."""
+        paths: Set[str] = set()
+
+        # Extract from markdown links
+        for match in CROSS_REF_PATTERNS["markdown_link"].finditer(content):
+            target = match.group(2)
+            if target and not target.startswith(('http://', 'https://')):
+                paths.add(target)
+
+        # Extract from file mentions
+        for match in CROSS_REF_PATTERNS["file_mention"].finditer(content):
+            paths.add(match.group(1))
+
+        # Extract from relative paths
+        for match in CROSS_REF_PATTERNS["relative_path"].finditer(content):
+            paths.add(match.group(1))
+
+        # Also look for quoted paths like "src/components/Button.tsx"
+        path_pattern = re.compile(r'[`"\']([a-zA-Z0-9_\-./]+\.[a-zA-Z]{1,10})[`"\']')
+        for match in path_pattern.finditer(content):
+            candidate = match.group(1)
+            # Filter out obvious non-paths
+            if '/' in candidate or '.' in candidate:
+                paths.add(candidate)
+
+        return list(paths)
+
+    def _detect_stale_references(self, content: str, source_file: str) -> List[StaleReference]:
+        """Find references to files that no longer exist (Improvement 2b)."""
+        stale = []
+        referenced_paths = self._extract_path_references(content)
+
+        for ref_path in referenced_paths:
+            if ref_path.startswith(('http://', 'https://', 'mailto:', '#')):
+                continue
+
+            normalized = ref_path.lstrip('./')
+            target = self.repo_path / normalized
+
+            if not target.exists():
+                # Check if it ever existed in git history
+                existed_before = self._existed_in_git_history(normalized)
+                status = "deleted" if existed_before else "never_existed"
+                stale.append(StaleReference(
+                    path=normalized,
+                    status=status,
+                    source_file=source_file
+                ))
+
+        return stale
+
+    def _existed_in_git_history(self, path: str) -> bool:
+        """Check if a file path ever existed in git history."""
+        try:
+            result = subprocess.run(
+                ["git", "log", "--all", "--oneline", "--", path],
+                cwd=self.repo_path,
+                capture_output=True,
+                text=True,
+                timeout=self._git_timeout,
+            )
+            return result.returncode == 0 and bool(result.stdout.strip())
+        except (subprocess.TimeoutExpired, subprocess.SubprocessError, OSError):
+            return False
+
+    def _detect_template_content(self, content: str, source_file: str) -> TemplateAnalysis:
+        """Detect copy-pasted template content (Improvement 2c)."""
+        content_lower = content.lower()
+        markers_found = []
+
+        for marker in TEMPLATE_MARKERS:
+            if marker.lower() in content_lower:
+                markers_found.append(marker)
+
+        is_template = len(markers_found) > 0
+
+        # Calculate template score (0.0 = customized, 1.0 = pure template)
+        # More markers = higher template score
+        template_score = min(len(markers_found) / 5.0, 1.0)
+
+        return TemplateAnalysis(
+            file_path=source_file,
+            is_template=is_template,
+            markers_found=markers_found,
+            template_score=template_score
+        )
+
+    def _find_skill_files(self) -> List[Path]:
+        """Find all skill files in the repository."""
+        skill_patterns = [
+            ".claude/skills/*/SKILL.md",
+            ".github/skills/*/SKILL.md",
+            ".cursor/skills/*/SKILL.md",
+            ".copilot/skills/*/SKILL.md",
+            ".codex/skills/*/SKILL.md",
+            "skills/*/SKILL.md",
+        ]
+
+        files: List[Path] = []
+        for pattern in skill_patterns:
+            try:
+                for match in self.repo_path.glob(pattern):
+                    if match.is_file() and match.stat().st_size <= self._max_file_size:
+                        files.append(match)
+            except (OSError, PermissionError):
+                pass
+        return files
+
+    def _validate_skill(self, content: str, skill_path: Path, rel_path: str) -> SkillValidation:
+        """Validate a skill file's references (Improvement 4)."""
+        # Extract file references from skill content
+        referenced_files = self._extract_path_references(content)
+
+        valid_refs = []
+        invalid_refs = []
+
+        for ref in referenced_files:
+            if ref.startswith(('http://', 'https://', 'mailto:', '#')):
+                continue
+
+            normalized = ref.lstrip('./')
+            if self._resolve_target(normalized):
+                valid_refs.append(normalized)
+            else:
+                invalid_refs.append(normalized)
+
+        # Extract commands mentioned
+        commands = QUALITY_PATTERNS["commands"].findall(content)
+
+        return SkillValidation(
+            skill_path=rel_path,
+            valid_file_refs=valid_refs,
+            invalid_file_refs=invalid_refs,
+            commands_found=commands,
+            is_valid=len(invalid_refs) == 0
+        )
+
+    def _calculate_validation_penalty(self, result: ValidationResult) -> float:
+        """Calculate score penalty based on validation issues (Improvement 4).
+
+        Penalties:
+        - 2 points per stale file (max 6)
+        - 1 point per invalid reference (max 4)
+        - 2 points if majority of files are templates
+
+        Total max penalty: 10 points
+        """
+        penalty = 0.0
+
+        # Penalty for stale files
+        stale_count = sum(1 for f in result.freshness_scores.values() if f.is_stale)
+        penalty += min(stale_count * 2.0, 6.0)
+
+        # Penalty for invalid references
+        invalid_ref_count = len(result.stale_references) + sum(
+            len(s.invalid_file_refs) for s in result.skill_validations.values()
+        )
+        penalty += min(invalid_ref_count * 1.0, 4.0)
+
+        # Penalty for template content
+        if result.template_analyses:
+            template_count = sum(1 for t in result.template_analyses.values() if t.is_template)
+            if template_count > len(result.template_analyses) / 2:
+                penalty += 2.0
+
+        return min(penalty, 10.0)
+
+    # =========================================================================
+    # Level 6-8 Behavioral Analysis (Improvement 5)
+    # =========================================================================
+
+    def _analyze_behavioral_patterns(self) -> BehavioralAnalysis:
+        """Analyze behavioral patterns for Levels 6-8 (Improvement 5)."""
+        return BehavioralAnalysis(
+            ci_integration=self._check_ci_agent_integration(),
+            handoffs=self._validate_agent_handoffs(),
+            outcomes=self._check_measured_outcomes()
+        )
+
+    def _check_ci_agent_integration(self) -> CIAgentIntegration:
+        """Check if GitHub Actions workflows use agents (Improvement 5a - Level 6)."""
+        workflows_dir = self.repo_path / ".github" / "workflows"
+        workflow_files: List[str] = []
+        agent_patterns: List[str] = []
+
+        if not workflows_dir.exists():
+            return CIAgentIntegration(
+                has_ci_agents=False,
+                workflow_files=[],
+                agent_patterns_found=[]
+            )
+
+        # Agent-related patterns to look for in workflow files
+        agent_keywords = [
+            "claude",
+            "copilot",
+            "codex",
+            "agent",
+            "ai-review",
+            "ai-test",
+            "ai-fix",
+            "automated-review",
+            "code-review-agent",
+        ]
+
+        try:
+            for workflow in workflows_dir.glob("*.yml"):
+                workflow_files.append(workflow.name)
+                try:
+                    content = workflow.read_text(encoding='utf-8', errors='ignore').lower()
+
+                    for keyword in agent_keywords:
+                        if keyword in content:
+                            agent_patterns.append(f"{workflow.name}:{keyword}")
+
+                    # Also check for agentic action patterns
+                    if "uses:" in content and "agent" in content:
+                        agent_patterns.append(f"{workflow.name}:uses-agent-action")
+
+                    # Check for Claude Code in CI
+                    if "anthropic" in content or "claude-code" in content:
+                        agent_patterns.append(f"{workflow.name}:claude-code")
+
+                except (OSError, PermissionError):
+                    pass
+
+            # Also check .yaml extension
+            for workflow in workflows_dir.glob("*.yaml"):
+                workflow_files.append(workflow.name)
+                try:
+                    content = workflow.read_text(encoding='utf-8', errors='ignore').lower()
+                    for keyword in agent_keywords:
+                        if keyword in content:
+                            agent_patterns.append(f"{workflow.name}:{keyword}")
+                except (OSError, PermissionError):
+                    pass
+
+        except (OSError, PermissionError):
+            pass
+
+        return CIAgentIntegration(
+            has_ci_agents=len(agent_patterns) > 0,
+            workflow_files=workflow_files,
+            agent_patterns_found=agent_patterns
+        )
+
+    def _validate_agent_handoffs(self) -> HandoffAnalysis:
+        """Check for multiple agents with defined handoff protocols (Improvement 5b - Level 7)."""
+        # Find agent files across different locations
+        agent_dirs = [
+            self.repo_path / ".github" / "agents",
+            self.repo_path / ".claude" / "agents",
+            self.repo_path / "agents",
+        ]
+
+        agent_files: List[Path] = []
+        for agent_dir in agent_dirs:
+            if agent_dir.exists():
+                try:
+                    agent_files.extend(list(agent_dir.glob("*.md")))
+                    agent_files.extend(list(agent_dir.glob("*.agent.md")))
+                except (OSError, PermissionError):
+                    pass
+
+        # Need at least 2 agents for handoffs to make sense
+        if len(agent_files) < 2:
+            return HandoffAnalysis(
+                valid=False,
+                agent_count=len(agent_files),
+                has_handoff_docs=False,
+                cross_references=[],
+                reason="Need 2+ agent files for handoff validation"
+            )
+
+        # Check for handoff documentation
+        handoff_patterns = [
+            self.repo_path / "agents" / "HANDOFFS.md",
+            self.repo_path / ".github" / "agents" / "HANDOFFS.md",
+            self.repo_path / ".claude" / "agents" / "HANDOFFS.md",
+            self.repo_path / "HANDOFFS.md",
+            self.repo_path / "agents" / "ORCHESTRATION.md",
+        ]
+
+        has_handoff_docs = any(p.exists() for p in handoff_patterns)
+
+        # Check for cross-agent references
+        cross_refs: List[str] = []
+        for agent_file in agent_files:
+            try:
+                content = agent_file.read_text(encoding='utf-8', errors='ignore')
+                # Look for references to other agent files
+                for other_agent in agent_files:
+                    if other_agent != agent_file:
+                        other_name = other_agent.stem
+                        if other_name.lower() in content.lower():
+                            cross_refs.append(f"{agent_file.stem} -> {other_name}")
+            except (OSError, PermissionError):
+                pass
+
+        # Valid if has handoff docs OR has cross-agent references
+        valid = has_handoff_docs or len(cross_refs) > 0
+
+        reason = ""
+        if not valid:
+            reason = "No handoff documentation or cross-agent references found"
+
+        return HandoffAnalysis(
+            valid=valid,
+            agent_count=len(agent_files),
+            has_handoff_docs=has_handoff_docs,
+            cross_references=cross_refs,
+            reason=reason
+        )
+
+    def _check_measured_outcomes(self) -> OutcomeAnalysis:
+        """Check for agent success rate tracking (Improvement 5c - Level 8)."""
+        indicators: Dict[str, bool] = {}
+
+        # Check for metrics file
+        metrics_paths = [
+            self.repo_path / "agents" / "METRICS.md",
+            self.repo_path / ".github" / "agents" / "METRICS.md",
+            self.repo_path / "METRICS.md",
+            self.repo_path / ".metrics" / "agents",
+            self.repo_path / "metrics" / "agents",
+        ]
+        indicators["metrics_file"] = any(p.exists() for p in metrics_paths)
+
+        # Check for agent logs directory
+        log_paths = [
+            self.repo_path / ".agent_logs",
+            self.repo_path / "logs" / "agents",
+            self.repo_path / ".logs" / "agents",
+            self.repo_path / "agent_logs",
+        ]
+        indicators["agent_logs_dir"] = any(p.exists() for p in log_paths)
+
+        # Check for success tracking patterns in config/docs
+        success_keywords = ["success_rate", "success-rate", "completion_rate", "intervention"]
+        indicators["success_tracking"] = self._has_success_tracking(success_keywords)
+
+        # Check for intervention/escalation logging
+        intervention_paths = [
+            self.repo_path / "agents" / "ESCALATION.md",
+            self.repo_path / "ESCALATION.md",
+            self.repo_path / "agents" / "INTERVENTIONS.md",
+        ]
+        indicators["intervention_logging"] = any(p.exists() for p in intervention_paths)
+
+        # Check for performance dashboard or reporting
+        dashboard_patterns = [
+            self.repo_path / "agents" / "DASHBOARD.md",
+            self.repo_path / "agents" / "PERFORMANCE.md",
+            self.repo_path / ".github" / "agents" / "reports",
+        ]
+        indicators["performance_dashboard"] = any(p.exists() for p in dashboard_patterns)
+
+        # Need at least 2 indicators to confirm measured outcomes
+        indicator_count = sum(indicators.values())
+        has_measured_outcomes = indicator_count >= 2
+
+        return OutcomeAnalysis(
+            has_measured_outcomes=has_measured_outcomes,
+            indicators=indicators
+        )
+
+    def _has_success_tracking(self, keywords: List[str]) -> bool:
+        """Check if any AI instruction files mention success tracking."""
+        instruction_files = self._find_instruction_files()
+
+        for file_path in instruction_files:
+            try:
+                content = file_path.read_text(encoding='utf-8', errors='ignore').lower()
+                for keyword in keywords:
+                    if keyword.lower() in content:
+                        return True
+            except (OSError, PermissionError):
+                pass
+        return False
+
     # Default thresholds for level advancement (percentage coverage required)
     DEFAULT_THRESHOLDS: Dict[int, int] = {
         3: 15,   # Comprehensive context
@@ -717,9 +1492,25 @@ class RepoScanner:
                 break
         return current_level
 
-    def _calculate_overall_score(self, level_scores: Dict[int, LevelScore]) -> float:
-        """Calculate a weighted overall score (0-100)."""
+    def _calculate_overall_score(
+        self,
+        level_scores: Dict[int, LevelScore],
+        achieved_level: int,
+        validation_penalty: float = 0.0
+    ) -> float:
+        """Calculate a weighted overall score (0-100).
 
+        Implements Improvement 1: Scoring recalibration with guaranteed minimum
+        scores per level achieved.
+
+        Args:
+            level_scores: Dict of level number to LevelScore
+            achieved_level: The overall level achieved (1-8)
+            validation_penalty: Score reduction for validation issues (0-10)
+
+        Returns:
+            Overall score from 0-100
+        """
         total_score = 0.0
         max_possible = 0.0
 
@@ -740,9 +1531,20 @@ class RepoScanner:
 
             max_possible += weight * 12.5
 
+        # Calculate base score
+        base_score = 0.0
         if max_possible > 0:
-            return min(100, (total_score / max_possible) * 100)
-        return 0.0
+            base_score = (total_score / max_possible) * 100
+
+        # Improvement 1: Enforce minimum score based on achieved level
+        # This ensures Level 5 doesn't show 19.6/100
+        minimum_score = LEVEL_MINIMUM_SCORES.get(achieved_level, 0.0)
+        score = max(base_score, minimum_score)
+
+        # Apply validation penalty (Improvement 4: reduce score for invalid refs)
+        score = max(0, score - validation_penalty)
+
+        return min(100, score)
 
     # =========================================================================
     # Recommendation Helper Methods

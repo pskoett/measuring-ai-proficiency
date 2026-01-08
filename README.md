@@ -34,8 +34,8 @@ That's it! The tool scans for files like `CLAUDE.md`, `.cursorrules`, `.github/c
  AI Proficiency Report: my-project
 ============================================================
 
-  Overall Level: Level 4: Skills & Automation
-  Overall Score: 18.8/100
+  Overall Level: Level 5: Multi-Agent Ready
+  Overall Score: 59.8/100
   AI Tools: Claude Code, GitHub Copilot
 
   Level Breakdown:
@@ -43,12 +43,24 @@ That's it! The tool scans for files like `CLAUDE.md`, `.cursorrules`, `.github/c
     ✓ Level 2: Basic Instructions [█████████████░░░░░░░] 66.7%
     ✓ Level 3: Comprehensive      [███|░░░░░░░░░░░░░░░░] 19.0%/15% ✓
     ✓ Level 4: Skills & Automation[██|░░░░░░░░░░░░░░░░░] 14.5%/12% ✓
-    ○ Level 5: Multi-Agent Ready  [█░|░░░░░░░░░░░░░░░░░] 8.3%/10% needs +1.7%
+    ✓ Level 5: Multi-Agent Ready  [██|░░░░░░░░░░░░░░░░░] 13.9%/10% ✓
+    ○ Level 6: Fleet Ready        [░|░░░░░░░░░░░░░░░░░░] 0.0%/8% needs +8%
+
+  Validation Warnings:
+    📋 TEMPLATE: CLAUDE.md contains template markers (your-org-name)
+    ⚠️ MISSING REF: CLAUDE.md references 'old-file.ts' (deleted)
+
+    Penalty: -2.0 points
+
+  Behavioral Indicators (Levels 6-8):
+    ✓ CI/CD Agent Integration (L6)
+    ○ Agent Handoffs (L7): 3 agents
+    ○ Measured Outcomes (L8)
 
   Recommendations:
-    → 🚀 Configure multiple specialized agents and MCP integrations
-    → 🔗 Create .mcp/servers/ for custom server configurations
-    → 🤝 Create agents/HANDOFFS.md for agent coordination
+    → 🎯 FLEET READY: Add fleet infrastructure for parallel agents
+    → 🧠 Set up Beads for persistent memory across sessions
+    → 🔄 Add workflows/ for multi-step process definitions
 ```
 
 ## Installation
@@ -577,11 +589,47 @@ measure-ai-proficiency
    - Level 3: Level 2 + ≥15% coverage
    - Level 4: Level 3 + ≥12% coverage
    - Level 5+: Progressive thresholds (≥10%, ≥8%, ≥6%, ≥5%)
-5. **Bonus**: Up to +10 points from cross-references and quality
+5. **Minimum Score Guarantees**: Each level achieved guarantees a minimum score:
+   - Level 2: 15, Level 3: 30, Level 4: 45, Level 5: 55
+   - Level 6: 70, Level 7: 85, Level 8: 95
+6. **Bonus**: Up to +10 points from cross-references and quality
+7. **Validation Penalties**: Up to -10 points for issues (see below)
+
+### Content Validation
+
+The tool validates your context files beyond just counting them:
+
+| Validation | What It Checks | Penalty |
+|------------|----------------|---------|
+| **Freshness** | Files updated within 90 days of code changes | -2 pts per stale file (max -6) |
+| **Alignment** | Referenced files actually exist | -1 pt per missing ref (max -4) |
+| **Templates** | Detects copy-pasted boilerplate markers | -2 pts if majority are templates |
+
+**Warnings displayed:**
+- `STALE: CLAUDE.md last updated 120 days ago` - Your context is outdated
+- `MISSING REF: CLAUDE.md references 'src/old.ts' (deleted)` - Broken references
+- `TEMPLATE: CLAUDE.md contains template markers` - Uncustomized boilerplate
+
+### Behavioral Indicators (Levels 6-8)
+
+Higher levels now have concrete behavioral requirements beyond file patterns:
+
+| Level | Indicator | What It Checks |
+|-------|-----------|----------------|
+| **L6** | CI/CD Integration | GitHub Actions workflows that invoke agents |
+| **L7** | Agent Handoffs | 2+ agents with documented handoff protocols |
+| **L8** | Measured Outcomes | Metrics files, logs, or success tracking |
+
+These indicators are displayed in the output but don't affect scoring (yet).
 
 ### Understanding Your Score
 
 **Low score but lots of files?** This is normal! The tool includes hundreds of patterns. Your team likely uses different file names - customize the patterns for accurate scoring.
+
+**Got validation warnings?** These identify issues that reduce AI effectiveness:
+- Stale context files mislead AI with outdated information
+- Broken references confuse AI about your codebase structure
+- Template content provides generic rather than project-specific guidance
 
 ---
 

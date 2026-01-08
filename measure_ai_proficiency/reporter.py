@@ -312,6 +312,79 @@ class TerminalReporter:
 
             print(file=output)
 
+        # Validation warnings section (Improvements 2-5)
+        if score.validation and score.validation.warnings:
+            print(_color("  Validation Warnings:", Colors.BOLD), file=output)
+            print(file=output)
+
+            for warning in score.validation.warnings[:10]:
+                # Color code by warning type
+                if warning.startswith("STALE:"):
+                    print(f"    {_color('⏰', Colors.YELLOW)} {warning}", file=output)
+                elif warning.startswith("TEMPLATE:"):
+                    print(f"    {_color('📋', Colors.YELLOW)} {warning}", file=output)
+                elif warning.startswith("MISSING REF:"):
+                    print(f"    {_color('⚠️', Colors.RED)} {warning}", file=output)
+                elif warning.startswith("INVALID SKILL:"):
+                    print(f"    {_color('❌', Colors.RED)} {warning}", file=output)
+                else:
+                    print(f"    → {warning}", file=output)
+
+            if len(score.validation.warnings) > 10:
+                print(f"    {_color(f'... and {len(score.validation.warnings) - 10} more warnings', Colors.DIM)}", file=output)
+
+            if score.validation.validation_penalty > 0:
+                print(file=output)
+                print(f"    {_color(f'Penalty: -{score.validation.validation_penalty:.1f} points', Colors.RED)}", file=output)
+
+            print(file=output)
+
+        # Behavioral analysis section (Level 6-8 concrete indicators)
+        if score.validation and score.validation.behavioral:
+            behavioral = score.validation.behavioral
+            has_any = (
+                (behavioral.ci_integration and behavioral.ci_integration.has_ci_agents) or
+                (behavioral.handoffs and behavioral.handoffs.valid) or
+                (behavioral.outcomes and behavioral.outcomes.has_measured_outcomes)
+            )
+
+            if has_any or self.verbose:
+                print(_color("  Behavioral Indicators (Levels 6-8):", Colors.BOLD), file=output)
+                print(file=output)
+
+                # Level 6: CI/CD Integration
+                if behavioral.ci_integration:
+                    ci = behavioral.ci_integration
+                    status = "✓" if ci.has_ci_agents else "○"
+                    status_color = Colors.GREEN if ci.has_ci_agents else Colors.DIM
+                    print(f"    {_color(status, status_color)} CI/CD Agent Integration (L6)", file=output)
+                    if ci.has_ci_agents and ci.agent_patterns_found:
+                        patterns = ", ".join(ci.agent_patterns_found[:3])
+                        print(f"      {_color(f'Found: {patterns}', Colors.DIM)}", file=output)
+
+                # Level 7: Agent Handoffs
+                if behavioral.handoffs:
+                    ho = behavioral.handoffs
+                    status = "✓" if ho.valid else "○"
+                    status_color = Colors.GREEN if ho.valid else Colors.DIM
+                    print(f"    {_color(status, status_color)} Agent Handoffs (L7): {ho.agent_count} agents", file=output)
+                    if ho.valid and ho.cross_references:
+                        refs = ", ".join(ho.cross_references[:2])
+                        print(f"      {_color(f'Handoffs: {refs}', Colors.DIM)}", file=output)
+
+                # Level 8: Measured Outcomes
+                if behavioral.outcomes:
+                    out = behavioral.outcomes
+                    status = "✓" if out.has_measured_outcomes else "○"
+                    status_color = Colors.GREEN if out.has_measured_outcomes else Colors.DIM
+                    indicators = [k for k, v in out.indicators.items() if v]
+                    print(f"    {_color(status, status_color)} Measured Outcomes (L8)", file=output)
+                    if indicators:
+                        ind_str = ", ".join(indicators[:3])
+                        print(f"      {_color(f'Indicators: {ind_str}', Colors.DIM)}", file=output)
+
+                print(file=output)
+
         # Recommendations
         if score.recommendations:
             print(_color("  Recommendations:", Colors.BOLD), file=output)
@@ -504,6 +577,85 @@ class JsonReporter:
                 },
             }
 
+        # Add validation results if present (Improvements 2-5)
+        if score.validation:
+            v = score.validation
+            result["validation"] = {
+                "validation_penalty": round(v.validation_penalty, 2),
+                "warnings": v.warnings[:20],  # Limit to 20 warnings
+                "freshness": {
+                    path: {
+                        "last_modified": f.last_modified.isoformat() if f.last_modified else None,
+                        "days_since_update": f.days_since_update,
+                        "days_behind_code": f.days_behind_code,
+                        "is_stale": f.is_stale,
+                        "staleness_level": f.staleness_level,
+                    }
+                    for path, f in v.freshness_scores.items()
+                },
+                "alignment": {
+                    path: {
+                        "total_references": a.total_references,
+                        "existing_count": a.existing_count,
+                        "missing_paths": a.missing_paths[:10],  # Limit
+                        "alignment_ratio": round(a.alignment_ratio, 2),
+                    }
+                    for path, a in v.alignment_scores.items()
+                },
+                "templates": {
+                    path: {
+                        "is_template": t.is_template,
+                        "markers_found": t.markers_found,
+                        "template_score": round(t.template_score, 2),
+                    }
+                    for path, t in v.template_analyses.items()
+                },
+                "stale_references": [
+                    {
+                        "path": ref.path,
+                        "status": ref.status,
+                        "source_file": ref.source_file,
+                    }
+                    for ref in v.stale_references[:20]  # Limit
+                ],
+                "skill_validations": {
+                    path: {
+                        "valid_file_refs": s.valid_file_refs,
+                        "invalid_file_refs": s.invalid_file_refs,
+                        "is_valid": s.is_valid,
+                    }
+                    for path, s in v.skill_validations.items()
+                },
+            }
+
+            # Add behavioral analysis if present
+            if v.behavioral:
+                b = v.behavioral
+                result["validation"]["behavioral"] = {
+                    "level_6_ready": b.level_6_ready,
+                    "level_7_ready": b.level_7_ready,
+                    "level_8_ready": b.level_8_ready,
+                }
+                if b.ci_integration:
+                    result["validation"]["behavioral"]["ci_integration"] = {
+                        "has_ci_agents": b.ci_integration.has_ci_agents,
+                        "workflow_files": b.ci_integration.workflow_files,
+                        "agent_patterns_found": b.ci_integration.agent_patterns_found,
+                    }
+                if b.handoffs:
+                    result["validation"]["behavioral"]["handoffs"] = {
+                        "valid": b.handoffs.valid,
+                        "agent_count": b.handoffs.agent_count,
+                        "has_handoff_docs": b.handoffs.has_handoff_docs,
+                        "cross_references": b.handoffs.cross_references,
+                        "reason": b.handoffs.reason,
+                    }
+                if b.outcomes:
+                    result["validation"]["behavioral"]["outcomes"] = {
+                        "has_measured_outcomes": b.outcomes.has_measured_outcomes,
+                        "indicators": b.outcomes.indicators,
+                    }
+
         return result
 
     def report_single(self, score: RepoScore, output: TextIO = sys.stdout) -> None:
@@ -665,6 +817,77 @@ class MarkdownReporter:
                     print(f"\n*...and {len(xref.references) - 20} more references*", file=output)
                 print(file=output)
 
+        # Validation warnings section (Improvements 2-5)
+        if score.validation and (score.validation.warnings or score.validation.behavioral):
+            print("## Validation & Freshness", file=output)
+            print(file=output)
+
+            if score.validation.warnings:
+                print("### Warnings", file=output)
+                print(file=output)
+                for warning in score.validation.warnings[:15]:
+                    if warning.startswith("STALE:"):
+                        print(f"- :hourglass: {warning}", file=output)
+                    elif warning.startswith("TEMPLATE:"):
+                        print(f"- :clipboard: {warning}", file=output)
+                    elif warning.startswith("MISSING REF:"):
+                        print(f"- :warning: {warning}", file=output)
+                    elif warning.startswith("INVALID SKILL:"):
+                        print(f"- :x: {warning}", file=output)
+                    else:
+                        print(f"- {warning}", file=output)
+
+                if len(score.validation.warnings) > 15:
+                    print(f"\n*...and {len(score.validation.warnings) - 15} more warnings*", file=output)
+                print(file=output)
+
+                if score.validation.validation_penalty > 0:
+                    print(f"**Penalty:** -{score.validation.validation_penalty:.1f} points", file=output)
+                    print(file=output)
+
+            # Freshness summary
+            if score.validation.freshness_scores:
+                print("### Freshness Status", file=output)
+                print(file=output)
+                print("| File | Days Behind Code | Status |", file=output)
+                print("|------|-----------------|--------|", file=output)
+                for path, f in score.validation.freshness_scores.items():
+                    status_emoji = ":white_check_mark:" if f.staleness_level == "fresh" else (":hourglass:" if f.staleness_level == "aging" else ":warning:")
+                    print(f"| `{path}` | {f.days_behind_code} | {status_emoji} {f.staleness_level} |", file=output)
+                print(file=output)
+
+            # Behavioral indicators (Level 6-8)
+            if score.validation.behavioral:
+                b = score.validation.behavioral
+                print("### Behavioral Indicators (Levels 6-8)", file=output)
+                print(file=output)
+                print("| Indicator | Status | Details |", file=output)
+                print("|-----------|--------|---------|", file=output)
+
+                # L6: CI/CD
+                if b.ci_integration:
+                    ci = b.ci_integration
+                    status = ":white_check_mark:" if ci.has_ci_agents else ":o:"
+                    details = ", ".join(ci.agent_patterns_found[:2]) if ci.agent_patterns_found else "Not detected"
+                    print(f"| CI/CD Agent Integration (L6) | {status} | {details} |", file=output)
+
+                # L7: Handoffs
+                if b.handoffs:
+                    ho = b.handoffs
+                    status = ":white_check_mark:" if ho.valid else ":o:"
+                    details = f"{ho.agent_count} agents" + (", " + ho.cross_references[0] if ho.cross_references else "")
+                    print(f"| Agent Handoffs (L7) | {status} | {details} |", file=output)
+
+                # L8: Outcomes
+                if b.outcomes:
+                    out = b.outcomes
+                    status = ":white_check_mark:" if out.has_measured_outcomes else ":o:"
+                    indicators = [k for k, v in out.indicators.items() if v]
+                    details = ", ".join(indicators[:2]) if indicators else "Not detected"
+                    print(f"| Measured Outcomes (L8) | {status} | {details} |", file=output)
+
+                print(file=output)
+
         if score.recommendations:
             print("## Recommendations", file=output)
             print(file=output)
@@ -756,8 +979,8 @@ class CsvReporter:
     def report_multiple(self, scores: List[RepoScore], output: TextIO = sys.stdout) -> None:
         """Report multiple repository scores as CSV."""
 
-        # Header with levels 1-8 and cross-reference columns
-        header = "repo_name,repo_path,overall_level,overall_score,bonus_points,avg_quality,ref_count,resolved_count"
+        # Header with levels 1-8, cross-reference columns, and validation columns
+        header = "repo_name,repo_path,overall_level,overall_score,bonus_points,avg_quality,ref_count,resolved_count,validation_penalty,has_stale_files,has_templates,warning_count,ci_agents,handoffs_valid,outcomes_valid"
         for i in range(1, 9):
             header += f",level_{i}_coverage"
         print(header, file=output)
@@ -781,7 +1004,33 @@ class CsvReporter:
                 if xref.quality_scores:
                     avg_quality = sum(q.quality_score for q in xref.quality_scores.values()) / len(xref.quality_scores)
 
-            line = f'"{score.repo_name}","{score.repo_path}",{score.overall_level},{score.overall_score:.2f},{bonus:.2f},{avg_quality:.2f},{ref_count},{resolved_count}'
+            # Validation data
+            validation_penalty = 0.0
+            has_stale = False
+            has_templates = False
+            warning_count = 0
+            ci_agents = False
+            handoffs_valid = False
+            outcomes_valid = False
+
+            if score.validation:
+                v = score.validation
+                validation_penalty = v.validation_penalty
+                has_stale = v.has_stale_files
+                has_templates = v.has_template_content
+                warning_count = len(v.warnings)
+                if v.behavioral:
+                    ci_agents = v.behavioral.level_6_ready
+                    handoffs_valid = v.behavioral.level_7_ready
+                    outcomes_valid = v.behavioral.level_8_ready
+
+            line = (
+                f'"{score.repo_name}","{score.repo_path}",{score.overall_level},'
+                f'{score.overall_score:.2f},{bonus:.2f},{avg_quality:.2f},'
+                f'{ref_count},{resolved_count},{validation_penalty:.2f},'
+                f'{has_stale},{has_templates},{warning_count},'
+                f'{ci_agents},{handoffs_valid},{outcomes_valid}'
+            )
             for cov in coverages:
                 line += f",{cov:.2f}"
             print(line, file=output)
