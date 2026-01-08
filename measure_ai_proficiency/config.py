@@ -609,11 +609,12 @@ CORE_AI_FILES: Set[str] = {
 # Tool-specific pattern mapping
 # Maps patterns to the tools they belong to. Patterns not listed are considered generic (all tools).
 # Used to filter patterns when user specifies tools in .ai-proficiency.yaml
+# Note: AGENTS.md is intentionally NOT listed here - it's a generic agent instruction file
+# that works with all AI tools (Claude, Copilot, Cursor, Codex, etc.)
 TOOL_SPECIFIC_PATTERNS: Dict[str, List[str]] = {
     # Claude Code specific
     "claude-code": [
         "CLAUDE.md",
-        "AGENTS.md",
         ".claude/",
     ],
     # GitHub Copilot specific
