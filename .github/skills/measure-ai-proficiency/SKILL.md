@@ -19,9 +19,38 @@ pip install measure-ai-proficiency
 
 ## Workflow
 
-### 1. Discover Repositories (Optional - For Organizations)
+### 1. Choose Your Scanning Method
 
-For organizations wanting to assess multiple repositories, first discover which repos have AI context artifacts:
+#### Option A: Scan GitHub Directly (No Cloning Required!)
+
+Scan GitHub repositories without cloning them:
+
+```bash
+# Scan a single GitHub repository
+measure-ai-proficiency --github-repo owner/repo
+
+# Scan entire GitHub organization
+measure-ai-proficiency --github-org your-org-name
+
+# Limit number of repos scanned
+measure-ai-proficiency --github-org your-org-name --limit 50
+
+# Output to file
+measure-ai-proficiency --github-org your-org --format json --output report.json
+```
+
+**Requirements:** [GitHub CLI (gh)](https://cli.github.com/) authenticated with `gh auth login`
+
+**How it works:**
+- Uses GitHub API to fetch repository file tree
+- Downloads only AI proficiency files (CLAUDE.md, .cursorrules, skills, etc.)
+- Scans in temporary directories
+- Cleans up automatically
+- Much faster than cloning!
+
+#### Option B: Discover Then Clone (Traditional Method)
+
+For organizations wanting more control, first discover which repos have AI context artifacts:
 
 ```bash
 # Find active repos (commits in last 90 days) with AI context files
@@ -42,10 +71,32 @@ For organizations wanting to assess multiple repositories, first discover which 
 
 Then clone and scan the identified repos.
 
-### 2. Run Assessment
+#### Option C: Scan Local Repositories
 
 ```bash
+# Scan current directory
 measure-ai-proficiency
+
+# Scan specific repository
+measure-ai-proficiency /path/to/repo
+
+# Scan multiple repositories
+measure-ai-proficiency /path/to/repo1 /path/to/repo2
+
+# Scan all repos in directory (cloned org)
+measure-ai-proficiency --org /path/to/org-repos
+```
+
+### 2. Run Assessment
+
+Most common commands:
+
+```bash
+# Local scan
+measure-ai-proficiency
+
+# GitHub scan (recommended for orgs)
+measure-ai-proficiency --github-org your-org-name
 ```
 
 ### 3. Interpret Results

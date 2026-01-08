@@ -11,17 +11,19 @@ The tool scans repositories for AI context files (like `CLAUDE.md`, `.cursorrule
 - Cross-reference detection between AI instruction files
 - Content quality evaluation (sections, commands, constraints)
 - Multiple output formats (terminal, JSON, markdown, CSV)
+- GitHub CLI integration for scanning repos without cloning (--github-repo, --github-org)
 
 ## Architecture
 
 ```
 measure_ai_proficiency/
-├── __init__.py      # Package exports
-├── __main__.py      # CLI entry point
-├── config.py        # Level definitions and file patterns
-├── scanner.py       # Repository scanning logic + cross-reference detection
-├── reporter.py      # Output formatting (terminal, JSON, markdown, CSV)
-└── repo_config.py   # Repository configuration and tool auto-detection
+├── __init__.py        # Package exports
+├── __main__.py        # CLI entry point
+├── config.py          # Level definitions and file patterns
+├── scanner.py         # Repository scanning logic + cross-reference detection
+├── github_scanner.py  # GitHub CLI integration for remote scanning
+├── reporter.py        # Output formatting (terminal, JSON, markdown, CSV)
+└── repo_config.py     # Repository configuration and tool auto-detection
 
 scripts/
 ├── find-org-repos.sh  # GitHub org discovery script (uses gh CLI + jq)
@@ -77,7 +79,8 @@ pytest tests/ -v
 | Add recommendations | `scanner.py` → `_generate_recommendations()` |
 | Add cross-ref patterns | `scanner.py` → `CROSS_REF_PATTERNS` |
 | Add quality indicators | `scanner.py` → `QUALITY_PATTERNS` |
-| Discover org repos | `scripts/find-org-repos.sh <org-name>` |
+| Scan GitHub repos | `measure-ai-proficiency --github-repo owner/repo` or `--github-org org` |
+| Discover org repos | `scripts/find-org-repos.sh <org-name>` (or use `--github-org` directly) |
 
 ## Cross-Reference Detection
 
@@ -110,9 +113,39 @@ The scanner analyzes AI instruction file content to detect references:
 - `scripts/README.md` - Discovery script documentation
 - `measuring-ai-proficiency-context-engineering.md` - Full article on context engineering
 
-## Organizational Discovery
+## GitHub Organization Scanning
 
-Use `scripts/find-org-repos.sh` to discover which repositories in a GitHub organization have context engineering artifacts:
+Two ways to scan GitHub organizations:
+
+### Option A: Direct Scanning (Recommended)
+
+Scan GitHub repositories without cloning them using GitHub CLI integration:
+
+```bash
+# Scan entire organization
+measure-ai-proficiency --github-org your-org-name
+
+# Scan single repository
+measure-ai-proficiency --github-repo owner/repo
+
+# Limit number of repos
+measure-ai-proficiency --github-org your-org-name --limit 50
+
+# Output to JSON
+measure-ai-proficiency --github-org your-org --format json --output report.json
+```
+
+**How it works:**
+- Uses GitHub API to fetch repository file trees
+- Downloads only AI proficiency files (no full clone!)
+- Scans in temporary directories and cleans up automatically
+- Much faster than cloning hundreds of repos
+
+**Requirements:** GitHub CLI (gh) authenticated with `gh auth login`
+
+### Option B: Discovery Script
+
+Use `scripts/find-org-repos.sh` to discover which repositories have context engineering artifacts first:
 
 ```bash
 # Find active repos (commits in last 90 days) with AI context files
