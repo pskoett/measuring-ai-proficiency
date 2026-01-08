@@ -11,7 +11,9 @@ The tool scans repositories for files like `CLAUDE.md`, `.cursorrules`, `.github
 - Cross-reference detection between AI instruction files
 - Content quality evaluation (sections, commands, constraints)
 - Multiple output formats (terminal, JSON, markdown, CSV)
-- GitHub CLI integration for scanning repos without cloning (--github-repo, --github-org)
+- **Dual scanning modes**: Local scanning (default) OR GitHub CLI (optional, no cloning!)
+  - Local: Scan repositories on disk
+  - GitHub CLI: Scan remote repos without cloning (--github-repo, --github-org)
 
 ## Architecture
 
@@ -69,9 +71,58 @@ pytest tests/ -v
 - Adjust scoring thresholds: Edit `_calculate_overall_level` in `scanner.py`
 - Add new cross-reference patterns: Edit `CROSS_REF_PATTERNS` in `scanner.py`
 - Add new quality indicators: Edit `QUALITY_PATTERNS` in `scanner.py`
-- Scan GitHub repos without cloning: Use `measure-ai-proficiency --github-repo owner/repo` or `--github-org org-name`
-- Discover repos in GitHub org: Run `scripts/find-org-repos.sh <org-name>` to find active repos with AI artifacts (or just use `--github-org` to scan directly)
-- Improve repo AI context: Use the **AI Context Improvement Agent** in `.claude/agents/improve-ai-context.agent.md` to systematically create/improve context files
+
+## Scanning Options
+
+The tool supports **two scanning modes** - use whichever fits your workflow:
+
+### Local Scanning (Default)
+Scan repositories on disk. Works offline, no authentication needed.
+
+```bash
+# Scan current directory
+measure-ai-proficiency
+
+# Scan specific repository
+measure-ai-proficiency /path/to/repo
+
+# Scan multiple repositories
+measure-ai-proficiency repo1 repo2 repo3
+
+# Scan all repos in a directory (cloned org)
+measure-ai-proficiency --org /path/to/org-repos
+```
+
+### GitHub CLI Scanning (Optional)
+Scan GitHub repositories without cloning. Requires `gh` CLI and authentication.
+
+```bash
+# Scan single GitHub repo
+measure-ai-proficiency --github-repo owner/repo
+
+# Scan entire GitHub org
+measure-ai-proficiency --github-org org-name
+
+# Limit number of repos
+measure-ai-proficiency --github-org org-name --limit 50
+
+# Combine with output formats
+measure-ai-proficiency --github-org org --format json --output report.json
+```
+
+**Why use GitHub CLI mode?**
+- No need to clone repositories (saves disk space)
+- Faster for large organizations (only downloads relevant files)
+- Works with private repos (if authenticated)
+- Discover repos in GitHub org: Run `scripts/find-org-repos.sh <org-name>` to find active repos with AI artifacts
+
+**Both modes support:**
+- All output formats (terminal, JSON, markdown, CSV)
+- All CLI flags (--format, --output, -q, --min-level)
+- Cross-reference detection and quality scoring
+
+### Improving Repository AI Context
+Use the **AI Context Improvement Agent** in `.claude/agents/improve-ai-context.agent.md` to systematically create/improve context files. Works with both scanning modes.
 
 ## Cross-Reference Detection
 

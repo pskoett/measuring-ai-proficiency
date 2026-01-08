@@ -66,7 +66,11 @@ pip install -e .
 
 ## Usage
 
-### Basic Commands
+The tool supports **two scanning modes** - choose the one that fits your workflow:
+
+### Mode 1: Local Scanning (Default)
+
+Scan repositories on your local disk. Works offline, no authentication needed.
 
 ```bash
 # Scan current directory
@@ -78,13 +82,19 @@ measure-ai-proficiency /path/to/repo
 # Scan multiple repositories
 measure-ai-proficiency /path/to/repo1 /path/to/repo2
 
-# Scan all repos in a directory (GitHub org)
+# Scan all repos in a directory (cloned GitHub org)
 measure-ai-proficiency --org /path/to/cloned-org
 ```
 
-### GitHub Integration (No Cloning Required!)
+**Best for:**
+- Local development
+- Offline scanning
+- Repos already on disk
+- No GitHub authentication needed
 
-Scan GitHub repositories directly without cloning them using the GitHub CLI:
+### Mode 2: GitHub CLI Scanning (Optional)
+
+Scan GitHub repositories directly **without cloning** them using the GitHub CLI:
 
 ```bash
 # Scan a single GitHub repository
@@ -100,6 +110,12 @@ measure-ai-proficiency --github-org anthropic --limit 50
 measure-ai-proficiency --github-org your-org --format json --output report.json
 ```
 
+**Best for:**
+- Scanning organizations without cloning
+- Large-scale analysis
+- Private repos (with authentication)
+- Quick assessments of remote repos
+
 **Requirements:**
 - [GitHub CLI (gh)](https://cli.github.com/) must be installed
 - Must be authenticated: `gh auth login`
@@ -110,9 +126,34 @@ measure-ai-proficiency --github-org your-org --format json --output report.json
 3. Scans the files locally in a temporary directory
 4. Cleans up automatically after scanning
 
-This is much faster than cloning hundreds of repositories and requires no disk space for the repositories themselves.
+**Advantages over cloning:**
+- ✅ Much faster (only downloads relevant files)
+- ✅ No disk space needed for full repositories
+- ✅ Works with hundreds of repos efficiently
+- ✅ Automatic cleanup after scanning
+
+### Choosing Between Modes
+
+| Feature | Local Scanning | GitHub CLI Scanning |
+|---------|----------------|---------------------|
+| **Setup** | None | Requires `gh` CLI + auth |
+| **Network** | Works offline | Requires internet |
+| **Speed** | Fast for local repos | Fast for remote repos |
+| **Disk Space** | Uses existing repos | Minimal (temp files only) |
+| **Authentication** | Not needed | GitHub auth required |
+| **Private Repos** | Must clone first | Works if authenticated |
+| **Best Use** | Local development | Organization-wide analysis |
+
+**Note:** Both scanning modes support all features:
+- All output formats (terminal, JSON, markdown, CSV)
+- All CLI flags (--format, --output, -q, --min-level)
+- Cross-reference detection and quality scoring
+- Tool auto-detection
+- Custom configuration (`.ai-proficiency.yaml`)
 
 ### Output Formats
+
+Both scanning modes work with all output formats:
 
 ```bash
 # Terminal output (default, with colors)
