@@ -50,13 +50,23 @@ def main():
         description="Measure AI coding proficiency based on context engineering artifacts.",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
+Scanning Methods:
+  LOCAL (default):         Scan local repositories on disk
+  GITHUB CLI (optional):   Scan GitHub repos without cloning (requires gh CLI)
+
 Examples:
+  # Local scanning (default)
   %(prog)s                           Scan current directory
   %(prog)s /path/to/repo             Scan specific repository
   %(prog)s repo1 repo2 repo3         Scan multiple repositories
   %(prog)s --org /path/to/org        Scan all repos in directory
+
+  # GitHub CLI scanning (optional, no cloning!)
   %(prog)s --github-repo owner/repo  Scan GitHub repo without cloning
   %(prog)s --github-org anthropic    Scan all repos in GitHub org
+  %(prog)s --github-org org --limit 50  Limit number of repos
+
+  # Output formats (work with both methods)
   %(prog)s --format json             Output as JSON
   %(prog)s --format markdown -o report.md  Save markdown report
   %(prog)s -q                        Quiet mode (hide file details)
@@ -70,6 +80,10 @@ Maturity Levels (aligned with Steve Yegge's 8-stage model):
   Level 6: Fleet infrastructure (Beads, shared context, workflows)
   Level 7: Agent fleet (governance, scheduling, pipelines)
   Level 8: Custom orchestration (Gas Town, meta-automation, frontier)
+
+GitHub CLI Requirements:
+  Install: https://cli.github.com/
+  Authenticate: gh auth login
         """,
     )
 
