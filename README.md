@@ -444,8 +444,16 @@ For systematic improvement workflows, use the **AI Context Improvement Agent**:
 - `.github/agents/improve-ai-context.agent.md` - For GitHub Copilot
 - `.claude/agents/improve-ai-context.agent.md` - For Claude Code
 
+**Integrated workflow using three skills:**
+
+1. **plan-interview** - Gathers requirements about your team's goals and constraints
+2. **customize-measurement** - Creates tailored `.ai-proficiency.yaml` configuration
+3. **measure-ai-proficiency** - Assesses and systematically improves your context
+
 **What it does:**
-- Runs AI proficiency assessment
+- Interviews you about team goals, tools, and target maturity level
+- Creates custom configuration matching your needs
+- Runs AI proficiency assessment with your config
 - Analyzes gaps and quality scores
 - Creates missing context files systematically
 - Improves existing files with low quality scores
@@ -455,12 +463,14 @@ For systematic improvement workflows, use the **AI Context Improvement Agent**:
 **How to use:**
 
 Ask your AI assistant:
-- *"Improve my AI proficiency"*
-- *"Create missing context files"*
-- *"Fix my low quality score"*
-- *"Advance to Level 4"*
+- *"Improve my AI proficiency"* (full workflow with interview and config)
+- *"Help me understand what context I need"* (starts with plan-interview)
+- *"Configure measurement for my team"* (uses customize-measurement)
+- *"Create missing context files"* (quick assessment and improvement)
+- *"Fix my low quality score"* (focused on quality improvements)
+- *"Advance to Level 4"* (goal-oriented improvement)
 
-The agent will scan your repo, identify gaps, and systematically create or improve files to advance your maturity level.
+The agent will guide you through requirements gathering, create a custom configuration, scan your repo, identify gaps, and systematically create or improve files to advance your maturity level.
 
 ---
 
