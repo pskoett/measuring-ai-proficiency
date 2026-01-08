@@ -41,6 +41,31 @@ thresholds:
 #   - documentation
 #   - skills
 
+# Skip validation warnings for documentation example patterns
+# This repo is a meta-tool that documents patterns, so our docs contain
+# many example file references that don't exist in THIS repo
+skip_validation_patterns:
+  # Best practice examples mentioned in documentation
+  - ".mcp.json"
+  - ".claude/settings.json"
+  - ".copilot-instructions.md"
+  # Compliance/domain examples from customize-measurement skill
+  - "HIPAA.md"
+  - "PCI_DSS.md"
+  - "PHI_HANDLING.md"
+  - "COMPLIANCE.md"
+  - "SECURITY_COMPLIANCE.md"
+  - "SECURITY_STANDARDS.md"
+  - "SYSTEM_DESIGN.md"
+  - "CODING_STANDARDS.md"
+  - "MAINTAINERS.md"
+  # Documentation path examples
+  - "docs/api/README.md"
+  - "docs/TESTING_GUIDE.md"
+  - "docs/SYSTEM_DESIGN.md"
+  # Config file examples
+  - "ai-proficiency.yaml"
+
 # Quality scoring thresholds (using defaults)
 # Uncomment to customize:
 # quality:

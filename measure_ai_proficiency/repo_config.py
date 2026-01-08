@@ -38,6 +38,9 @@ class RepoConfig:
     # Focus areas (only show recommendations for these)
     focus_areas: List[str] = field(default_factory=list)
 
+    # Patterns to skip during validation (documentation examples, etc.)
+    skip_validation_patterns: List[str] = field(default_factory=list)
+
     # Quality scoring thresholds (configurable)
     max_file_size: int = 100_000  # Max file size for cross-ref scanning (bytes)
     min_substantive_bytes: int = 100  # Minimum bytes for a file to be "substantive"
@@ -191,6 +194,10 @@ def load_repo_config(repo_path: Path) -> RepoConfig:
             # Load focus areas
             if "focus_areas" in data:
                 config.focus_areas = data["focus_areas"]
+
+            # Load validation patterns to skip (documentation examples)
+            if "skip_validation_patterns" in data:
+                config.skip_validation_patterns = data["skip_validation_patterns"]
 
             # Load quality scoring options
             if "quality" in data:

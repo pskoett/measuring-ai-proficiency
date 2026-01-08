@@ -47,9 +47,39 @@ skip_recommendations:
 focus_areas:
   - documentation
   - testing
+
+# Skip validation warnings for documentation examples
+# Useful when your docs contain example file names that don't exist
+skip_validation_patterns:
+  - "HIPAA.md"           # Example compliance file mentioned in docs
+  - ".mcp.json"          # Best practice mentioned but not used yet
+  - "docs/api/README.md" # Example path shown in documentation
 ```
 
 See `.ai-proficiency.yaml.example` in this repo for a full example.
+
+### Skipping Validation Warnings
+
+When your documentation mentions example file names that don't exist in your repo, the tool may show validation warnings. Use `skip_validation_patterns` to suppress these:
+
+```yaml
+skip_validation_patterns:
+  # Exact file matches
+  - "COMPLIANCE.md"
+  - ".mcp.json"
+
+  # Paths with directories
+  - "docs/api/README.md"
+  - ".claude/settings.json"
+
+  # Wildcard suffix (matches anything starting with prefix)
+  - "examples/*"
+```
+
+This is especially useful for:
+- **Meta-tools** that document patterns for other repos (like this one!)
+- **Template repos** that show example structures
+- **Documentation** mentioning best practices not yet adopted
 
 ## Organizational Discovery
 

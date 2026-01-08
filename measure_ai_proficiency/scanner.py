@@ -135,54 +135,26 @@ STALENESS_THRESHOLD_STALE: int = 90  # Days behind code to be considered stale
 STALENESS_THRESHOLD_AGING: int = 30  # Days behind code to be considered aging
 
 # Generic/example paths to skip during validation (documentation examples, not real refs)
+# Only include truly universal patterns - repo-specific examples should use .ai-proficiency.yaml
 EXAMPLE_PATH_PATTERNS: Set[str] = {
-    # Generic documentation examples
+    # Generic placeholder examples used in any documentation
     "file.md",
     "FILE.md",
     "path/file.md",
     "path/to/file.md",
-    "your-file.md",
-    "your-new-pattern.md",
     "example.md",
     "example.yaml",
     "example.json",
-    "frontend.instructions.md",
-    "api.instructions.md",
-    "tests.instructions.md",
-    "frontend.md",
-    "backend.md",
-    "database.md",
-    # Pattern demonstration examples (used in docs to show format)
+    # Glob/pattern demonstrations
     "*.md",
     "*.yaml",
     "*.yml",
     "*.json",
-    # Partial path examples that appear in regex/pattern documentation
+    # Partial extensions from regex documentation
     ".md",
     ".yaml",
     ".yml",
     ".json",
-    # Best practices/configuration files that may be mentioned but not present yet
-    ".mcp.json",
-    "mcp.json",
-    ".claude/settings.json",
-    ".copilot-instructions.md",
-    "docs/api/README.md",
-    # Config file examples
-    "ai-proficiency.yaml",
-    ".ai-proficiency.yaml",
-    # Compliance/domain-specific examples used in customization docs
-    "HIPAA.md",
-    "PCI_DSS.md",
-    "PHI_HANDLING.md",
-    "COMPLIANCE.md",
-    "SYSTEM_DESIGN.md",
-    "CODING_STANDARDS.md",
-    "SECURITY_COMPLIANCE.md",
-    "SECURITY_STANDARDS.md",
-    "MAINTAINERS.md",
-    "docs/TESTING_GUIDE.md",
-    "docs/SYSTEM_DESIGN.md",
 }
 
 
@@ -1177,10 +1149,30 @@ class RepoScanner:
         return stale
 
     def _is_example_path(self, path: str) -> bool:
-        """Check if a path is a generic documentation example that should be skipped."""
-        # Direct match against known example patterns
+        """Check if a path is a generic documentation example that should be skipped.
+
+        This uses heuristics to detect common documentation patterns without
+        needing repo-specific configuration. The goal is to filter out:
+        - Generic placeholder examples (file.md, path/to/file.md)
+        - Pattern demonstrations (*.md, **/*.yaml)
+        - "Your-*" style placeholders (your-file.md, your-org-name)
+        - Known AI context file types mentioned without paths (CODEX.md)
+        - Generic word filenames (example.md, test.yaml)
+        - Repo-specific patterns from .ai-proficiency.yaml skip_validation_patterns
+        """
+        # Direct match against known universal example patterns
         if path in EXAMPLE_PATH_PATTERNS:
             return True
+
+        # Check repo-specific skip patterns from config
+        if self.config and self.config.skip_validation_patterns:
+            for pattern in self.config.skip_validation_patterns:
+                # Support exact match and simple wildcard at end (e.g., "docs/*")
+                if pattern.endswith('*'):
+                    if path.startswith(pattern[:-1]):
+                        return True
+                elif path == pattern or path.endswith('/' + pattern) or path == pattern.lstrip('./'):
+                    return True
 
         # Skip paths that are clearly regex/glob patterns (contain wildcards)
         if '*' in path or '?' in path:
@@ -1189,33 +1181,37 @@ class RepoScanner:
         # Get just the filename for pattern checks
         parts = path.split('/')
         filename = parts[-1] if parts else path
+        filename_lower = filename.lower()
 
-        # Skip files that are "known targets" but don't exist yet in this repo
-        # These are valid AI context file types mentioned in documentation as examples
-        # We only want to flag files that are:
-        # 1. Referenced as if they should exist in THIS repo
-        # 2. Not generic file type examples
-        # If a file is in KNOWN_TARGETS, it's being mentioned as a file TYPE, not a reference
-        if filename in KNOWN_TARGETS and not (self.repo_path / path).exists():
-            # Only skip if this looks like a documentation mention, not a real reference
-            # Real references usually have a path context (./CODEX.md, docs/CODEX.md)
-            if filename == path:  # No directory path = likely documentation example
-                return True
+        # Skip "your-*" prefixed files - common documentation placeholders
+        if filename_lower.startswith('your-') or filename_lower.startswith('my-'):
+            return True
 
-        # Skip if filename is a generic word + extension pattern
+        # Skip files that are "known targets" mentioned without a path
+        # e.g., "CODEX.md" alone is likely a documentation example of a file type
+        # but "./CODEX.md" or "docs/CODEX.md" is a real reference
+        if filename in KNOWN_TARGETS and filename == path:
+            return True
+
+        # Skip generic word filenames
         generic_names = {
             'file', 'files', 'doc', 'docs', 'document', 'path', 'example',
-            'your', 'my', 'the', 'a', 'test', 'sample', 'demo', 'foo', 'bar',
-            'baz', 'text', 'data', 'config', 'name', 'item', 'thing',
+            'test', 'sample', 'demo', 'foo', 'bar', 'baz', 'text', 'data',
+            'config', 'name', 'item', 'thing', 'template', 'placeholder',
         }
 
         # Extract base name without extension
         if '.' in filename:
             basename = filename.rsplit('.', 1)[0].lower()
+            # Direct match on generic names
             if basename in generic_names:
                 return True
+            # Also check for hyphenated versions like "my-file", "new-feature"
+            base_parts = basename.replace('_', '-').split('-')
+            if base_parts[0] in {'my', 'your', 'new', 'old', 'the', 'a', 'an'}:
+                return True
 
-        # Skip paths that look like pattern examples (e.g., "*.md", "**/*.yaml")
+        # Skip paths that start with wildcards
         if path.startswith('*') or path.startswith('**'):
             return True
 
