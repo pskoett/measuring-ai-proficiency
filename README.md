@@ -56,13 +56,16 @@ That's it! The tool scans for files like `CLAUDE.md`, `.cursorrules`, `.github/c
 ## Installation
 
 ```bash
-# Clone and install
-git clone https://github.com/pskoett/measuring-ai-proficiency
+pip install measure-ai-proficiency
+```
+
+Or install from source:
+
+```bash
+git clone https://github.com/pskoett/measuring-ai-proficiency.git
 cd measuring-ai-proficiency
 pip install -e .
 ```
-
-*PyPI package coming soon.*
 
 ## Usage
 

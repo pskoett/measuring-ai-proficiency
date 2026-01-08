@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "measure-ai-proficiency"
-version = "0.2.0"
+version = "0.3.0"
 description = "Measure AI coding proficiency based on context engineering artifacts"
 readme = "README.md"
 license = {text = "MIT"}
