@@ -85,6 +85,18 @@ Ask questions in **thematic batches of 2-3 questions** using `AskUserQuestion`.
    - None / General
 ```
 
+#### Batch 5: Validation (Optional)
+```
+1. Does your documentation mention example file names that don't exist?
+   - Yes (meta-tools, template repos, documentation showing patterns)
+   - No (all file references point to real files)
+
+2. If yes, which patterns should be skipped during validation?
+   - Best practices not yet adopted (.mcp.json, .claude/settings.json)
+   - Industry examples (HIPAA.md, COMPLIANCE.md)
+   - Custom examples (ask user to specify)
+```
+
 ### Phase 2: Generate Configuration
 
 Based on interview responses, generate `.ai-proficiency.yaml`:
@@ -130,6 +142,11 @@ skip_recommendations:
 #   - documentation
 #   - skills
 #   - testing
+
+# Skip validation warnings for documentation examples
+# skip_validation_patterns:
+#   - "COMPLIANCE.md"      # Example mentioned in docs
+#   - ".mcp.json"          # Best practice not yet adopted
 ```
 
 ### Phase 3: Validate

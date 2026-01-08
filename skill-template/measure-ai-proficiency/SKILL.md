@@ -143,6 +143,25 @@ Resolution tracking shows if referenced files exist (helps find broken links).
 
 **Bonus points:** Up to +10 points from cross-references (5 pts) + quality (5 pts).
 
+### Content Validation
+
+The tool validates that your documentation references real files:
+
+- **Missing references:** Files mentioned in docs that don't exist
+- **Stale references:** References to deleted files (detected via git history)
+- **Template markers:** Uncustomized content (TODO, PLACEHOLDER, etc.)
+
+**Validation penalty:** Up to -4 points for validation issues.
+
+**Skip false positives:** If your docs contain example file names (meta-tools, templates), configure `skip_validation_patterns` in `.ai-proficiency.yaml`:
+
+```yaml
+skip_validation_patterns:
+  - "COMPLIANCE.md"    # Example mentioned in docs
+  - ".mcp.json"        # Best practice not yet adopted
+  - "examples/*"       # All files under examples/
+```
+
 ### 4. Provide Recommendations
 
 After assessment, offer to create missing high-priority files:

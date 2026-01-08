@@ -51,6 +51,15 @@ skip_recommendations:
 #   - testing
 #   - architecture
 
+# Skip validation warnings for documentation examples
+# Use when your docs mention example file names that don't exist
+# Supports exact matches, paths, and wildcard suffixes (e.g., "examples/*")
+# skip_validation_patterns:
+#   - "COMPLIANCE.md"        # Example compliance file mentioned in docs
+#   - ".mcp.json"            # Best practice mentioned but not adopted yet
+#   - "docs/api/README.md"   # Example path shown in documentation
+#   - "examples/*"           # All files under examples/ directory
+
 # Quality scoring thresholds (advanced - rarely need to change)
 # These control how files are evaluated for quality scoring
 # quality:
