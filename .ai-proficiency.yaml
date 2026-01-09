@@ -49,6 +49,11 @@ skip_validation_patterns:
   - ".mcp.json"
   - ".claude/settings.json"
   - ".copilot-instructions.md"
+  # Short names referenced in AGENTS.md (full paths exist)
+  - "repo_config.py"
+  - "scanner.py"
+  - "reporter.py"
+  - "config.py"
   # Compliance/domain examples from customize-measurement skill
   - "HIPAA.md"
   - "PCI_DSS.md"

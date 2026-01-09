@@ -305,6 +305,14 @@ LEVEL_5_PATTERNS = LevelConfig(
         ".mcp/servers/*.json",
         "tools/TOOLS.md",
         "tools/*.json",
+
+        # AI-specific ignore files (security governance)
+        ".cursorignore",
+        ".aider.ignore",
+        ".codeiumignore",
+        ".github/copilot-ignore",
+        ".claudeignore",
+        ".codexignore",
     ],
     directory_patterns=[
         ".claude/agents",

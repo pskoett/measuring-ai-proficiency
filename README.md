@@ -649,6 +649,8 @@ Contributions welcome! Areas of interest:
 - Historical tracking and trend analysis
 - IDE extensions
 
+See [FEATURE_BACKLOG.md](FEATURE_BACKLOG.md) for advanced metrics and architectural patterns we're exploring—including semantic drift detection, progressive disclosure scoring, and security governance indicators.
+
 ## License
 
 MIT
