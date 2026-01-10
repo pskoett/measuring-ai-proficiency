@@ -39,6 +39,7 @@ classifiers = [
 requires-python = ">=3.9"
 dependencies = [
     "pyyaml>=6.0",
+    "mcp>=0.9.0",
 ]
 
 [project.optional-dependencies]
@@ -52,6 +53,7 @@ dev = [
 
 [project.scripts]
 measure-ai-proficiency = "measure_ai_proficiency.__main__:main"
+measure-ai-proficiency-mcp = "measure_ai_proficiency.mcp_server:main"
 
 [project.urls]
 Homepage = "https://github.com/pskoett/measuring-ai-proficiency"
