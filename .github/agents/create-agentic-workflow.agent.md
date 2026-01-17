@@ -345,6 +345,59 @@ Include in the PR description:
   - The workflow has been created and compiled successfully.
   - Commit and push the changes to activate it.
 
+## Release & Version Bumping
+
+**CRITICAL: Always ask the user for confirmation before bumping versions or preparing a release.**
+
+When a user asks to bump the version or prepare a release:
+
+### Step 1: Ask for Confirmation
+Before making any changes, ask the user:
+- What type of version bump is needed? (patch/minor/major)
+- What changes should be included in the changelog?
+- Are they ready to proceed with the version bump?
+
+### Step 2: Version Files to Update
+Two files MUST be updated together (they must stay in sync):
+1. `pyproject.toml` (line 7): `version = "X.Y.Z"`
+2. `measure_ai_proficiency/__init__.py` (line 20): `__version__ = "X.Y.Z"`
+
+### Step 3: Update CHANGELOG.md
+Add a new section at the top following this format:
+```markdown
+## [X.Y.Z] - YYYY-MM-DD
+
+### Added
+- New feature descriptions
+
+### Changed
+- Changes to existing functionality
+
+### Fixed
+- Bug fixes
+```
+
+### Step 4: Commit and Tag
+After user approval:
+```bash
+git add pyproject.toml measure_ai_proficiency/__init__.py CHANGELOG.md
+git commit -m "Bump version to X.Y.Z"
+git tag vX.Y.Z
+```
+
+### Step 5: Push (Only with Explicit Permission)
+Only push if the user explicitly requests it:
+```bash
+git push origin main
+git push origin vX.Y.Z
+```
+
+**Never:**
+- Bump versions without asking first
+- Push to remote without explicit permission
+- Skip updating either version file (they must stay in sync)
+- Forget to update the CHANGELOG.md
+
 ## Guidelines (Both Modes)
 
 - In Issue Form Mode: Create NEW workflow files based on issue requirements

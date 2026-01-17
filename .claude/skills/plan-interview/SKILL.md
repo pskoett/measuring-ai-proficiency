@@ -24,7 +24,7 @@ User calls `/plan-interview <task description>`.
 
 ### Phase 1: Upfront Interview (Before Exploration)
 
-Interview the user using `AskUserQuestion` in **thematic batches of 2-3 questions**.
+Interview the user using `AskUserQuestion` in **thematic batches of 2-3 questions** when the provider supports it. For providers like GitHub Copilot without an AskUser tool, ask the same questions directly in chat and pause for responses before continuing.
 
 #### Required Question Domains
 
@@ -160,6 +160,8 @@ Claude: I'll help you plan the OAuth authentication feature. Let me gather
 [AskUserQuestion - Scope batch]
 1. Which OAuth providers need to be supported (Google, GitHub, etc.)?
 2. Is this replacing existing auth or adding alongside it?
+
+[Copilot guidance: ask the same two questions in chat and wait for responses]
 
 User: Google and GitHub. Adding alongside existing JWT auth.
 
