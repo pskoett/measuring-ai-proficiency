@@ -27,6 +27,50 @@ measure-ai-proficiency
 
 That's it! The tool scans for files like `CLAUDE.md`, `.cursorrules`, `.github/copilot-instructions.md`, and calculates a maturity score.
 
+## MCP Server - AI Context Awareness 🚀
+
+**NEW:** Make your AI assistant aware of its own proficiency! The MCP server brings real-time AI context analysis directly into Claude Code, Cursor, and other MCP-compatible tools.
+
+### Quick Setup
+
+```bash
+# 1. Install (if not already installed)
+pip install measure-ai-proficiency
+
+# 2. Add to your .mcp.json
+{
+  "mcpServers": {
+    "measure-ai-proficiency": {
+      "command": "measure-ai-proficiency-mcp"
+    }
+  }
+}
+
+# 3. Restart Claude Code
+```
+
+### What You Can Do
+
+Ask your AI assistant:
+- "What's my AI proficiency level?" → Real-time analysis
+- "Are my cross-references valid?" → Validate CLAUDE.md links
+- "How can I reach Level 6?" → Get specific recommendations
+- "Scan all repos in my org" → Organization-wide assessment
+
+### Available MCP Tools
+
+- `scan_current_repo` - Analyze current repository
+- `get_recommendations` - Get improvement suggestions
+- `check_cross_references` - Validate AI context file links
+- `get_level_requirements` - Show next level requirements
+- `scan_github_repo` - Analyze remote GitHub repo
+- `scan_github_org` - Scan entire GitHub organization
+- `validate_file_quality` - Check specific file quality
+
+📖 **[Full MCP Documentation](MCP.md)** - Setup, examples, troubleshooting
+
+**Why use MCP?** Creates a meta-improvement loop where the tool that measures AI proficiency becomes AI-accessible, enabling real-time feedback and guided improvements.
+
 ## What You'll See
 
 ```
