@@ -1,0 +1,10 @@
+{
+  "mcpServers": {
+    "measure-ai-proficiency": {
+      "command": "measure-ai-proficiency-mcp",
+      "args": [],
+      "env": {},
+      "description": "AI proficiency measurement and improvement suggestions"
+    }
+  }
+}

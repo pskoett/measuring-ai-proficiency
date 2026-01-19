@@ -14,6 +14,45 @@ The tool scans repositories for files like `CLAUDE.md`, `.cursorrules`, `.github
 - **Dual scanning modes**: Local scanning (default) OR GitHub CLI (optional, no cloning!)
   - Local: Scan repositories on disk
   - GitHub CLI: Scan remote repos without cloning (--github-repo, --github-org)
+- **MCP Server**: Real-time AI context awareness via Model Context Protocol
+  - Makes AI assistant aware of its own proficiency level
+  - Provides tools for scanning, validation, and recommendations
+  - Creates meta-improvement loop for better AI context
+
+## MCP Server
+
+The project now includes an **MCP (Model Context Protocol) server** that makes AI proficiency measurement accessible to AI assistants in real-time.
+
+**Entry point:** `measure_ai_proficiency/mcp_server.py`
+**Script:** `measure-ai-proficiency-mcp` (installed via pyproject.toml)
+
+**Available MCP Tools:**
+- `scan_current_repo` - Analyze AI proficiency of current repository
+- `get_recommendations` - Get specific improvement suggestions
+- `check_cross_references` - Validate references between AI context files
+- `get_level_requirements` - Show requirements for next maturity level
+- `scan_github_repo` - Analyze remote GitHub repo without cloning
+- `scan_github_org` - Analyze entire GitHub organization
+- `validate_file_quality` - Check quality score of specific file
+
+**Configuration:** Add to `.mcp.json`:
+```json
+{
+  "mcpServers": {
+    "measure-ai-proficiency": {
+      "command": "measure-ai-proficiency-mcp"
+    }
+  }
+}
+```
+
+**Why it matters:** Creates a meta-improvement loop where AI assistants can:
+1. Check their own proficiency level while working
+2. Validate cross-references as they write them
+3. Get real-time recommendations for improvements
+4. Scan entire organizations without leaving the conversation
+
+See `MCP.md` for full documentation, examples, and troubleshooting.
 
 ## Architecture
 
@@ -21,6 +60,7 @@ The tool scans repositories for files like `CLAUDE.md`, `.cursorrules`, `.github
 measure_ai_proficiency/
 ├── __init__.py        # Package exports
 ├── __main__.py        # CLI entry point
+├── mcp_server.py      # MCP server for AI assistant integration
 ├── config.py          # Level definitions and file patterns
 ├── scanner.py         # Repository scanning logic + cross-reference detection
 ├── github_scanner.py  # GitHub CLI integration for remote scanning
@@ -71,6 +111,7 @@ pytest tests/ -v
 - Adjust scoring thresholds: Edit `_calculate_overall_level` in `measure_ai_proficiency/scanner.py`
 - Add new cross-reference patterns: Edit `CROSS_REF_PATTERNS` in `measure_ai_proficiency/scanner.py`
 - Add new quality indicators: Edit `QUALITY_PATTERNS` in `measure_ai_proficiency/scanner.py`
+- Add new MCP tools: Add handler in `measure_ai_proficiency/mcp_server.py`, update `list_tools()` and `call_tool()`
 
 ## Scanning Options
 

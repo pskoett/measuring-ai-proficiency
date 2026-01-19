@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "measure-ai-proficiency"
-version = "0.4.3"
+version = "0.5.0"
 description = "Measure AI coding proficiency based on context engineering artifacts"
 readme = "README.md"
 license = {text = "MIT"}
@@ -29,16 +29,17 @@ classifiers = [
     "License :: OSI Approved :: MIT License",
     "Operating System :: OS Independent",
     "Programming Language :: Python :: 3",
-    "Programming Language :: Python :: 3.9",
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
     "Topic :: Software Development",
     "Topic :: Software Development :: Quality Assurance",
 ]
-requires-python = ">=3.9"
+requires-python = ">=3.10"
 dependencies = [
     "pyyaml>=6.0",
+    "mcp>=0.9.0",
 ]
 
 [project.optional-dependencies]
@@ -52,6 +53,7 @@ dev = [
 
 [project.scripts]
 measure-ai-proficiency = "measure_ai_proficiency.__main__:main"
+measure-ai-proficiency-mcp = "measure_ai_proficiency.mcp_server:main"
 
 [project.urls]
 Homepage = "https://github.com/pskoett/measuring-ai-proficiency"
@@ -64,17 +66,17 @@ include = ["measure_ai_proficiency*"]
 
 [tool.black]
 line-length = 100
-target-version = ["py39", "py310", "py311", "py312"]
+target-version = ["py310", "py311", "py312", "py313"]
 
 [tool.ruff]
 line-length = 100
-target-version = "py39"
+target-version = "py310"
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "W"]
 
 [tool.mypy]
-python_version = "3.9"
+python_version = "3.10"
 warn_return_any = true
 warn_unused_configs = true
 disallow_untyped_defs = true
