@@ -14,11 +14,14 @@ from measure_ai_proficiency.mcp_server import (
     get_current_repo,
     format_score_result,
     get_level_requirements,
+    check_github_cli,
     scan_current_repo,
     get_recommendations_handler,
     check_cross_references,
     get_level_requirements_handler,
     validate_file_quality_handler,
+    scan_github_repo_handler,
+    scan_github_org_handler,
 )
 from measure_ai_proficiency.scanner import RepoScanner, RepoScore
 
@@ -285,3 +288,162 @@ class TestErrorHandling:
         assert len(result) == 1
         data = json.loads(result[0].text)
         assert "error" in data
+
+
+class TestGitHubHandlers:
+    """Test GitHub-related MCP handlers."""
+
+    def test_check_github_cli_with_gh_installed(self, monkeypatch):
+        """Test check_github_cli when gh is installed."""
+        monkeypatch.setattr(
+            "measure_ai_proficiency.mcp_server.shutil.which",
+            lambda cmd: "/usr/local/bin/gh" if cmd == "gh" else None
+        )
+        assert check_github_cli() is True
+
+    def test_check_github_cli_without_gh(self, monkeypatch):
+        """Test check_github_cli when gh is not installed."""
+        monkeypatch.setattr(
+            "measure_ai_proficiency.mcp_server.shutil.which",
+            lambda cmd: None
+        )
+        assert check_github_cli() is False
+
+    @pytest.mark.asyncio
+    async def test_scan_github_repo_no_cli(self, monkeypatch):
+        """Test scan_github_repo_handler when GitHub CLI is not available."""
+        monkeypatch.setattr(
+            "measure_ai_proficiency.mcp_server.check_github_cli",
+            lambda: False
+        )
+
+        result = await scan_github_repo_handler("owner/repo")
+
+        assert len(result) == 1
+        data = json.loads(result[0].text)
+        assert "error" in data
+        assert "GitHub CLI" in data["error"]
+        assert "hint" in data
+
+    @pytest.mark.asyncio
+    async def test_scan_github_org_no_cli(self, monkeypatch):
+        """Test scan_github_org_handler when GitHub CLI is not available."""
+        monkeypatch.setattr(
+            "measure_ai_proficiency.mcp_server.check_github_cli",
+            lambda: False
+        )
+
+        result = await scan_github_org_handler("org-name", limit=None)
+
+        assert len(result) == 1
+        data = json.loads(result[0].text)
+        assert "error" in data
+        assert "GitHub CLI" in data["error"]
+        assert "hint" in data
+
+    @pytest.mark.asyncio
+    async def test_scan_github_repo_success(self, tmp_path, monkeypatch):
+        """Test scan_github_repo_handler with successful scan."""
+        # Mock GitHub CLI check
+        monkeypatch.setattr(
+            "measure_ai_proficiency.mcp_server.check_github_cli",
+            lambda: True
+        )
+
+        # Create a mock RepoScore
+        scanner = RepoScanner(tmp_path)
+        mock_score = scanner.scan()
+
+        # Mock the scan_github_repo function
+        monkeypatch.setattr(
+            "measure_ai_proficiency.mcp_server.scan_github_repo",
+            lambda repo: mock_score
+        )
+
+        result = await scan_github_repo_handler("owner/repo")
+
+        assert len(result) == 1
+        data = json.loads(result[0].text)
+        assert "repo_name" in data
+        assert "overall_level" in data
+        assert "overall_score" in data
+
+    @pytest.mark.asyncio
+    async def test_scan_github_repo_error(self, monkeypatch):
+        """Test scan_github_repo_handler error handling."""
+        monkeypatch.setattr(
+            "measure_ai_proficiency.mcp_server.check_github_cli",
+            lambda: True
+        )
+
+        # Mock the scan_github_repo function to raise an error
+        def mock_scan_error(repo):
+            raise RuntimeError("API rate limit exceeded")
+
+        monkeypatch.setattr(
+            "measure_ai_proficiency.mcp_server.scan_github_repo",
+            mock_scan_error
+        )
+
+        result = await scan_github_repo_handler("owner/repo")
+
+        assert len(result) == 1
+        data = json.loads(result[0].text)
+        assert "error" in data
+        assert "rate limit" in data["error"].lower()
+
+    @pytest.mark.asyncio
+    async def test_scan_github_org_success(self, tmp_path, monkeypatch):
+        """Test scan_github_org_handler with successful scan."""
+        # Mock GitHub CLI check
+        monkeypatch.setattr(
+            "measure_ai_proficiency.mcp_server.check_github_cli",
+            lambda: True
+        )
+
+        # Create mock RepoScores
+        scanner = RepoScanner(tmp_path)
+        mock_score = scanner.scan()
+
+        # Mock the scan_github_org function to return a list of scores
+        monkeypatch.setattr(
+            "measure_ai_proficiency.mcp_server.scan_github_org",
+            lambda org, limit=None: [mock_score, mock_score]
+        )
+
+        result = await scan_github_org_handler("org-name", limit=10)
+
+        assert len(result) == 1
+        data = json.loads(result[0].text)
+        assert "organization" in data
+        assert data["organization"] == "org-name"
+        assert "total_repos" in data
+        assert data["total_repos"] == 2
+        assert "average_score" in data
+        assert "level_distribution" in data
+        assert "repositories" in data
+        assert len(data["repositories"]) == 2
+
+    @pytest.mark.asyncio
+    async def test_scan_github_org_error(self, monkeypatch):
+        """Test scan_github_org_handler error handling."""
+        monkeypatch.setattr(
+            "measure_ai_proficiency.mcp_server.check_github_cli",
+            lambda: True
+        )
+
+        # Mock the scan_github_org function to raise an error
+        def mock_scan_error(org, limit=None):
+            raise RuntimeError("Organization not found")
+
+        monkeypatch.setattr(
+            "measure_ai_proficiency.mcp_server.scan_github_org",
+            mock_scan_error
+        )
+
+        result = await scan_github_org_handler("nonexistent-org", limit=None)
+
+        assert len(result) == 1
+        data = json.loads(result[0].text)
+        assert "error" in data
+        assert "org" in data

@@ -6,9 +6,11 @@ This creates a meta-improvement loop where the tool that measures AI proficiency
 becomes AI-accessible.
 """
 
+import asyncio
 import json
 import logging
 import os
+import shutil
 import sys
 from pathlib import Path
 from typing import Any, Dict, List, Optional
@@ -40,10 +42,15 @@ def get_current_repo() -> Path:
     return Path.cwd()
 
 
+def check_github_cli() -> bool:
+    """Check if GitHub CLI (gh) is installed and available."""
+    return shutil.which("gh") is not None
+
+
 def format_score_result(score: Any) -> Dict[str, Any]:
     """Format a RepoScore object into a JSON-serializable dict."""
     reporter = JsonReporter()
-    return reporter._format_score(score)
+    return reporter._score_to_dict(score)
 
 
 def get_level_requirements(current_level: int) -> Dict[str, Any]:
@@ -63,12 +70,16 @@ def get_level_requirements(current_level: int) -> Dict[str, Any]:
             "error": f"No configuration found for level {next_level}",
         }
 
+    # Get threshold from scanner defaults
+    from .scanner import RepoScanner
+    threshold = RepoScanner.DEFAULT_THRESHOLDS.get(next_level, 50)
+
     return {
         "current_level": current_level,
         "next_level": next_level,
         "next_level_name": level_config.name,
         "next_level_description": level_config.description,
-        "required_coverage": level_config.threshold_percent,
+        "required_coverage": threshold,
         "file_patterns": level_config.file_patterns,
     }
 
@@ -217,7 +228,9 @@ async def scan_current_repo() -> list[TextContent]:
     """Scan the current repository for AI proficiency."""
     repo_path = get_current_repo()
     scanner = RepoScanner(repo_path)
-    score = scanner.scan()
+
+    # Run blocking scan in thread pool to avoid blocking the event loop
+    score = await asyncio.to_thread(scanner.scan)
 
     result = format_score_result(score)
 
@@ -231,17 +244,21 @@ async def get_recommendations_handler() -> list[TextContent]:
     """Get improvement recommendations for the current repository."""
     repo_path = get_current_repo()
     scanner = RepoScanner(repo_path)
-    score = scanner.scan()
+
+    # Run blocking scan in thread pool to avoid blocking the event loop
+    score = await asyncio.to_thread(scanner.scan)
+
+    # Get validation warnings from the validation result
+    validation_warnings = []
+    if score.validation:
+        validation_warnings = score.validation.warnings
 
     result = {
         "repo_name": score.repo_name,
         "current_level": score.overall_level,
         "overall_score": round(score.overall_score, 1),
         "recommendations": score.recommendations,
-        "validation_warnings": [
-            {"type": w.warning_type, "message": w.message, "file": w.file_path}
-            for w in score.validation_warnings
-        ],
+        "validation_warnings": validation_warnings,
     }
 
     return [TextContent(
@@ -254,7 +271,9 @@ async def check_cross_references() -> list[TextContent]:
     """Validate cross-references in AI context files."""
     repo_path = get_current_repo()
     scanner = RepoScanner(repo_path)
-    score = scanner.scan()
+
+    # Run blocking scan in thread pool to avoid blocking the event loop
+    score = await asyncio.to_thread(scanner.scan)
 
     if not score.cross_references:
         return [TextContent(
@@ -273,24 +292,25 @@ async def check_cross_references() -> list[TextContent]:
         "broken_references": [
             {
                 "source": ref.source_file,
-                "target": ref.target_file,
+                "target": ref.target,
                 "type": ref.reference_type,
-                "resolved": ref.resolved,
+                "resolved": ref.is_resolved,
             }
             for ref in score.cross_references.references
-            if not ref.resolved
+            if not ref.is_resolved
         ],
         "quality_scores": {
             file: {
-                "score": round(quality.score, 1),
+                "score": round(quality.quality_score, 1),
                 "word_count": quality.word_count,
-                "sections": quality.sections,
-                "paths": quality.paths,
-                "commands": quality.commands,
-                "constraints": quality.constraints,
-                "commits": quality.commits,
+                "section_count": quality.section_count,
+                "has_sections": quality.has_sections,
+                "has_specific_paths": quality.has_specific_paths,
+                "has_tool_commands": quality.has_tool_commands,
+                "has_constraints": quality.has_constraints,
+                "commit_count": quality.commit_count,
             }
-            for file, quality in score.cross_references.file_quality.items()
+            for file, quality in score.cross_references.quality_scores.items()
         },
     }
 
@@ -306,7 +326,9 @@ async def get_level_requirements_handler(current_level: Optional[int]) -> list[T
         # Scan current repo to determine level
         repo_path = get_current_repo()
         scanner = RepoScanner(repo_path)
-        score = scanner.scan()
+
+        # Run blocking scan in thread pool to avoid blocking the event loop
+        score = await asyncio.to_thread(scanner.scan)
         current_level = score.overall_level
 
     result = get_level_requirements(current_level)
@@ -319,8 +341,20 @@ async def get_level_requirements_handler(current_level: Optional[int]) -> list[T
 
 async def scan_github_repo_handler(repo: str) -> list[TextContent]:
     """Scan a GitHub repository without cloning it."""
+    # Check if GitHub CLI is available
+    if not check_github_cli():
+        return [TextContent(
+            type="text",
+            text=json.dumps({
+                "error": "GitHub CLI (gh) is not installed or not in PATH",
+                "hint": "Install GitHub CLI from https://cli.github.com/ and run 'gh auth login'",
+                "repo": repo,
+            }, indent=2)
+        )]
+
     try:
-        score = scan_github_repo(repo)
+        # Run blocking GitHub scan in thread pool to avoid blocking the event loop
+        score = await asyncio.to_thread(scan_github_repo, repo)
         result = format_score_result(score)
 
         return [TextContent(
@@ -340,8 +374,20 @@ async def scan_github_repo_handler(repo: str) -> list[TextContent]:
 
 async def scan_github_org_handler(org: str, limit: Optional[int]) -> list[TextContent]:
     """Scan all repositories in a GitHub organization."""
+    # Check if GitHub CLI is available
+    if not check_github_cli():
+        return [TextContent(
+            type="text",
+            text=json.dumps({
+                "error": "GitHub CLI (gh) is not installed or not in PATH",
+                "hint": "Install GitHub CLI from https://cli.github.com/ and run 'gh auth login'",
+                "org": org,
+            }, indent=2)
+        )]
+
     try:
-        scores = scan_github_org(org, limit=limit)
+        # Run blocking GitHub scan in thread pool to avoid blocking the event loop
+        scores = await asyncio.to_thread(scan_github_org, org, limit)
 
         # Format all scores
         results = []
@@ -395,41 +441,44 @@ async def validate_file_quality_handler(file_path: str) -> list[TextContent]:
 
     # Scan the repo to get quality metrics
     scanner = RepoScanner(repo_path)
-    score = scanner.scan()
+
+    # Run blocking scan in thread pool to avoid blocking the event loop
+    score = await asyncio.to_thread(scanner.scan)
 
     # Find the file in the quality scores
     rel_path = os.path.relpath(file_path, repo_path)
 
-    if score.cross_references and rel_path in score.cross_references.file_quality:
-        quality = score.cross_references.file_quality[rel_path]
+    if score.cross_references and rel_path in score.cross_references.quality_scores:
+        quality = score.cross_references.quality_scores[rel_path]
 
         result = {
             "file": rel_path,
-            "score": round(quality.score, 1),
+            "score": round(quality.quality_score, 1),
             "max_score": 10,
             "word_count": quality.word_count,
             "metrics": {
-                "sections": quality.sections,
-                "paths": quality.paths,
-                "commands": quality.commands,
-                "constraints": quality.constraints,
-                "commits": quality.commits,
+                "section_count": quality.section_count,
+                "has_sections": quality.has_sections,
+                "has_specific_paths": quality.has_specific_paths,
+                "has_tool_commands": quality.has_tool_commands,
+                "has_constraints": quality.has_constraints,
+                "commit_count": quality.commit_count,
             },
             "recommendations": [],
         }
 
         # Add specific recommendations based on missing metrics
-        if quality.sections < 5:
+        if quality.section_count < 5:
             result["recommendations"].append("Add more structure with markdown headers (##)")
-        if quality.paths < 3:
+        if not quality.has_specific_paths:
             result["recommendations"].append("Include concrete file paths to help AI understand your codebase")
-        if quality.commands < 3:
+        if not quality.has_tool_commands:
             result["recommendations"].append("Add CLI commands in backticks for common workflows")
-        if quality.constraints < 3:
+        if not quality.has_constraints:
             result["recommendations"].append("Add constraints (never, avoid, must, always) for AI guidance")
         if quality.word_count < 200:
             result["recommendations"].append("Expand content - aim for 200+ words for substantive guidance")
-        if quality.commits < 3:
+        if quality.commit_count < 3:
             result["recommendations"].append("File needs more updates - indicates it may be stale or template-based")
 
     else:
