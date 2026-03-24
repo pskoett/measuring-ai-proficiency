@@ -277,5 +277,5 @@ jobs:
 ### See Also
 
 - [Main README](../README.md) - Full documentation for measure-ai-proficiency
-- [CUSTOMIZATION.md](../CUSTOMIZATION.md) - Customizing the proficiency scanner
-- [GITHUB_ACTION.md](../GITHUB_ACTION.md) - GitHub Action integration
+- [CUSTOMIZATION.md](../docs/CUSTOMIZATION.md) - Customizing the proficiency scanner
+- [GITHUB_ACTION.md](../docs/GITHUB_ACTION.md) - GitHub Action integration

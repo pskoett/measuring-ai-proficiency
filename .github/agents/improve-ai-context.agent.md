@@ -507,7 +507,7 @@ When improving multiple repos in an organization:
 ### When Custom Patterns are Needed
 - Create `.ai-proficiency.yaml` to customize thresholds
 - Use the **customize-measurement** skill for guided config
-- See `CUSTOMIZATION.md` for manual configuration
+- See `docs/CUSTOMIZATION.md` for manual configuration
 
 ## Output Format
 
@@ -543,7 +543,7 @@ Two files MUST be updated together (they must stay in sync):
 1. `pyproject.toml` (line 7): `version = "X.Y.Z"`
 2. `measure_ai_proficiency/__init__.py` (line 20): `__version__ = "X.Y.Z"`
 
-### Step 3: Update CHANGELOG.md
+### Step 3: Update docs/CHANGELOG.md
 Add a new section at the top following this format:
 ```markdown
 ## [X.Y.Z] - YYYY-MM-DD
@@ -561,7 +561,7 @@ Add a new section at the top following this format:
 ### Step 4: Commit and Tag
 After user approval:
 ```bash
-git add pyproject.toml measure_ai_proficiency/__init__.py CHANGELOG.md
+git add pyproject.toml measure_ai_proficiency/__init__.py docs/CHANGELOG.md
 git commit -m "Bump version to X.Y.Z"
 git tag vX.Y.Z
 ```
@@ -577,7 +577,7 @@ git push origin vX.Y.Z
 - Bump versions without asking first
 - Push to remote without explicit permission
 - Skip updating either version file (they must stay in sync)
-- Forget to update the CHANGELOG.md
+- Forget to update the docs/CHANGELOG.md
 
 ## Common Triggers
 

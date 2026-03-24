@@ -67,7 +67,7 @@ Ask your AI assistant:
 - `scan_github_org` - Scan entire GitHub organization
 - `validate_file_quality` - Check specific file quality
 
-📖 **[Full MCP Documentation](MCP.md)** - Setup, examples, troubleshooting
+📖 **[Full MCP Documentation](docs/MCP.md)** - Setup, examples, troubleshooting
 
 **Why use MCP?** Creates a meta-improvement loop where the tool that measures AI proficiency becomes AI-accessible, enabling real-time feedback and guided improvements.
 
@@ -461,7 +461,7 @@ Different teams use different file names. The tool works best when customized:
 3. Add your team's specific file names
 4. Adjust thresholds if needed
 
-📖 **[Read the full customization guide](CUSTOMIZATION.md)**
+📖 **[Read the full customization guide](docs/CUSTOMIZATION.md)**
 
 ### Configuration File
 
@@ -507,7 +507,7 @@ gh extension install githubnext/gh-aw
 gh aw add pskoett/measuring-ai-proficiency/.github/workflows/ai-proficiency-pr-review --create-pull-request
 ```
 
-📖 **[Full GitHub Action documentation](GITHUB_ACTION.md)**
+📖 **[Full GitHub Action documentation](docs/GITHUB_ACTION.md)**
 
 ---
 
@@ -693,7 +693,7 @@ Contributions welcome! Areas of interest:
 - Historical tracking and trend analysis
 - IDE extensions
 
-See [FEATURE_BACKLOG.md](FEATURE_BACKLOG.md) for advanced metrics and architectural patterns we're exploring—including semantic drift detection, progressive disclosure scoring, and security governance indicators.
+See [FEATURE_BACKLOG.md](docs/FEATURE_BACKLOG.md) for advanced metrics and architectural patterns we're exploring—including semantic drift detection, progressive disclosure scoring, and security governance indicators.
 
 ## License
 
@@ -701,6 +701,6 @@ MIT
 
 ## Related
 
-- [Context Engineering Article](./measuring-ai-proficiency-context-engineering.md) - The thinking behind this tool
+- [Context Engineering Article](docs/measuring-ai-proficiency-context-engineering.md) - The thinking behind this tool
 - [Steve Yegge's Gas Town](https://steve-yegge.medium.com/welcome-to-gas-town-4f25ee16dd04) - Behavioral maturity model inspiration
 - [Claude Code Skills](https://code.claude.com/docs/en/skills) | [GitHub Copilot Skills](https://docs.github.com/en/copilot/concepts/agents/about-agent-skills) | [Agent Skills Standard](https://agentskills.io/)

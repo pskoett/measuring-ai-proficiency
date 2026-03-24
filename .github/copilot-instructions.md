@@ -108,11 +108,11 @@ The scanner analyzes AI instruction file content to detect references:
 
 - `README.md` - User-facing documentation
 - `CLAUDE.md` - Claude Code context
-- `CUSTOMIZATION.md` - How to customize patterns
-- `AGENT_REFERENCES.md` - Best practices for agent references
-- `GITHUB_ACTION.md` - GitHub Action integration guide
+- `docs/CUSTOMIZATION.md` - How to customize patterns
+- `docs/AGENT_REFERENCES.md` - Best practices for agent references
+- `docs/GITHUB_ACTION.md` - GitHub Action integration guide
 - `scripts/README.md` - Discovery script documentation
-- `measuring-ai-proficiency-context-engineering.md` - Full article on context engineering
+- `docs/measuring-ai-proficiency-context-engineering.md` - Full article on context engineering
 
 ## GitHub Organization Scanning
 

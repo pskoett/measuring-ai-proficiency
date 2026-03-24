@@ -51,13 +51,13 @@ python -m measure_ai_proficiency --help
 - [ ] My changes generate no new warnings
 - [ ] I have added tests that prove my fix is effective or that my feature works
 - [ ] New and existing unit tests pass locally with my changes
-- [ ] I have updated CHANGELOG.md with my changes
+- [ ] I have updated docs/CHANGELOG.md with my changes
 - [ ] Any dependent changes have been merged and published
 
 ## Documentation Updates
 
 - [ ] README.md updated (if needed)
-- [ ] CHANGELOG.md updated
+- [ ] docs/CHANGELOG.md updated
 - [ ] CLAUDE.md updated (if architecture changed)
 - [ ] Other documentation updated: _____
 

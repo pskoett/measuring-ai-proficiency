@@ -235,4 +235,4 @@ Use the **customize-measurement** skill for guided configuration:
 ```
 
 Or see the manual guide:
-https://github.com/pskoett/measuring-ai-proficiency/blob/main/CUSTOMIZATION.md
+https://github.com/pskoett/measuring-ai-proficiency/blob/main/docs/CUSTOMIZATION.md

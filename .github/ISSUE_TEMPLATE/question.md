@@ -36,5 +36,5 @@ measure-ai-proficiency --example
 ## Related Documentation
 
 - [ ] I've read the [README](https://github.com/pskoett/measuring-ai-proficiency/blob/main/README.md)
-- [ ] I've read [CUSTOMIZATION.md](https://github.com/pskoett/measuring-ai-proficiency/blob/main/CUSTOMIZATION.md)
+- [ ] I've read [CUSTOMIZATION.md](https://github.com/pskoett/measuring-ai-proficiency/blob/main/docs/CUSTOMIZATION.md)
 - [ ] I've checked existing issues and discussions

@@ -28,7 +28,7 @@ This document defines agent roles and behavioral guidelines for AI assistants wo
 
 **Key behaviors:**
 - Update README.md when features change
-- Keep CUSTOMIZATION.md current with config options
+- Keep docs/CUSTOMIZATION.md current with config options
 - Sync skill files across all locations when updating:
   - `.claude/skills/*/SKILL.md`
   - `.github/skills/*/SKILL.md`
@@ -76,7 +76,7 @@ This document defines agent roles and behavioral guidelines for AI assistants wo
 3. **Update version:** Bump version in `pyproject.toml` for releases
 4. **Document config options:** New options go in:
    - `repo_config.py` (implementation)
-   - `CUSTOMIZATION.md` (documentation)
+   - `docs/CUSTOMIZATION.md` (documentation)
    - `.ai-proficiency.yaml.example` (example)
    - Skills that use the option
 

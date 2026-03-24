@@ -575,7 +575,7 @@ The MCP server is part of the open-source measure-ai-proficiency project. Contri
 
 ## Related Documentation
 
-- [Main README](README.md) - CLI tool documentation
+- [Main README](../README.md) - CLI tool documentation
 - [Customization Guide](CUSTOMIZATION.md) - Configure for your team
 - [GitHub Action](GITHUB_ACTION.md) - CI/CD integration
 - [Model Context Protocol](https://modelcontextprotocol.io) - Official MCP docs
