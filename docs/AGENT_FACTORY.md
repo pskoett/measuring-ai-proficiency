@@ -35,6 +35,9 @@ PR opened
 needs-changes? ---> /pr-fix (auto-fix CI failures)
   |
   v
+PR behind main? ---> conflict-resolver (merge origin/main, hand conflicts to human)
+  |
+  v
 CI failure on main? ---> ci-cleaner (lint, test, compile fix loop)
   |
   v
@@ -210,6 +213,7 @@ When you merge that PR, the next run of the affected agent reads the updated ins
 |----------|---------|---------|
 | [`spec-refiner.md`](../.github/workflows/spec-refiner.md) | Issue labeled `needs-spec` | Structured plan file from issue context using plan-interview skill |
 | [`reviewer.md`](../.github/workflows/reviewer.md) | PR opened / updated | Plan-aware code review with implementer calibration |
+| [`conflict-resolver.md`](../.github/workflows/conflict-resolver.md) | PR labeled `needs-rebase` | Merge origin/main into PR branch; hand conflicts back to human |
 | [`self-improvement-meta.md`](../.github/workflows/self-improvement-meta.md) | Nightly (~2am) | Extract learnings from failures, commit prevention rules |
 | [`implementer-dispatcher.md`](../.github/workflows/implementer-dispatcher.md) | Sub-issue labeled `ready-for-implementation` | Auto-assign to agent based on parent issue's implementer label |
 | [`ci-cleaner.md`](../.github/workflows/ci-cleaner.md) | CI failure on main | Auto-fix lint, test, and compilation issues |
@@ -265,7 +269,8 @@ Skills live in `.claude/skills/` and work identically in Claude Code, Codex CLI,
 |-------|---------|--------|
 | `needs-spec` | Issue needs a structured plan file | Human |
 | `needs-plan` | Spec is ready, /plan creates sub-issues | spec-refiner |
-| `blocked-on-human` | Agent needs human input before proceeding | spec-refiner |
+| `needs-rebase` | PR branch is behind main and needs a merge | Human |
+| `blocked-on-human` | Agent needs human input before proceeding | spec-refiner, conflict-resolver (and other workflows) |
 | `spec-refined` | Spec refinement is complete | spec-refiner |
 | `ready-for-implementation` | Sub-issue ready for a coding agent | /plan |
 | `impl:claude-opus` | Assign to Claude Opus 4.6 | spec-refiner (or human) |
