@@ -54,6 +54,8 @@ name: "Eval Creator CI"
     - synchronize
     - reopened
     - ready_for_review
+    paths-ignore:
+    - docs/plans/**
   workflow_dispatch:
     inputs:
       aw_context:
