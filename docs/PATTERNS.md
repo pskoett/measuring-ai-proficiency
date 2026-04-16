@@ -178,22 +178,71 @@ def test_scanner(self):
 
 ## Regex Pattern Groups
 
-Used for cross-reference detection.
+Used for cross-reference and quality detection in `measure_ai_proficiency/scanner.py`.
+
+### Cross-Reference Patterns (`CROSS_REF_PATTERNS`)
+
+These four patterns detect links between AI context files:
 
 ```python
-CROSS_REF_PATTERNS = {
-    "markdown_link": re.compile(r'\[([^\]]+)\]\(([^)]+\.md)\)', re.IGNORECASE),
-    "file_mention": re.compile(r'["`]([A-Z][A-Z0-9_-]*\.md)["`]', re.IGNORECASE),
-    "relative_path": re.compile(r'\.\/([a-zA-Z0-9_/-]+\.md)', re.IGNORECASE),
+CROSS_REF_PATTERNS: Dict[str, re.Pattern] = {
+    # Markdown links: [text](file.md) or [text](./path/file.yaml)
+    "markdown_link": re.compile(
+        r'\[([^\]]+)\]\(([^)]+\.(?:md|yaml|yml|json|rules|mdc))\)',
+        re.IGNORECASE
+    ),
+    # File mentions in quotes/backticks: "AGENTS.md", `CLAUDE.md`, 'CONVENTIONS.md'
+    "file_mention": re.compile(
+        r'[`"\']([A-Z][A-Za-z0-9_\-]+\.(?:md|yaml|yml|json))[`"\']'
+    ),
+    # Relative paths: ./docs/ARCHITECTURE.md, ../CLAUDE.md
+    "relative_path": re.compile(
+        r'(?:^|\s)(\.{1,2}/[\w\-./]+\.(?:md|yaml|yml|json))',
+        re.MULTILINE
+    ),
+    # Directory references: skills/, .claude/commands/, docs/
+    "directory_ref": re.compile(
+        r'(?:^|\s)(\.?/?(?:skills|\.claude|\.github|\.copilot|docs|agents|workflows|\.mcp)(?:/[\w\-]+)*/?)',
+        re.MULTILINE
+    ),
 }
-
-def find_references(content: str) -> List[str]:
-    refs = []
-    for pattern_name, pattern in CROSS_REF_PATTERNS.items():
-        for match in pattern.finditer(content):
-            refs.append(match.group(2) if pattern_name == "markdown_link" else match.group(1))
-    return refs
 ```
+
+| Pattern | Detects | Example |
+|---------|---------|---------|
+| `markdown_link` | `[text](file.md)` links | `[arch](ARCHITECTURE.md)` |
+| `file_mention` | Quoted or backtick file names | `` `CLAUDE.md` `` |
+| `relative_path` | Relative path references | `./docs/CONVENTIONS.md` |
+| `directory_ref` | Directory references | `skills/`, `.claude/commands/` |
+
+### Quality Patterns (`QUALITY_PATTERNS`)
+
+These four patterns score the richness of an instruction file:
+
+```python
+QUALITY_PATTERNS: Dict[str, re.Pattern] = {
+    # Markdown sections (headers H1-H3)
+    "sections": re.compile(r'^#{1,3}\s+.+', re.MULTILINE),
+    # Concrete file paths
+    "paths": re.compile(r'[`~]?(?:/[\w\-./]+|~/[\w\-./]+)[`]?'),
+    # CLI commands in backticks
+    "commands": re.compile(r'`[a-z][\w\-]*(?:\s+[^`]+)?`'),
+    # Constraint language
+    "constraints": re.compile(
+        r'\b(?:never|avoid|don\'t|do not|must not|always|required)\b',
+        re.IGNORECASE
+    ),
+}
+```
+
+| Pattern | Detects | Points |
+|---------|---------|--------|
+| `sections` | Markdown headers (`##`) | Structural richness |
+| `paths` | Concrete file paths (`/src/`, `~/config/`) | Specificity |
+| `commands` | CLI commands in backticks | Actionability |
+| `constraints` | "never", "avoid", "must not", etc. | Rule density |
+
+Each file receives a quality score (0-10). Git commit history adds up to 2 additional points (5+ commits = 2 pts, 3-4 commits = 1 pt).
 
 **When to use:** Extracting structured data from text.
 

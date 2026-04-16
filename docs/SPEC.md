@@ -1,191 +1,139 @@
-# plan-interview Skill Specification
+# Scanner Scoring Specification
 
-## Overview
+This document is the authoritative reference for how `measure_ai_proficiency` calculates scores. All values here are derived directly from `measure_ai_proficiency/scanner.py`.
 
-`plan-interview` is a Claude Code skill that ensures alignment between user and Claude during feature/spec planning through a structured interview process. It hooks into planning mode as a pre-hook, gathering requirements before codebase exploration begins.
+## Maturity Levels
 
-## Invocation
+Eight levels aligned with Steve Yegge's AI coding proficiency model:
 
-**Explicit invocation only** via `/plan-interview`
+| Level | Name | Description |
+|-------|------|-------------|
+| 1 | Zero AI | No context engineering (no core AI file present) |
+| 2 | Basic Instructions | CLAUDE.md, .cursorrules, or equivalent present |
+| 3 | Comprehensive Context | Architecture, conventions, and pattern docs |
+| 4 | Skills and Automation | Hooks, commands, skills, memory files |
+| 5 | Multi-Agent Ready | Specialized agents, MCP configs |
+| 6 | Fleet Infrastructure | CI agents, shared context, workflows |
+| 7 | Agent Fleet | Governance, scheduling, handoffs |
+| 8 | Custom Orchestration | Meta-automation, frontier tooling |
 
-The skill does not auto-activate. Users must explicitly invoke it when they want the enhanced planning process.
+## Level Advancement Thresholds (`DEFAULT_THRESHOLDS`)
 
-**Research task detection:** If the task is purely research/exploration (not implementation), the skill skips entirely and defers to normal Claude behavior.
+A repository advances to a higher level when the coverage percentage for that level meets or exceeds its threshold. Thresholds cascade: all lower levels must also pass before a higher level is awarded.
 
-## Interview Process
+| Level | Coverage % Required |
+|-------|-------------------|
+| 3 | 15% |
+| 4 | 12% |
+| 5 | 10% |
+| 6 | 8% |
+| 7 | 6% |
+| 8 | 5% |
 
-### Timing
+Level 2 is awarded whenever at least one substantive core AI file exists. Level 1 is the default when no core AI file is found.
 
-Upfront interview **before** any codebase exploration. Claude gathers requirements first, then explores.
+Custom thresholds can override these defaults via `.ai-proficiency.yaml` (see `docs/CUSTOMIZATION.md`).
 
-### Question Generation
+## Minimum Score Guarantees (`LEVEL_MINIMUM_SCORES`)
 
-- **Fully generative** - Claude generates questions dynamically based on the task
-- **Thematic batches** - Group related questions together (2-3 questions per batch)
-- No fixed template; questions adapt to what's being built
+Every achieved level has a guaranteed minimum score. The reported score is never lower than the minimum for the level reached:
 
-### Required Question Domains
+| Level | Minimum Score |
+|-------|--------------|
+| 2 | 15 |
+| 3 | 30 |
+| 4 | 45 |
+| 5 | 55 |
+| 6 | 70 |
+| 7 | 85 |
+| 8 | 95 |
 
-Every interview must cover these four domains:
+## Cross-Reference and Quality Bonus
 
-1. **Technical constraints** - Performance requirements, compatibility, existing patterns to follow
-2. **Scope boundaries** - What's explicitly out of scope, MVP vs full vision
-3. **Risk tolerance** - Acceptable tradeoffs (speed vs quality, tech debt tolerance)
-4. **Success criteria** - How will we know when the feature is done and working?
+A bonus of up to **+10 points** is added to the base score after the validation penalty is applied.
 
-Additionally, include **codebase/architecture understanding** questions when the codebase is unfamiliar or poorly structured.
+The bonus is split into two independent components (each capped separately, combined total capped at 10):
 
-### Completion Criteria
+### Cross-Reference Bonus (up to 5 pts)
 
-Interview continues until Claude achieves **actionable specificity** - the ability to describe concrete implementation steps.
+| Sub-component | Calculation | Max |
+|--------------|-------------|-----|
+| Unique targets | `min(unique_target_count / 2, 3.0)` | 3 pts |
+| Resolution rate | `resolved_count / total_refs * 2.0` | 2 pts |
+| **Total** | | **5 pts** |
 
-### Handling Edge Cases
+A "resolved" reference is one where the target file actually exists on disk.
 
-| Scenario | Behavior |
-|----------|----------|
-| Contradictory requirements | Make a recommendation with rationale, ask for confirmation |
-| User pivots requirements | Restart fresh with new direction |
-| Interrupted interview | Ask user whether to continue or restart |
+### Quality Bonus (up to 5 pts)
 
-### Anti-Patterns to Avoid
+| Sub-component | Calculation | Max |
+|--------------|-------------|-----|
+| Average quality | `avg_quality_score / 2` | 5 pts |
 
-- **Repetitive questions** - Don't ask variations of the same question
-- **Silent assumptions** - Don't make major assumptions without asking
-- **Over-engineering** - Don't add unnecessary complexity to simple tasks
+`avg_quality_score` is the mean quality score (0-10) across all scanned instruction files. See `docs/PATTERNS.md` for quality scoring details.
 
-## Fast Mode (Draft + Refine)
-
-When user wants quick planning:
-
-1. Perform **task-focused search** (find files directly related to the task)
-2. Generate **draft plan** based on findings
-3. Interview to **refine** the draft
-
-## Output Artifacts
-
-### Location
-
-```
-docs/plans/
-```
-
-Git-friendly location for PR reviews. No automatic git actions (user handles commits).
-
-### File Naming
-
-Sequential numbering with descriptive suffix:
-
-```
-plan-001-user-authentication.md
-plan-002-metrics-dashboard.md
-```
-
-### Generation Order
-
-Sequential: **Plan file** → (derives) **Checklist** → (derives) **Decision tree**
-
-### Required Plan Elements
-
-Every plan must include, regardless of structure:
-
-| Element | Description |
-|---------|-------------|
-| **Success criteria** | Clear definition of done |
-| **Risk assessment** | What could go wrong and mitigations |
-| **Affected files/areas** | Which parts of codebase will be touched |
-| **Open questions** | Remaining uncertainties (user decides which block implementation) |
-
-### Optional Elements
-
-| Element | Include When |
-|---------|--------------|
-| **Rejected alternatives** | Major architectural decisions were made |
-| **Visual artifacts** | Helpful for understanding (ASCII or Mermaid diagrams) |
-| **Decision tree** | Multiple valid approaches with real tradeoffs exist |
-
-### Plan Schema
-
-**Freeform with constraints** - Claude decides structure but must include required elements.
-
-- No length or complexity limits
-- **No time estimates** - Just describe what needs doing
-
-### Checklist
-
-**Embedded in plan document** as a section (not separate file).
-
-### Decision Tree
-
-Only generated when there are **multiple valid approaches with real tradeoffs**. Not included for straightforward implementations.
-
-## Post-Plan Behavior
-
-### Approval
-
-After plan is written, user reviews. On approval:
-
-- **Auto-start implementation** immediately
-- No explicit "proceed" confirmation needed
-
-### Implementation Checkpoints
-
-**At natural breakpoints** - when Claude is about to make a significant decision, compare progress to plan.
-
-### Abbreviated Mode
-
-If task turns out simpler than expected during exploration, produce a **shorter plan document** rather than full version.
-
-## Integration
-
-### Claude Code Coupling
-
-**Claude Code only** - assumes Claude Code tools and workflows. Not portable to other interfaces.
-
-### Planning Mode Hook
-
-**Pre-hook to EnterPlanMode** - skill runs before standard planning, then hands off.
-
-### State Management
-
-**Stateless** - each planning session starts fresh. Does not track patterns from previous sessions or reference existing plans in `docs/plans/`.
-
-## Example Flow
+### Combined Cap
 
 ```
-User: /plan-interview Add user authentication to the app
-
-Claude: I'll help you plan the user authentication feature. Let me gather some
-        requirements first.
-
-        [AskUserQuestion: Thematic batch about scope/boundaries]
-        - What authentication methods should be supported?
-        - Is this for new users only or migrating existing sessions?
-        - What's explicitly out of scope for this implementation?
-
-User: [Answers]
-
-Claude: [AskUserQuestion: Thematic batch about technical constraints]
-        - Are there existing auth patterns in the codebase to follow?
-        - What session storage mechanism should we use?
-        - Any specific security requirements (MFA, password policies)?
-
-User: [Answers]
-
-Claude: [AskUserQuestion: Thematic batch about risk/tradeoffs]
-        ...continues until actionable specificity reached...
-
-Claude: [Explores codebase based on gathered requirements]
-
-Claude: [Writes plan to docs/plans/plan-001-user-authentication.md]
-
-        Here's the plan I've created. Review it and let me know if it looks good.
-
-User: Looks good, let's do it.
-
-Claude: [Auto-starts implementation, uses TodoWrite to track progress]
-        [At natural breakpoints, compares progress to plan]
+bonus = min(cross_ref_bonus + quality_bonus, 10.0)
+overall_score = min(base_score + bonus, 100)
 ```
 
-## Configuration
+## Validation Penalty
 
-No configuration required. The skill is designed to be drop-in usable across any Claude Code project.
+Content validation issues reduce the score before the cross-reference bonus is applied. Maximum total penalty is **10 points**.
+
+| Issue Type | Penalty | Cap |
+|-----------|---------|-----|
+| Stale instruction files | 2 pts per stale file | 6 pts |
+| Invalid file references | 1 pt per broken reference | 4 pts |
+| Majority template content | 2 pts flat | 2 pts |
+| **Total maximum** | | **10 pts** |
+
+```
+base_score = max(0, weighted_score - validation_penalty)
+```
+
+## Score Calculation Order
+
+1. Determine coverage percentage per level from matched file patterns.
+2. Apply `DEFAULT_THRESHOLDS` (or custom thresholds) to select `overall_level`.
+3. Calculate weighted `base_score` across all level contributions.
+4. Enforce `LEVEL_MINIMUM_SCORES` floor for the achieved level.
+5. Subtract `validation_penalty` (capped at 10, score floored at 0).
+6. Add cross-reference and quality `bonus_points` (capped at 10).
+7. Clamp final `overall_score` to `[0, 100]`.
+
+## Instruction Files Scanned (`INSTRUCTION_FILES`)
+
+These files are opened and scanned for cross-references and quality indicators:
+
+```
+CLAUDE.md
+AGENTS.md
+.cursorrules
+CODEX.md
+.github/copilot-instructions.md
+.copilot-instructions.md
+.github/AGENTS.md
+```
+
+## Known Reference Targets (`KNOWN_TARGETS`)
+
+References that resolve to one of these filenames count as "resolved" in the cross-reference bonus calculation:
+
+```
+CLAUDE.md        AGENTS.md         .cursorrules      CODEX.md
+ARCHITECTURE.md  CONVENTIONS.md    SKILL.md          TESTING.md
+API.md           SECURITY.md       CONTRIBUTING.md   PATTERNS.md
+DEVELOPMENT.md   DEPLOYMENT.md     MEMORY.md         LEARNINGS.md
+HANDOFFS.md      GOVERNANCE.md     SHARED_CONTEXT.md
+```
+
+## Exit Codes
+
+| Code | Meaning |
+|------|---------|
+| 0 | Success |
+| 1 | No repositories found |
+| 2 | All repositories at Level 1 (no AI context) |
