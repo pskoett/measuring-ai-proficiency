@@ -81,7 +81,11 @@ Follow the skill's process for:
 2. Computing a stable Pattern-Key
 3. Deduplicating against existing entries in `.learnings/LEARNINGS.md`
 4. Writing new learnings using the skill's template
-5. Promoting high-priority prevention rules to `AGENTS.md` or the relevant workflow file
+5. Promoting high-priority prevention rules to all three harness files:
+   - `CLAUDE.md` (read by Claude Code at session start)
+   - `AGENTS.md` (read by gh-aw workflows and GitHub Copilot agents)
+   - `.github/copilot-instructions.md` (read by GitHub Copilot in IDE and cloud)
+   - The relevant workflow `.md` file (if the rule is workflow-specific)
 
 Skip transient infrastructure failures, rate limit hits, and failures already captured under a matching Pattern-Key.
 

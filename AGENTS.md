@@ -215,6 +215,16 @@ Learnings live in `.learnings/LEARNINGS.md` and follow this format:
 
 Never log secrets, tokens, private keys, or full source files. Prefer short summaries over raw output. The full specification of this format lives in `.claude/skills/self-improvement/SKILL.md`.
 
+#### Promotion targets
+
+When a learning is promoted (high priority, recurrent pattern, broadly applicable), it must be written to **all three harness files** so every agent runtime benefits:
+
+1. **`AGENTS.md`**: read by gh-aw workflows and GitHub Copilot agents at run start
+2. **`.github/copilot-instructions.md`**: read by GitHub Copilot in IDE and cloud coding agent
+3. **`CLAUDE.md`**: read by Claude Code at session start
+
+If the rule is workflow-specific (only applies to one workflow), also add it to that workflow's `.md` file body. Generic rules go in the harness files only.
+
 ### Agent routing guidelines
 
 As of April 2026, GitHub offers three cloud coding agents, all bundled with the Copilot subscription: Copilot cloud agent, Claude (Sonnet 4.5/4.6, Opus 4.5/4.6), and Codex (GPT-5.2/5.3/5.4-Codex). Model selection happens when a task is kicked off on github.com. For workflows in this pack, `spec-refiner` recommends an implementer in the plan file, and a human confirms the assignment via the web UI.
