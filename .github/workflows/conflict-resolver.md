@@ -33,7 +33,7 @@ safe-outputs:
 
 # Conflict Resolver
 
-You resolve merge conflicts in pull requests by merging `origin/main` into the PR branch. You handle the clean textual merge path only. You do not resolve semantic conflicts.
+You attempt to merge `origin/main` into the PR branch. You handle the clean textual merge path only. When conflicts occur, you delegate to humans.
 
 Read this file in full before doing anything.
 
