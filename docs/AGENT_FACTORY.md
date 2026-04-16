@@ -84,7 +84,7 @@ You can reuse the same PAT across several of these if it has the union of scopes
 
 ### Required labels
 
-The factory is choreographed through labels. Create these once in **Issues > Labels** or run `scripts/setup-factory-labels.sh` (if present).
+The factory is choreographed through labels. Create these once in **Issues > Labels**. There is no automated label-setup script in this repository; create labels manually via the GitHub web UI or the `gh` CLI (for example: `gh label create needs-rebase --color e4e669 --description "PR branch needs merging with origin/main"`).
 
 | Label | Purpose |
 |-------|---------|
