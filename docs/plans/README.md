@@ -1,6 +1,7 @@
 # Plan Files
 
 Plan files live here at `docs/plans/plan-NNN-<slug>.md` where NNN is the **source issue number**, zero-padded to three digits (e.g., `007`, `042`, `123`).
+Plan files live here at `docs/plans/plan-NNN-<slug>.md` where NNN is the source issue number, zero-padded to three digits (e.g., `007`, `042`, `123`).
 
 The `spec-refiner` workflow creates these files when an issue is labeled `needs-spec`. Each plan file contains:
 
