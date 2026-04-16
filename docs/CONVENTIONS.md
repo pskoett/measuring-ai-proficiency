@@ -5,7 +5,7 @@ Coding standards and conventions for measure-ai-proficiency.
 ## Code Style
 
 ### Python Version
-- Python 3.8+ required
+- Python 3.10+ required
 - Use type hints throughout
 
 ### Formatting
@@ -86,6 +86,16 @@ if not path.exists():
     sys.exit(1)
 ```
 
+### Exit Codes
+
+The CLI uses three exit codes:
+
+| Code | Meaning |
+|------|---------|
+| `0` | Success: one or more repositories scanned and assessed |
+| `1` | No repositories found or scan error |
+| `2` | All repositories are at Level 1 (no AI context detected) |
+
 ### Internal Errors
 - Log warnings for non-fatal issues
 - Continue processing when possible
@@ -109,6 +119,22 @@ except yaml.YAMLError as e:
 - Easy installation: `pip install measure-ai-proficiency`
 - No version conflicts
 - Works in restricted environments
+
+## Scoring Constants
+
+Level minimum scores control when a repository advances to the next level. These values are enforced in `measure_ai_proficiency/scanner.py` (`LEVEL_MINIMUM_SCORES`):
+
+| Level | Minimum Score | Name |
+|-------|--------------|------|
+| L2 | 15 | Basic instructions |
+| L3 | 30 | Comprehensive context |
+| L4 | 45 | Skills and automation |
+| L5 | 55 | Multi-agent ready |
+| L6 | 70 | Fleet infrastructure |
+| L7 | 85 | Agent fleet |
+| L8 | 95 | Custom orchestration |
+
+Do not change these constants without a corresponding update to this table.
 
 ## File Organization
 
@@ -180,3 +206,13 @@ def scan(self) -> RepoScore:
 if item.name.startswith("."):
     continue
 ```
+
+## Writing Style
+
+These rules apply to all documentation, commit messages, PR descriptions, and comments.
+
+- **No em-dashes.** Use commas, colons, or periods instead. An em-dash (`—`) or double-dash (`--` used as an em-dash) is never acceptable in prose.
+- Short sentences. Strong declarative statements.
+- Lead with the answer. No throat-clearing opening sentences.
+- No sweeping generalizations (for example, "most teams").
+- If you cite data, link to the source.

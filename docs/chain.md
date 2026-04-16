@@ -14,7 +14,13 @@ How the workflows in this repo chain together into a spec, plan, implement, revi
 |                    gh-aw Adapter Layer                       |
 |  (frontmatter, handoff logic, label semantics)              |
 |                                                              |
-|   spec-refiner.md    reviewer.md    self-improvement-meta.md
+|  spec-refiner.md          reviewer.md                        |
+|  implementer-dispatcher.md self-improvement-meta.md          |
+|  simplify-and-harden-ci.md learning-aggregator-ci.md         |
+|  eval-creator-ci.md        ci-cleaner.md                     |
+|  contribution-checker.md   ai-proficiency-pr-review.md       |
+|  ai-proficiency-weekly-report.md                             |
+|  issue-triage.md           plan.md          pr-fix.md        |
 +-----------------------------+-------------------------------+
                               | reads skills from
                               v
@@ -22,8 +28,12 @@ How the workflows in this repo chain together into a spec, plan, implement, revi
 |                    Agent Skills Library                      |
 |  (.claude/skills/ in this repo)                             |
 |                                                              |
-|   plan-interview/    self-improvement/    intent-framed-agent/|
-|   intent-framed-agent/              context-surfing/        |
+|  plan-interview/       intent-framed-agent/                  |
+|  simplify-and-harden/  learning-aggregator/                  |
+|  eval-creator/         measure-ai-proficiency/               |
+|  context-surfing/      verify-gate/                          |
+|  customize-measurement/ agentic-workflow/                    |
+|  pre-flight-check/                                           |
 +-------------------------------------------------------------+
 ```
 
@@ -50,8 +60,8 @@ issues.opened [needs-spec]
            | creates sub-issues labeled ready-for-implementation
            v
 +----------------------+
-|  human assigns       |   via github.com web UI Agents tab
-|  to chosen agent     |   picks model per spec-refiner recommendation
+|  implementer-        |   reads impl:* label from parent issue
+|  dispatcher          |   auto-assigns sub-issue to chosen agent
 +----------+-----------+
            | opens PR
            v
@@ -63,7 +73,7 @@ issues.opened [needs-spec]
        +------------+-----------+
                     v
 +----------------------+
-|   reviewer       |   reads .claude/skills/intent-framed-agent/SKILL.md
+|   reviewer           |   reads .claude/skills/intent-framed-agent/SKILL.md
 |                      |   detects implementer, applies calibration
 +----------+-----------+
            | labels ai-reviewed | needs-changes | spec-drift | fast-track
@@ -85,7 +95,7 @@ issues.opened [needs-spec]
                   | (nightly, independent of the main chain)
                   v
        +---------------------------+
-       | self-improvement-meta     |   reads .claude/skills/self-improvement/SKILL.md
+       | self-improvement-meta     |   reads workflow logs and .learnings/
        +------------+--------------+
                     | reads logs from all runs in last 24h
                     | opens PR updating AGENTS.md and workflow files
@@ -105,15 +115,15 @@ As of April 2026, the implementer step in the chain has four choices, all bundle
 | **Copilot cloud agent** | Trivial changes, dependency bumps, mechanical edits | Fast, cheap, bundled |
 | **Codex GPT-5.4** | Opportunistic, A/B data, different reasoning style | Strong on common patterns |
 
-`spec-refiner` assesses the plan and writes a recommendation into the plan file itself. A human reviewing the plan PR sees the recommendation and decides whether to follow it when they assign sub-issues via the github.com web UI Agents tab.
+`spec-refiner` assesses the plan and writes a recommendation into the plan file itself. A human reviewing the plan PR sees the recommendation. The `implementer-dispatcher` workflow then auto-assigns each sub-issue to the chosen agent based on the `impl:*` label on the parent issue. No manual assignment per sub-issue is required.
 
 This is a deliberate human-in-the-loop decision point. The routing rule is "complexity warrants Opus" and only a human can decide, for a given repo on a given day, whether the cost or latency difference is worth it. The spec-refiner recommends, the human chooses, and `reviewer` calibrates the review based on who actually produced the code.
 
 See `AGENTS.md` for the full routing guidelines.
 
-## Why five agents instead of one
+## Why many specialized workflows instead of one
 
-Specialization. Each agent does one job well. When one fails, you can isolate the failure. When one improves, you can measure the improvement independently. They compose through GitHub events (labels, comments, files) rather than through direct coupling. This is choreography, not orchestration.
+Specialization. Each workflow does one job well. When one fails, you can isolate the failure. When one improves, you can measure the improvement independently. They compose through GitHub events (labels, comments, files) rather than through direct coupling. This is choreography, not orchestration.
 
 ## How state moves through the chain
 
