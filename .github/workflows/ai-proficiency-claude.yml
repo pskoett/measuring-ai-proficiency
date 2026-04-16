@@ -28,6 +28,7 @@ permissions:
   contents: read
   pull-requests: write
   issues: write
+  id-token: write
 
 jobs:
   assess-proficiency:
@@ -56,7 +57,7 @@ jobs:
         id: assess
         run: |
           # Generate reports
-          measure-ai-proficiency -v --format json --output proficiency-report.json
+          measure-ai-proficiency --format json --output proficiency-report.json
           measure-ai-proficiency --format markdown --output proficiency-report.md
 
           # Extract key metrics for the action output

@@ -15,7 +15,7 @@ network: defaults
 
 tools:
   github:
-  bash:
+  bash: true
   edit:
 
 safe-outputs:
