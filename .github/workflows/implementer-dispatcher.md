@@ -5,6 +5,9 @@ on:
   workflow_dispatch:
 if: github.event.label.name == 'ready-for-implementation' || github.event_name == 'workflow_dispatch'
 timeout-minutes: 5
+engine:
+  id: copilot
+  model: gpt-5.4
 permissions:
   contents: read
   issues: read

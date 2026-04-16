@@ -4,6 +4,9 @@ on:
     types: [opened, synchronize, ready_for_review]
   workflow_dispatch:
 timeout-minutes: 5
+engine:
+  id: copilot
+  model: gpt-5.4
 permissions:
   contents: read
   pull-requests: read

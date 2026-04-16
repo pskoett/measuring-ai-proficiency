@@ -3,6 +3,9 @@ on:
   schedule: daily around 2am
   workflow_dispatch:
 timeout-minutes: 15
+engine:
+  id: copilot
+  model: gpt-5.4
 permissions:
   actions: read
   contents: read
