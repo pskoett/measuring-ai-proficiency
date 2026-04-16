@@ -19,7 +19,7 @@ The easiest way to create a customized config is through the **customize-measure
 You: "Customize measurement for my repo"
 ```
 
-The skill will ask you questions about your team's setup and generate a `.ai-proficiency.yaml` file automatically. See [skill-template/customize-measurement/](skill-template/customize-measurement/) for details.
+The skill will ask you questions about your team's setup and generate a `.ai-proficiency.yaml` file automatically. See [skill-template/customize-measurement/](../skill-template/customize-measurement/) for details.
 
 ## Quick Start: Config File
 
@@ -117,7 +117,7 @@ This shows:
 - **Percentage with AI context artifacts** (your baseline)
 - Which repos to scan with measure-ai-proficiency
 
-See [scripts/README.md](scripts/README.md) for full documentation.
+See [scripts/README.md](../scripts/README.md) for full documentation.
 
 ## Alternative: Edit Source Code
 

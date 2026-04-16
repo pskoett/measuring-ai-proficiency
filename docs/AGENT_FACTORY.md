@@ -1,6 +1,6 @@
 # Agent Factory: End-to-End Agentic Workflows
 
-A complete **triage, spec, plan, implement, review, fix, learn** agent factory powered by [GitHub Agentic Workflows (gh-aw)](https://github.github.com/gh-aw/). Eleven workflows chain together through GitHub events (labels, PRs, comments). No orchestrator, no DAG. Each agent does one job, hands off via a label swap, and the next agent picks it up. This is choreography, not orchestration.
+A complete **triage, spec, plan, implement, review, fix, learn** agent factory powered by [GitHub Agentic Workflows (gh-aw)](https://github.github.com/gh-aw/). Fourteen workflows chain together through GitHub events (labels, PRs, comments). No orchestrator, no DAG. Each agent does one job, hands off via a label swap, and the next agent picks it up. This is choreography, not orchestration.
 
 ## The Complete Chain
 
@@ -169,13 +169,16 @@ Installed via `gh aw add githubnext/agentics/<name>`. These are general-purpose 
 |----------|---------|---------|
 | [`ai-proficiency-pr-review.md`](../.github/workflows/ai-proficiency-pr-review.md) | PR opened / `/assess-proficiency` | AI proficiency score on every PR |
 | [`ai-proficiency-weekly-report.md`](../.github/workflows/ai-proficiency-weekly-report.md) | Weekly (Monday 9am UTC) | Track proficiency trends over time |
+| [`simplify-and-harden-ci.md`](../.github/workflows/simplify-and-harden-ci.md) | PR opened / updated | Post-completion quality and security sweep |
+| [`learning-aggregator-ci.md`](../.github/workflows/learning-aggregator-ci.md) | Weekly (Monday) | Cross-session pattern detection and promotion ranking |
+| [`eval-creator-ci.md`](../.github/workflows/eval-creator-ci.md) | PR opened / updated | Create regression test cases from promoted learnings |
 
 ## Skills Used by the Factory
 
 | Skill | Used by | Purpose |
 |-------|---------|---------|
 | [`plan-interview`](../.claude/skills/plan-interview/SKILL.md) | spec-refiner | Structured requirements interview before planning |
-| `self-improvement` | self-improvement-meta | Learning capture, categorization, and promotion (skill file referenced by workflow; not in `.claude/skills/`) |
+| `self-improvement` | self-improvement-meta | Learning capture, categorization, and promotion (skill instructions embedded in the workflow; no standalone SKILL.md file) |
 | [`intent-framed-agent`](../.claude/skills/intent-framed-agent/SKILL.md) | reviewer | Scope drift detection against plan intent |
 | [`context-surfing`](../.claude/skills/context-surfing/SKILL.md) | (available) | Context window health monitoring |
 | [`simplify-and-harden`](../.claude/skills/simplify-and-harden/SKILL.md) | (available) | Post-completion quality and security sweep |
