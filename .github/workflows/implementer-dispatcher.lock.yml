@@ -49,7 +49,6 @@ name: "Implementer Dispatcher"
 "on":
   issues:
     types:
-    - opened
     - labeled
   workflow_dispatch:
     inputs:
@@ -70,9 +69,8 @@ jobs:
   activation:
     needs: pre_activation
     if: >
-      needs.pre_activation.outputs.activated == 'true' && (github.event_name == 'workflow_dispatch' ||
-      (github.event.action == 'labeled' && github.event.label.name == 'ready-for-implementation') ||
-      (github.event.action == 'opened' && contains(github.event.issue.labels.*.name, 'ready-for-implementation')))
+      needs.pre_activation.outputs.activated == 'true' && (github.event.label.name == 'ready-for-implementation' ||
+      github.event_name == 'workflow_dispatch')
     runs-on: ubuntu-slim
     permissions:
       actions: read
@@ -1156,10 +1154,7 @@ jobs:
             await main();
 
   pre_activation:
-    if: >
-      github.event_name == 'workflow_dispatch' ||
-      (github.event.action == 'labeled' && github.event.label.name == 'ready-for-implementation') ||
-      (github.event.action == 'opened' && contains(github.event.issue.labels.*.name, 'ready-for-implementation'))
+    if: github.event.label.name == 'ready-for-implementation' || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-slim
     outputs:
       activated: ${{ steps.check_membership.outputs.is_team_member == 'true' }}
