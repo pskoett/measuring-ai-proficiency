@@ -9,6 +9,8 @@ Managed by `eval-creator-ci`. Do not edit manually unless adding a hand-crafted 
 | Eval ID | Source | Target | Method | Pattern |
 |---------|--------|--------|--------|---------|
 | [EVAL-001](.evals/cases/EVAL-001.md) | plan-003 sibling PR awareness | `.github/workflows/reviewer.md` | grep-check | `Deferred` |
+| [EVAL-002](.evals/cases/EVAL-002.md) | plan-003 sibling PR awareness | `.github/workflows/reviewer.md` | grep-check | `Deferred: covered by #NN` |
+| [EVAL-003](.evals/cases/EVAL-003.md) | plan-003 sibling PR awareness | `.github/workflows/reviewer.md` | grep-check | `neither the current PR nor any sibling PR` |
 
 ## Format
 
