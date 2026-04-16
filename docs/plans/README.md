@@ -29,6 +29,7 @@ Examples:
 > **Historical files**: Earlier plan files used a sequential counter (`001`, `002`, …) instead of the issue number. Those files remain valid and should **not** be renamed.
 
 
+
 ## Plan File Format
 
 Each plan file follows this structure:
