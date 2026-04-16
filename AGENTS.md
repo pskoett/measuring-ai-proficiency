@@ -160,6 +160,11 @@ Currently available skills:
 
 - `.claude/skills/intent-framed-agent/`: explicit intent contract to prevent scope drift
 - `.claude/skills/context-surfing/`: context window health monitoring with clean exits
+- `.claude/skills/simplify-and-harden/`: post-completion quality and security sweep
+- `.claude/skills/verify-gate/`: machine verification gate (tests, lint) before quality review
+- `.claude/skills/eval-creator/`: create regression test cases from promoted learnings
+- `.claude/skills/learning-aggregator/`: cross-session pattern detection and promotion ranking
+- `.claude/skills/pre-flight-check/`: session-start scan of relevant learnings and eval status
 - `.claude/skills/measure-ai-proficiency/`: run AI proficiency assessments
 - `.claude/skills/customize-measurement/`: configure measurement for specific repos
 - `.claude/skills/agentic-workflow/`: GitHub agentic workflow creation
@@ -290,6 +295,9 @@ The routing rules above are about the **implementer step** (who writes the code 
 | `issue-triage` | Issue opened / reopened | add-labels, add-comment | (none, githubnext/agentics) |
 | `plan` | `/plan` slash command | create-issue | (none, githubnext/agentics) |
 | `pr-fix` | `/pr-fix` slash command | push-to-pull-request-branch, add-comment, create-issue | (none, githubnext/agentics) |
+| `simplify-and-harden-ci` | PR opened / updated | add-comment | simplify-and-harden |
+| `learning-aggregator-ci` | Weekly (Monday) | create-issue | learning-aggregator |
+| `eval-creator-ci` | PR opened / updated | add-comment | eval-creator |
 | `ai-proficiency-pr-review` | PR opened / `/assess-proficiency` | add-comment | measure-ai-proficiency |
 | `ai-proficiency-weekly-report` | Weekly (Monday 9am) | create-issue | measure-ai-proficiency |
 
