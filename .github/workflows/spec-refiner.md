@@ -74,7 +74,7 @@ This label is the default. A human can change it on the issue before commenting 
 
 After the skill completes, the plan file is written, and the implementer is recommended:
 
-1. **Open a PR** with the new plan file at `docs/plans/plan-NNN-<slug>.md`. Title: `[plan] Plan NNN: <title>`. Body links to the source issue, summarizes the key decisions, and restates the implementer recommendation.
+1. **Open a PR** with the new plan file at `docs/plans/plan-NNN-<slug>.md`. Title: `[plan] Plan NNN: <title>`. Body references the source issue using `Refs #NN` (never `Fixes`, `Closes`, or any other closing keyword). The source issue must remain open after this plan PR merges. Summarize the key decisions and restate the implementer recommendation in the PR body.
 2. **Comment on the source issue** with a one-line summary, a link to the plan PR, and the recommended implementer.
 3. **Swap labels**:
    - Remove `needs-spec`
