@@ -6,7 +6,9 @@ Managed by `eval-creator-ci`. Do not edit manually unless adding a hand-crafted 
 
 ## Cases
 
-No eval cases yet. Cases will be created by `learning-aggregator-ci` when patterns reach the promotion threshold (3+ recurrences across 2+ tasks).
+| Eval ID | Source | Target | Method | Pattern |
+|---------|--------|--------|--------|---------|
+| [EVAL-001](.evals/cases/EVAL-001.md) | plan-003 sibling PR awareness | `.github/workflows/reviewer.md` | grep-check | `Deferred` |
 
 ## Format
 

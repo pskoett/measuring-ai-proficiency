@@ -41,7 +41,29 @@ Look at the PR for a linked issue, a `plan-NNN` reference in the title or body, 
 
 If no plan file exists, note that in your review and proceed with a standard code review. Do not block the PR just because there is no plan file.
 
-### Step 2: Identify the implementer and apply calibration
+### Step 2: Discover sibling PRs
+
+If a plan file was found in Step 1, run sibling discovery before classifying any criterion.
+
+1. Extract the plan identifier from the plan reference (for example, `plan-003` from `docs/plans/plan-003-reviewer-sibling-pr-awareness.md`).
+
+2. Search open pull requests in this repository whose title or body contains the plan identifier. Use the pull_requests toolset.
+
+3. Search recently merged pull requests (closed within the last 30 days) whose title or body contains the plan identifier. Use the search toolset with a query such as `repo:OWNER/REPO is:pr is:merged plan-NNN`. The 30-day window is a fixed bound: criteria covered by PRs merged more than 30 days ago are treated as historical and not attributed to active siblings.
+
+4. Remove the current PR from both lists.
+
+5. Exclude any PR that was closed without merging (abandoned or rejected). Include only open PRs and merged PRs.
+
+6. For each eligible sibling, record its number, title, and status (open or merged).
+
+7. Produce a sibling summary to use in the next step:
+   - If siblings exist: list them as `[#NN (open), #NN (merged), ...]`
+   - If no siblings exist: note "No sibling PRs found for plan-NNN."
+
+If no plan file exists, skip this step.
+
+### Step 3: Identify the implementer and apply calibration
 
 Check the PR author to determine who produced this code:
 
@@ -52,15 +74,25 @@ Check the PR author to determine who produced this code:
 
 Note the implementer in your review comment. This is calibration data for the team, not a value judgment on any particular agent. When in doubt, review at standard rigor.
 
-### Step 3: Review against the plan
+### Step 4: Review against the plan
 
-For each success criterion in the plan, classify: **Met**, **Partial**, **Missed**, or **Drifted**. Significant drift (more than one or two Drifted items) gets the `spec-drift` label. If the PR is from a Claude cloud agent, apply the scope-adherence calibration from Step 2 and be stricter on Drifted items.
+For each success criterion in the plan, classify using the sibling PR list from Step 2:
 
-### Step 4: Review the code
+- **Met**: the current PR fully implements this criterion.
+- **Partial**: the current PR partially addresses this criterion.
+- **Deferred**: a sibling PR (open or recently merged) covers this criterion. Cite the covering PR: `Deferred: covered by #NN`.
+- **Missed**: neither the current PR nor any sibling PR covers this criterion.
+- **Drifted**: the current PR does something the plan did not ask for.
 
-Categorize findings as **Critical** (bugs, security, data loss), **Warning** (perf, missing tests on risky paths, unclear public interfaces), or **Suggestion** (style, docs gaps). Do not comment on cosmetic issues unless they harm readability. Apply the calibration from Step 2 to weight which categories you emphasize.
+Before classifying any criterion as `Missed`, check the sibling list from Step 2. A sibling covers a criterion when any of the following is true: the sibling PR's title or body explicitly mentions the criterion text; the sibling PR modifies a file path named in the criterion; or the sibling PR's diff includes the function, class, or config key the criterion describes. When a sibling matches on any of these signals, use `Deferred: covered by #NN`. Only use `Missed` when no sibling from the Step 2 list provides coverage on any of these signals. "Recently merged" means merged within the 30-day window defined in Step 2.
 
-### Step 5: Post the review
+Significant drift (more than one or two Drifted items) gets the `spec-drift` label. If the PR is from a Claude cloud agent, apply the scope-adherence calibration from Step 3 and be stricter on Drifted items.
+
+### Step 5: Review the code
+
+Categorize findings as **Critical** (bugs, security, data loss), **Warning** (perf, missing tests on risky paths, unclear public interfaces), or **Suggestion** (style, docs gaps). Do not comment on cosmetic issues unless they harm readability. Apply the calibration from Step 3 to weight which categories you emphasize.
+
+### Step 6: Post the review
 
 Post exactly one comment with this structure:
 
@@ -70,9 +102,10 @@ Post exactly one comment with this structure:
 **Plan**: [plan-NNN or "No plan file found"]
 **Implementer**: [human | claude-opus-4.6 | claude-sonnet-4.6 | copilot | codex-gpt-5.4 | unknown]
 **Size**: <lines> lines across <files> files
+**Sibling PRs**: [#NN (open), #NN (merged), ...] or "None found"
 
 ### Spec compliance
-[Criteria as Met / Partial / Missed / Drifted with brief evidence, or skip if no plan]
+[Criteria as Met / Partial / Deferred: covered by #NN / Missed / Drifted with brief evidence, or skip if no plan]
 
 ### Critical findings
 [None, or findings with file:line references]
@@ -93,7 +126,7 @@ ai-reviewed | needs-changes | fast-track
 ## Label logic
 
 - `ai-reviewed`: ready for human review, no blockers
-- `needs-changes`: Critical findings or significant spec drift
+- `needs-changes`: Critical findings, significant spec drift, or Missed criteria. Deferred items alone do not trigger `needs-changes`.
 - `fast-track`: small, well-tested, matches plan perfectly, zero findings
 - `spec-drift`: additive label when PR does things the plan did not ask for
 
