@@ -1,7 +1,5 @@
 ---
 on:
-  pull_request:
-    types: [opened, synchronize]
   issue_comment:
     types: [created]
   workflow_dispatch:
