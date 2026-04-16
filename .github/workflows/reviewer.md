@@ -105,7 +105,10 @@ Post exactly one comment with this structure:
 **Sibling PRs**: [#NN (open), #NN (merged), ...] or "None found"
 
 ### Spec compliance
-[Criteria as Met / Partial / Deferred: covered by #NN / Missed / Drifted with brief evidence, or skip if no plan]
+[Criteria as Met / Partial / Missed / Drifted with brief evidence, or skip if no plan. Do not list Deferred items here; they go in the section below.]
+
+### Deferred items
+[None, or one line per criterion: `- <criterion text>: covered by #NN` with a one-phrase reason why that sibling covers it. Omit this section entirely when there are no deferred criteria.]
 
 ### Critical findings
 [None, or findings with file:line references]
@@ -121,11 +124,12 @@ Post exactly one comment with this structure:
 
 ### Verdict
 ai-reviewed | needs-changes | fast-track
+[One sentence justifying the verdict. If the only unmet criteria are deferred to sibling PRs, the verdict is `ai-reviewed`, not `needs-changes`.]
 ```
 
 ## Label logic
 
-- `ai-reviewed`: ready for human review, no blockers
+- `ai-reviewed`: ready for human review, no blockers. Also use when the only unmet criteria are deferred to sibling PRs.
 - `needs-changes`: Critical findings, significant spec drift, or Missed criteria. Deferred items alone do not trigger `needs-changes`.
 - `fast-track`: small, well-tested, matches plan perfectly, zero findings
 - `spec-drift`: additive label when PR does things the plan did not ask for
