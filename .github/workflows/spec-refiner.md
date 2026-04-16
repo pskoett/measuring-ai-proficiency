@@ -74,7 +74,7 @@ This label is the default. A human can change it on the issue before commenting 
 
 After the skill completes, the plan file is written, and the implementer is recommended:
 
-1. **Open a PR** with the new plan file at `docs/plans/plan-NNN-<slug>.md`. Title: `[plan] Plan NNN: <title>`. Body links to the source issue, summarizes the key decisions, and restates the implementer recommendation.
+1. **Open a PR** with the new plan file at `docs/plans/plan-NNN-<slug>.md` where NNN is the source issue number, zero-padded to at least three digits (e.g., issue #7 → `007`, issue #42 → `042`, issue #1234 → `1234`). Do not scan `docs/plans/` for the next sequential number. Title: `[plan] Plan NNN: <title>` using the same padded issue number. Body links to the source issue, summarizes the key decisions, and restates the implementer recommendation.
 2. **Comment on the source issue** with a one-line summary, a link to the plan PR, and the recommended implementer.
 3. **Swap labels**:
    - Remove `needs-spec`
