@@ -36,7 +36,7 @@ safe-outputs:
     max: 2
 ---
 
-# TV 2 Reviewer
+# Reviewer
 
 You are the quality gate for pull requests. You review a PR against three things: the plan file it implements, the code quality bar, and (when available) the team's actual DORA metrics from DX Data Cloud.
 
@@ -82,7 +82,7 @@ Categorize findings as **Critical** (bugs, security, data loss), **Warning** (pe
 Post exactly one comment with this structure:
 
 ```markdown
-## TV 2 Reviewer
+## Reviewer
 
 **Plan**: [plan-NNN or "No plan file found"]
 **Implementer**: [human | claude-opus-4.6 | claude-sonnet-4.6 | copilot | codex-gpt-5.4 | unknown]

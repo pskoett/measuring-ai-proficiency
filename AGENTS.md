@@ -124,7 +124,7 @@ After updating documentation, update skills:
 
 ## Agent Factory: Shared Context
 
-The sections below are read by every agentic workflow in the factory chain (`spec-refiner`, `tv2-reviewer`, `self-improvement-meta`).
+The sections below are read by every agentic workflow in the factory chain (`spec-refiner`, `reviewer`, `self-improvement-meta`).
 
 ### Core principles
 
@@ -250,7 +250,7 @@ The skills in `.claude/skills/` were originally designed for Claude Code. Runnin
 
 #### A note on gh-aw engine selection
 
-The routing rules above are about the **implementer step** (who writes the code from a sub-issue). The gh-aw engine that runs the workflows in this pack (`spec-refiner`, `tv2-reviewer`, `self-improvement-meta`) is a separate choice in each workflow's frontmatter. All workflows here currently use Copilot as the engine because it is bundled with the existing `COPILOT_GITHUB_TOKEN` secret. When gh-aw supports running the Claude engine through the same bundled subscription (expected soon based on the April 2026 changelog), flipping these workflows to `engine: claude` will be a one-line change per workflow.
+The routing rules above are about the **implementer step** (who writes the code from a sub-issue). The gh-aw engine that runs the workflows in this pack (`spec-refiner`, `reviewer`, `self-improvement-meta`) is a separate choice in each workflow's frontmatter. All workflows here currently use Copilot as the engine because it is bundled with the existing `COPILOT_GITHUB_TOKEN` secret. When gh-aw supports running the Claude engine through the same bundled subscription (expected soon based on the April 2026 changelog), flipping these workflows to `engine: claude` will be a one-line change per workflow.
 
 ### Tooling available to agents in this repo
 

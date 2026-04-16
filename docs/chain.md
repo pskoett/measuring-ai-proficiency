@@ -14,7 +14,7 @@ How the workflows in this repo chain together into a spec, plan, implement, revi
 |                    gh-aw Adapter Layer                       |
 |  (frontmatter, handoff logic, label semantics)              |
 |                                                              |
-|   spec-refiner.md    tv2-reviewer.md    self-improvement-meta.md
+|   spec-refiner.md    reviewer.md    self-improvement-meta.md
 +-----------------------------+-------------------------------+
                               | reads skills from
                               v
@@ -63,7 +63,7 @@ issues.opened [needs-spec]
        +------------+-----------+
                     v
 +----------------------+
-|   tv2-reviewer       |   reads .claude/skills/dx-data-navigator/SKILL.md
+|   reviewer       |   reads .claude/skills/dx-data-navigator/SKILL.md
 |                      |         .claude/skills/intent-framed-agent/SKILL.md
 |                      |   detects implementer, applies calibration
 +----------+-----------+
@@ -108,7 +108,7 @@ As of April 2026, the implementer step in the chain has four choices, all bundle
 
 `spec-refiner` assesses the plan and writes a recommendation into the plan file itself. A human reviewing the plan PR sees the recommendation and decides whether to follow it when they assign sub-issues via the github.com web UI Agents tab.
 
-This is a deliberate human-in-the-loop decision point. The routing rule is "complexity warrants Opus" and only a human can decide, for a given repo on a given day, whether the cost or latency difference is worth it. The spec-refiner recommends, the human chooses, and `tv2-reviewer` calibrates the review based on who actually produced the code.
+This is a deliberate human-in-the-loop decision point. The routing rule is "complexity warrants Opus" and only a human can decide, for a given repo on a given day, whether the cost or latency difference is worth it. The spec-refiner recommends, the human chooses, and `reviewer` calibrates the review based on who actually produced the code.
 
 See `AGENTS.md` for the full routing guidelines.
 
