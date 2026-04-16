@@ -252,7 +252,7 @@ The skills in `.claude/skills/` were originally designed for Claude Code. Runnin
 
 #### How the recommendation gets made
 
-`spec-refiner` adds a `## Recommended implementer` section to every plan file. It assesses the plan against the routing rules above and writes one of: `claude-opus-4.6`, `claude-sonnet-4.6`, `copilot`, or `codex-gpt-5.4`, with a one-line rationale. The human who reviews the plan PR sees the recommendation and decides whether to follow it when assigning sub-issues.
+`spec-refiner` adds a `## Recommended implementer` section to every plan file and adds the corresponding `impl:*` label to the parent issue (e.g., `impl:claude-opus`). The human reviews the plan PR and can swap the label if they disagree. When `/plan` creates sub-issues, the `implementer-dispatcher` workflow reads the `impl:*` label from the parent issue and auto-assigns each sub-issue to the chosen agent. One decision at the plan level, zero manual assignment per sub-issue.
 
 #### A note on gh-aw engine selection
 
@@ -272,6 +272,7 @@ The routing rules above are about the **implementer step** (who writes the code 
 | Workflow | Trigger | Safe outputs | Skill |
 |----------|---------|-------------|-------|
 | `spec-refiner` | Issue labeled `needs-spec` | update-issue, add-comment, create-pull-request, add-labels, remove-labels | plan-interview |
+| `implementer-dispatcher` | Sub-issue labeled `ready-for-implementation` | assign-to-agent, add-comment, add-labels | (none, reads parent issue labels) |
 | `reviewer` | PR opened / updated | add-comment, add-labels | dx-data-navigator, intent-framed-agent |
 | `self-improvement-meta` | Nightly (~2am) | create-pull-request, create-issue | self-improvement |
 | `ci-cleaner` | CI failure on main | create-pull-request | (none, uses bash/edit directly) |
