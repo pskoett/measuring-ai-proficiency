@@ -21,7 +21,7 @@ tools:
 safe-outputs:
   create-issue:
     title-prefix: "[task] "
-    labels: [task, ai-generated]
+    labels: [task, ai-generated, ready-for-implementation]
     max: 5
   close-discussion:
     required-category: "Ideas"
