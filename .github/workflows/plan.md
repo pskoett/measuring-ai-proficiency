@@ -7,6 +7,10 @@ on:
     name: plan
     events: [issue_comment, discussion_comment]
 
+engine:
+  id: copilot
+  model: gpt-5.4
+
 permissions:
   contents: read
   discussions: read
