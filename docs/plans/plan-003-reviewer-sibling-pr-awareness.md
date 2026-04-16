@@ -1,4 +1,4 @@
-# Plan 002: Give reviewer sibling-PR awareness for multi-PR plans
+# Plan 003: Give reviewer sibling-PR awareness for multi-PR plans
 
 **Source issue**: #62
 **Status**: Ready for implementation
