@@ -190,6 +190,7 @@ These rules apply to every comment, issue body, PR description, and commit messa
 
 ### Spec and plan files
 
+Plans live in `docs/plans/plan-NNN-<slug>.md` where NNN is the **source issue number**, zero-padded to three digits (e.g., issue #66 → `plan-066-<slug>.md`). The format is defined in `.claude/skills/plan-interview/SKILL.md`. Downstream agents use these files as the source of truth for implementation and review. Older plans created with a sequential counter remain valid and should not be renamed.
 Plans live in `docs/plans/plan-NNN-<slug>.md` where NNN is the source issue number, zero-padded to three digits. The format is defined in `.claude/skills/plan-interview/SKILL.md`. Downstream agents use these files as the source of truth for implementation and review.
 
 ### Learnings

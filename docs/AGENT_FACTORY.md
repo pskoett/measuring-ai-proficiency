@@ -218,6 +218,7 @@ When you merge that PR, the next run of the affected agent reads the updated ins
 | [`reviewer.md`](../.github/workflows/reviewer.md) | PR opened / updated | Plan-aware code review with implementer calibration |
 | [`conflict-resolver.md`](../.github/workflows/conflict-resolver.md) | PR labeled `needs-rebase` | Merge `origin/main` into PR branch; push on clean merge, hand off on conflict |
 | [`self-improvement-meta.md`](../.github/workflows/self-improvement-meta.md) | Nightly (~2am) | Extract learnings from failures, commit prevention rules |
+
 | [`contribution-checker.md`](../.github/workflows/contribution-checker.md) | PR opened / updated | Evaluate PR against CONTRIBUTING.md guidelines |
 | [`simplify-and-harden-ci.md`](../.github/workflows/simplify-and-harden-ci.md) | PR opened / updated | Scan changed files for simplicity and security issues |
 | [`learning-aggregator-ci.md`](../.github/workflows/learning-aggregator-ci.md) | Weekly (Monday) | Aggregate learnings, rank promotion candidates, create gap report |
@@ -286,6 +287,7 @@ Skills live in `.claude/skills/` and work identically in Claude Code, Codex CLI,
 | `human-review` | Emergency stop: all agents call noop | Human |
 | `self-improvement` | PR was created by the nightly learning loop | self-improvement-meta |
 | `ci-fix` | PR was created by the CI cleaner | ci-cleaner |
+| `needs-rebase` | PR branch is behind main and needs a merge | Human |
 | `plan-file` | PR contains a plan file | spec-refiner |
 
 ## Implementer Routing
