@@ -18,8 +18,8 @@ How the workflows in this repo chain together into a spec, plan, implement, revi
 |  implementer-dispatcher.md self-improvement-meta.md          |
 |  simplify-and-harden-ci.md learning-aggregator-ci.md         |
 |  eval-creator-ci.md        ci-cleaner.md                     |
-|  contribution-checker.md   ai-proficiency-pr-review.md       |
-|  ai-proficiency-weekly-report.md                             |
+|  conflict-resolver.md      contribution-checker.md           |
+|  ai-proficiency-pr-review.md ai-proficiency-weekly-report.md |
 |  issue-triage.md           plan.md          pr-fix.md        |
 +-----------------------------+-------------------------------+
                               | reads skills from
@@ -51,7 +51,7 @@ issues.opened [needs-spec]
 |   spec-refiner       |   reads .claude/skills/plan-interview/SKILL.md
 |                      |   recommends implementer in plan file
 +----------+-----------+
-           | writes docs/plans/plan-NNN.md with implementer recommendation
+           | writes docs/plans/plan-NNN-<slug>.md with implementer recommendation
            | labels needs-plan
            v
 +----------------------+
@@ -91,6 +91,15 @@ issues.opened [needs-spec]
      | loops back
      v
 (eventually merged)
+
+PR labeled needs-rebase?
+            |
+            v
++---------------------------+
+| conflict-resolver         |   merges origin/main into PR branch
++---------------------------+
+  clean merge: push + remove needs-rebase
+  conflicts:   add blocked-on-human + comment with file list
 
                   | (nightly, independent of the main chain)
                   v

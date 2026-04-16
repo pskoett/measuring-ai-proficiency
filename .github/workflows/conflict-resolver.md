@@ -8,14 +8,18 @@ engine:
   id: copilot
   model: gpt-5.4
 permissions:
-  contents: write
-  pull-requests: write
+  contents: read
+  pull-requests: read
   issues: read
 tools:
   github:
-    toolsets: [pull_requests, repos]
+    toolsets: [pull_requests, issues, repos]
   bash: true
+
+network: defaults
+
 safe-outputs:
+  push-to-pull-request-branch:
   add-comment:
     max: 1
     hide-older-comments: true
@@ -29,95 +33,107 @@ safe-outputs:
 
 # Conflict Resolver
 
-You are a specialized agent that resolves merge conflicts in pull requests. You run when a maintainer labels a pull request `needs-rebase`. Your job is to merge `origin/main` into the PR branch, push the clean merge commit, and update the labels accordingly.
+You attempt to merge `origin/main` into the PR branch. You handle the clean textual merge path only. When conflicts occur, you delegate to humans.
 
-Read the ENTIRE content of this file before taking any action.
+Read this file in full before doing anything.
 
-## Step 1: Gate on the triggering label
+## When to run
 
-If the workflow was triggered by a labeling event and the label name is not `needs-rebase`, call `noop` with "Not triggered by needs-rebase label" and stop.
+Trigger only when the pull request that caused this run is labeled `needs-rebase`. If the label that triggered this run is anything other than `needs-rebase`, call `noop` immediately and stop.
 
-If the workflow was triggered via `workflow_dispatch` (manual run), require that the pull request number is explicitly provided in context. If no pull request context is available, call `noop` with "Manual dispatch requires a pull request context" and stop.
+## Fork guard
 
-## Step 2: Collect PR metadata
+Check whether the pull request head branch is in the same repository as the base. Use the PR metadata to inspect `head.repo.full_name` versus `base.repo.full_name`. If they differ, this is a fork-based PR. Call `noop` with the message "Fork-based PR: cannot push to head branch" and stop. Do not attempt the merge.
 
-Fetch the pull request details for PR #${{ github.event.pull_request.number }}. You need:
+## Merge sequence
 
-- `head.repo.full_name` (the repo the branch lives in)
-- `head.ref` (the branch name)
-- `base.ref` (the target branch, expected to be `main`)
-- `draft` status
+Perform the following steps in order. Stop immediately if any step fails.
 
-## Step 3: Early guards
+### Step 1: Check out the PR head branch
 
-Reject unsupported PR shapes before any git operations. Call `noop` and stop for any of the following conditions:
-
-1. **Draft PR**: If the PR is a draft, call `noop` with "PR is a draft, skipping rebase" and stop.
-2. **Fork-based PR**: If `head.repo.full_name` does not match `${{ github.repository }}`, call `noop` with "Fork-based PRs are not supported in this first cut. A maintainer must rebase manually." and stop.
-3. **Missing branch ref**: If `head.ref` is empty or null, call `noop` with "PR branch ref is missing, cannot rebase" and stop.
-4. **Non-main base**: If `base.ref` is not `main`, add a comment explaining that this workflow only targets PRs based on `main`, then call `noop` and stop.
-
-Do not attempt any git operations until all guards pass.
-
-## Step 4: Attempt the merge
-
-Check out the PR branch and merge `origin/main`. Configure git credentials using the `GITHUB_TOKEN` so that the push in Step 5 is authenticated:
+Check out the pull request head branch. Configure Git identity so the merge commit can be authored:
 
 ```bash
 git config user.email "github-actions[bot]@users.noreply.github.com"
 git config user.name "github-actions[bot]"
-git remote set-url origin "https://x-access-token:${GITHUB_TOKEN}@github.com/${{ github.repository }}.git"
+```
+
+### Step 2: Fetch origin/main
+
+```bash
 git fetch origin main
-git fetch origin "$HEAD_REF"
-git checkout "$HEAD_REF"
-git merge --no-edit origin/main
-MERGE_EXIT=$?
 ```
 
-Where `HEAD_REF` is the value of `head.ref` collected in Step 2.
+If this command fails, add a comment explaining the fetch failure and stop. Do not attempt the merge. Do not add `blocked-on-human`.
 
-## Step 5: Handle the outcome
-
-### On clean merge (exit code 0)
-
-Push the merge commit back to the PR branch:
+### Step 3: Attempt the merge
 
 ```bash
-git push origin "$HEAD_REF"
+git merge origin/main --no-edit
 ```
 
-Then remove the `needs-rebase` label from the PR.
+Capture the exit code. A zero exit code means a clean merge. A non-zero exit code means there are conflicts.
 
-Do not add `blocked-on-human`. Do not comment unless the merge introduced notable details worth noting.
+### Step 4a: Clean merge path
 
-### On merge conflict (non-zero exit code)
+If the merge succeeded (exit code zero):
 
-Collect the conflicted file paths before aborting, then abort the merge to leave the working tree clean:
+1. Push the merge commit to the PR branch:
 
 ```bash
-CONFLICTED_FILES=$(git diff --name-only --diff-filter=U)
+git push origin HEAD
+```
+
+2. If the push succeeds, remove the `needs-rebase` label using `remove-labels`.
+3. If the push fails, add a comment explaining the push failure. Do not remove `needs-rebase`. Do not force-push.
+
+### Step 4b: Conflict path
+
+If the merge produced conflicts (non-zero exit code):
+
+1. Collect the list of conflicted files:
+
+```bash
+git diff --name-only --diff-filter=U
+```
+
+2. Abort the merge to restore a clean working tree:
+
+```bash
 git merge --abort
 ```
 
-Add a comment on the PR listing the conflicted files. Use this format:
+3. Add `blocked-on-human` using `add-labels`.
+4. Post a comment using `add-comment` with this structure:
 
-```markdown
-## Merge conflict detected
+```
+## Conflict Resolver
 
-This PR has conflicts with `main` that require manual resolution.
+Automatic merge of `origin/main` into this branch produced conflicts. Resolve these files manually, then remove the `blocked-on-human` label.
 
 **Conflicted files:**
-
-- `<file1>`
-- `<file2>`
-
-Resolve these conflicts locally, then push the resolved branch to unblock the PR.
+- <file1>
+- <file2>
 ```
 
-Then add the `blocked-on-human` label.
+Do not push anything. Do not remove `needs-rebase`.
 
-Do **not** push anything when there are conflicts.
+## What not to do
+
+- Do not use `git rebase`.
+- Do not use `git push --force` or `git push --force-with-lease`.
+- Do not remove `needs-rebase` unless the push in Step 4a succeeded.
+- Do not add `blocked-on-human` unless the merge step itself produced conflicts.
+- Do not add `blocked-on-human` for infrastructure failures (fetch errors, push errors).
+
+## Noop conditions
+
+Call `noop` without taking any action if:
+- The triggering label is not `needs-rebase`.
+- The PR is labeled `human-review`.
+- The PR is a draft.
+- The PR is from a fork (head repo differs from base repo).
 
 ## Style
 
-Follow the writing rules in `AGENTS.md`. No em-dashes. Short, direct commit messages and PR comments.
+Follow the writing rules in `AGENTS.md`. No em-dashes. Direct, factual comments. No filler.
