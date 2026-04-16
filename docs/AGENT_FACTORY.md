@@ -35,7 +35,7 @@ PR opened
 needs-changes? ---> /pr-fix (auto-fix CI failures)
   |
   v
-PR labeled needs-rebase? ---> conflict-resolver (merge origin/main, push on clean merge)
+PR labeled needs-rebase? ---> conflict-resolver (merge origin/main; push on clean merge, hand off on conflict)
   |
   v
 CI failure on main? ---> ci-cleaner (lint, test, compile fix loop)
@@ -216,10 +216,8 @@ When you merge that PR, the next run of the affected agent reads the updated ins
 |----------|---------|---------|
 | [`spec-refiner.md`](../.github/workflows/spec-refiner.md) | Issue labeled `needs-spec` | Structured plan file from issue context using plan-interview skill |
 | [`reviewer.md`](../.github/workflows/reviewer.md) | PR opened / updated | Plan-aware code review with implementer calibration |
-| [`self-improvement-meta.md`](../.github/workflows/self-improvement-meta.md) | Nightly (~2am) | Extract learnings from failures, commit prevention rules |
-| [`implementer-dispatcher.md`](../.github/workflows/implementer-dispatcher.md) | Sub-issue labeled `ready-for-implementation` | Auto-assign to agent based on parent issue's implementer label |
-| [`ci-cleaner.md`](../.github/workflows/ci-cleaner.md) | CI failure on main | Auto-fix lint, test, and compilation issues |
 | [`conflict-resolver.md`](../.github/workflows/conflict-resolver.md) | PR labeled `needs-rebase` | Merge `origin/main` into PR branch; push on clean merge, hand off on conflict |
+| [`self-improvement-meta.md`](../.github/workflows/self-improvement-meta.md) | Nightly (~2am) | Extract learnings from failures, commit prevention rules |
 | [`contribution-checker.md`](../.github/workflows/contribution-checker.md) | PR opened / updated | Evaluate PR against CONTRIBUTING.md guidelines |
 | [`simplify-and-harden-ci.md`](../.github/workflows/simplify-and-harden-ci.md) | PR opened / updated | Scan changed files for simplicity and security issues |
 | [`learning-aggregator-ci.md`](../.github/workflows/learning-aggregator-ci.md) | Weekly (Monday) | Aggregate learnings, rank promotion candidates, create gap report |
@@ -272,7 +270,8 @@ Skills live in `.claude/skills/` and work identically in Claude Code, Codex CLI,
 |-------|---------|--------|
 | `needs-spec` | Issue needs a structured plan file | Human |
 | `needs-plan` | Spec is ready, /plan creates sub-issues | spec-refiner |
-| `blocked-on-human` | Agent needs human input before proceeding | spec-refiner |
+| `needs-rebase` | PR branch is behind main and needs a merge | Human |
+| `blocked-on-human` | Agent needs human input before proceeding | spec-refiner, conflict-resolver (and other workflows) |
 | `spec-refined` | Spec refinement is complete | spec-refiner |
 | `ready-for-implementation` | Sub-issue ready for a coding agent | /plan |
 | `impl:claude-opus` | Assign to Claude Opus 4.6 | spec-refiner (or human) |
@@ -287,7 +286,6 @@ Skills live in `.claude/skills/` and work identically in Claude Code, Codex CLI,
 | `human-review` | Emergency stop: all agents call noop | Human |
 | `self-improvement` | PR was created by the nightly learning loop | self-improvement-meta |
 | `ci-fix` | PR was created by the CI cleaner | ci-cleaner |
-| `needs-rebase` | PR branch is behind main and needs a merge | Human |
 | `plan-file` | PR contains a plan file | spec-refiner |
 
 ## Implementer Routing
