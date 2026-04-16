@@ -51,7 +51,7 @@ issues.opened [needs-spec]
 |   spec-refiner       |   reads .claude/skills/plan-interview/SKILL.md
 |                      |   recommends implementer in plan file
 +----------+-----------+
-           | writes docs/plans/plan-NNN.md with implementer recommendation
+           | writes docs/plans/plan-NNN-<slug>.md with implementer recommendation
            | labels needs-plan
            v
 +----------------------+

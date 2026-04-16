@@ -82,7 +82,7 @@ After interview completes, explore the codebase to understand:
 
 ### Phase 3: Plan Generation
 
-Write plan to `docs/plans/plan-NNN-<slug>.md` where NNN is the source issue number (zero-padded to three digits).
+Write plan to `docs/plans/plan-NNN-<slug>.md` where NNN is the source issue number, zero-padded to three digits (e.g., issue #7 → `007`, issue #123 → `123`, issue #1042 → `1042`).
 
 #### Required Elements
 

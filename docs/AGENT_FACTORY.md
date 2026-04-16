@@ -148,7 +148,9 @@ The spec-refiner already added an implementer label (e.g., `impl:claude-opus`) t
 | `impl:copilot` | Copilot | Trivial fixes, dependency bumps, config changes |
 | `impl:codex` | Codex GPT-5.4 | A/B comparison, different reasoning style |
 
-Merge the plan PR. The `needs-plan` label triggers the `/plan` workflow, which breaks the plan into sub-issues labeled `ready-for-implementation`.
+Merge the plan PR. The plan PR references the source issue with a non-closing link (e.g. `Refs #NN`), so merging it does not close the source issue. The source issue stays open as the tracking anchor through the planning and implementation window. It should only be closed after all implementation sub-issues are resolved and the actual fix ships.
+
+The `needs-plan` label triggers the `/plan` workflow, which breaks the plan into sub-issues labeled `ready-for-implementation`.
 
 ### Step 4: Auto-Assignment (No Manual Work)
 
