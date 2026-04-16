@@ -11,10 +11,6 @@ on:
     types: [opened, reopened]
   reaction: eyes
 
-engine:
-  id: copilot
-  model: gpt-5.4
-
 permissions: read-all
 
 network: defaults
