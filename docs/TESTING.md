@@ -28,9 +28,12 @@ pytest tests/test_scanner.py::TestRepoScanner::test_empty_repo_returns_level_1 -
 
 ```
 tests/
-├── test_scanner.py    # Core scanning logic
-├── test_reporter.py   # Output formatting
-└── test_main.py       # CLI integration
+├── conftest.py            # Shared fixtures
+├── test_scanner.py        # Core scanning logic
+├── test_reporter.py       # Output formatting
+├── test_main.py           # CLI integration
+├── test_github_scanner.py # GitHub CLI scanning
+└── test_mcp_server.py     # MCP server handlers
 ```
 
 ## Test Categories
@@ -68,6 +71,34 @@ tests/
 | TestCLIMinLevel | --min-level filtering |
 | TestCLIOutputFile | --output file handling |
 | TestCLIOrgMode | --org directory scanning |
+
+### GitHub Scanner Tests (`test_github_scanner.py`)
+
+| Test Class | Coverage |
+|------------|----------|
+| TestCheckGhCli | gh CLI availability check |
+| TestEnsureGhCli | gh CLI requirement enforcement |
+| TestGetRepoDefaultBranch | Default branch detection |
+| TestFetchFileFromGithub | Single-file fetch via API |
+| TestGetRepoTree | Repository file tree retrieval |
+| TestGetRelevantFiles | AI context file filtering |
+| TestDownloadRepoFiles | Batch file download |
+| TestCreateMinimalGitRepo | Temp git repo creation |
+| TestScanGithubRepo | End-to-end single repo scan |
+| TestListOrgRepos | Organization repository listing |
+| TestScanGithubOrg | End-to-end org scan |
+| TestCheckRateLimitStatus | API rate limit handling |
+| TestRetryWithBackoff | Retry logic |
+
+### MCP Server Tests (`test_mcp_server.py`)
+
+| Test Class | Coverage |
+|------------|----------|
+| TestHelperFunctions | Utility function correctness |
+| TestMCPHandlers | Individual tool handler responses |
+| TestMCPIntegration | End-to-end MCP tool invocation |
+| TestErrorHandling | Error and edge case handling |
+| TestGitHubHandlers | GitHub-specific MCP tool handlers |
 
 ## Writing Tests
 

@@ -10,7 +10,7 @@ Be respectful, inclusive, and considerate in all interactions. We're here to bui
 
 ### Prerequisites
 
-- Python 3.9 or higher
+- Python 3.10 or higher
 - Git
 - (Optional) PyYAML for `.ai-proficiency.yaml` support
 
@@ -41,7 +41,7 @@ Be respectful, inclusive, and considerate in all interactions. We're here to bui
 
 5. **Run tests to verify setup**
    ```bash
-   pytest
+   pytest tests/ -v
    ```
 
 ## Development Workflow
@@ -50,16 +50,16 @@ Be respectful, inclusive, and considerate in all interactions. We're here to bui
 
 ```bash
 # Run all tests
-pytest
+pytest tests/ -v
 
 # Run with coverage
-pytest --cov=measure_ai_proficiency --cov-report=html
+pytest tests/ -v --cov=measure_ai_proficiency --cov-report=html
 
 # Run specific test file
-pytest tests/test_scanner.py
+pytest tests/test_scanner.py -v
 
 # Run specific test
-pytest tests/test_scanner.py::TestRepoScanner::test_claude_md_returns_level_2
+pytest tests/test_scanner.py::TestRepoScanner::test_claude_md_returns_level_2 -v
 ```
 
 ### Code Quality
@@ -172,6 +172,67 @@ test(scanner): add tests for quality scoring calculation
    - Respond to comments
    - Make requested changes
    - Push updates to the same branch
+
+## Agent Factory Chain
+
+This repository uses a 10-workflow agent factory built on [GitHub Agentic Workflows (gh-aw)](https://github.github.com/gh-aw/). Understanding the chain helps you work alongside the agents rather than against them.
+
+### How Issues Flow Through the Chain
+
+```
+issue opened
+  |
+  v
+issue-triage (auto-labels by type)
+  |
+  v
+human adds "needs-spec" label
+  |
+  v
+spec-refiner (creates plan file, adds implementer label)
+  |
+  v
+human approves plan PR (the one decision point)
+  |
+  v
+/plan (breaks plan into sub-issues)
+  |
+  v
+implementer-dispatcher (assigns sub-issues to chosen agent)
+  |
+  v
+PR opened
+  |
+  +---> reviewer (plan-aware code review)
+  +---> contribution-checker (CONTRIBUTING.md compliance)
+  |
+  v
+/pr-fix if changes needed, ci-cleaner if CI breaks on main
+  |
+  v
+nightly: self-improvement-meta (extracts learnings)
+```
+
+### What This Means for Human Contributors
+
+- File an issue normally. The `issue-triage` workflow will label it automatically.
+- Add `needs-spec` to trigger `spec-refiner`, which writes a plan PR for your review.
+- Review and approve (or edit) the plan PR. This is the one human decision gate.
+- After plan approval, agents handle implementation, review, and CI fixes.
+- You can still contribute code directly by opening a PR. The `reviewer` and `contribution-checker` workflows will review it.
+
+### Labels Used by the Factory
+
+| Label | Purpose |
+|-------|---------|
+| `needs-spec` | Trigger spec-refiner to write a plan |
+| `needs-changes` | Flag a PR for /pr-fix |
+| `human-review` | Halt all workflows on this issue/PR |
+| `impl:claude-opus` | Assign implementation to Claude Opus 4.6 |
+| `impl:claude-sonnet` | Assign implementation to Claude Sonnet 4.6 |
+| `impl:copilot` | Assign implementation to Copilot cloud agent |
+
+See `docs/AGENT_FACTORY.md` for the full usage guide.
 
 ## What to Contribute
 
