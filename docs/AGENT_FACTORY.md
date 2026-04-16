@@ -49,7 +49,7 @@ State lives in GitHub, not in memory. Each agent starts cold. Every handoff is m
 - [gh-aw extension](https://github.com/github/gh-aw): `gh extension install github/gh-aw`
 - A `COPILOT_GITHUB_TOKEN` secret in the repo (for gh-aw agent runtime)
 - Copilot cloud agent enabled on the repo (Settings > Copilot > Cloud agent)
-- Optional: `DX_MCP_TOKEN` secret if using DX Data Cloud integration in the reviewer
+
 
 ## Quick Start: Your First Run
 
@@ -105,8 +105,7 @@ Two workflows trigger on the new PR:
    - Copilot PRs: checked for test coverage gaps (tends to under-test)
    - Codex PRs: checked for correctness on unusual control flow
    - Human PRs: standard rigor
-3. Pulls team baseline from DX Data Cloud (if configured) for context
-4. Posts a structured review comment with a verdict: `ai-reviewed`, `needs-changes`, or `fast-track`
+3. Posts a structured review comment with a verdict: `ai-reviewed`, `needs-changes`, or `fast-track`
 
 **Contribution checker** evaluates the PR against `docs/CONTRIBUTING.md`: on-topic, focused, has tests, has description, skills synced.
 
@@ -177,7 +176,7 @@ Installed via `gh aw add githubnext/agentics/<name>`. These are general-purpose 
 |-------|---------|---------|
 | [`plan-interview`](../.claude/skills/plan-interview/SKILL.md) | spec-refiner | Structured requirements interview before planning |
 | [`self-improvement`](../.claude/skills/self-improvement/SKILL.md) | self-improvement-meta | Learning capture, categorization, and promotion |
-| [`dx-data-navigator`](../.claude/skills/dx-data-navigator/SKILL.md) | reviewer | DORA metrics from DX Data Cloud (optional) |
+
 | [`intent-framed-agent`](../.claude/skills/intent-framed-agent/SKILL.md) | reviewer | Scope drift detection against plan intent |
 | [`context-surfing`](../.claude/skills/context-surfing/SKILL.md) | (available) | Context window health monitoring |
 
