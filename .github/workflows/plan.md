@@ -107,7 +107,7 @@ For each sub-issue you create:
 Implement JWT-based authentication middleware for API routes.
 
 ## Context
-This is needed to secure API endpoints before implementing user-specific features. Part of issue or discussion #123.
+This is needed to secure API endpoints before implementing user-specific features. Related to #123.
 
 ## Approach
 1. Create middleware function in `src/middleware/auth.js`
