@@ -34,8 +34,11 @@ You auto-assign sub-issues to the correct cloud coding agent based on the parent
 
 This sub-issue was labeled `ready-for-implementation` by the `/plan` workflow. Find the parent issue by:
 1. Checking for a parent issue link (sub-issue relationship)
-2. Looking for a `plan-NNN` reference in the issue body
-3. Searching for the plan file referenced in the issue body and finding its source issue
+2. Looking for a `Related to #N` reference in the issue body (added automatically by `/plan`)
+3. Looking for a `plan-NNN` reference in the issue body
+4. Searching for the plan file referenced in the issue body and finding its source issue
+
+**Note**: Parent discovery relies entirely on these structural references. Plan PR auto-close keywords (`Closes #N`) are not used and must not be required.
 
 If no parent issue is found, post a comment explaining that manual assignment is needed and call noop.
 
