@@ -1,6 +1,6 @@
 # Plan Files
 
-Plan files live here at `docs/plans/plan-NNN-<slug>.md` where NNN is a three-digit zero-padded sequence (e.g., `001`, `002`, `042`).
+Plan files live here at `docs/plans/plan-NNN-<slug>.md` where NNN is the source issue number, zero-padded to three digits (e.g., `007`, `042`, `123`).
 
 The `spec-refiner` workflow creates these files when an issue is labeled `needs-spec`. Each plan file contains:
 
@@ -18,13 +18,13 @@ Downstream agents use plan files as the source of truth for implementation and r
 plan-NNN-<slug>.md
 ```
 
-- `NNN`: Three-digit zero-padded sequence number (start at `001`, increment by one)
+- `NNN`: Source issue number, zero-padded to three digits (e.g., issue #7 → `007`, issue #42 → `042`, issue #1042 → `1042`)
 - `slug`: Short kebab-case description of the plan topic (e.g., `docs-audit`, `add-mcp-server`)
 
 Examples:
-- `plan-001-docs-audit.md`
-- `plan-002-github-scanning.md`
-- `plan-042-refactor-scanner.md`
+- `plan-007-docs-audit.md` (from issue #7)
+- `plan-042-refactor-scanner.md` (from issue #42)
+- `plan-123-add-mcp-server.md` (from issue #123)
 
 ## Plan File Format
 
