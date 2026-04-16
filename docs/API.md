@@ -21,6 +21,9 @@ measure-ai-proficiency [OPTIONS] [PATHS...]
 | `-q, --quiet` | Hide detailed file matches (summary only) |
 | `--min-level N` | Only show repos at or above level N (1-8) |
 | `--org PATH` | Scan all subdirectories as separate repos |
+| `--github-repo OWNER/REPO` | Scan a GitHub repository without cloning (requires gh CLI) |
+| `--github-org ORG` | Scan all repos in a GitHub organization without cloning (requires gh CLI) |
+| `--limit N` | Maximum number of repos to scan from GitHub org (default: 1000) |
 | `--version` | Show version and exit |
 | `-h, --help` | Show help message |
 
@@ -58,6 +61,15 @@ measure-ai-proficiency --min-level 3 --org ~/projects
 
 # CSV export for analysis
 measure-ai-proficiency --org ~/work --format csv -o proficiency.csv
+
+# Scan a GitHub repository without cloning (requires gh CLI)
+measure-ai-proficiency --github-repo owner/repo
+
+# Scan entire GitHub organization without cloning (requires gh CLI)
+measure-ai-proficiency --github-org my-org
+
+# Scan GitHub org with a limit on number of repos
+measure-ai-proficiency --github-org my-org --limit 50 --format json -o report.json
 ```
 
 ## Python API

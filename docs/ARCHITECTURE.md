@@ -5,23 +5,30 @@ System design for measure-ai-proficiency CLI tool.
 ## Overview
 
 ```
-┌─────────────────────────────────────────────────────────────┐
-│                        CLI Layer                             │
-│  __main__.py - Argument parsing, output routing              │
-└─────────────────────┬───────────────────────────────────────┘
-                      │
-┌─────────────────────▼───────────────────────────────────────┐
+┌──────────────────────────────┐  ┌──────────────────────────────┐
+│          CLI Layer           │  │        MCP Server Layer       │
+│  __main__.py                 │  │  mcp_server.py               │
+│  Argument parsing, routing   │  │  Model Context Protocol      │
+└──────────┬───────────────────┘  └──────────────┬───────────────┘
+           │                                      │
+           │            ┌─────────────────────────┘
+           │            │
+┌──────────▼────────────▼─────────────────────────────────────┐
 │                     Scanner Layer                            │
 │  scanner.py - Repository scanning, scoring, recommendations  │
 │  repo_config.py - Configuration loading, tool detection      │
 └─────────────────────┬───────────────────────────────────────┘
                       │
-┌─────────────────────▼───────────────────────────────────────┐
-│                    Config Layer                              │
-│  config.py - Level definitions, file patterns, weights       │
-└─────────────────────┬───────────────────────────────────────┘
-                      │
-┌─────────────────────▼───────────────────────────────────────┐
+           ┌──────────┴──────────┐
+           │                     │
+┌──────────▼──────────┐  ┌───────▼─────────────────────────────┐
+│   Config Layer      │  │   GitHub Scanner Layer               │
+│  config.py          │  │  github_scanner.py                   │
+│  Level definitions  │  │  Remote repo fetching via gh CLI     │
+│  file patterns      │  │  Temporary directory management      │
+└──────────┬──────────┘  └─────────────────────────────────────┘
+           │
+┌──────────▼──────────────────────────────────────────────────┐
 │                   Reporter Layer                             │
 │  reporter.py - Terminal, JSON, Markdown, CSV output          │
 └─────────────────────────────────────────────────────────────┘
@@ -33,9 +40,25 @@ System design for measure-ai-proficiency CLI tool.
 
 - Parses command-line arguments using argparse
 - Supports single repo, multiple repos, and org-wide scanning
+- Supports GitHub CLI remote scanning via `--github-repo` and `--github-org`
 - Routes output to appropriate reporter based on `--format`
 - Handles file output with `--output`
 - Exit codes: 0=success, 1=error, 2=no AI context
+
+### GitHub Scanner (`github_scanner.py`)
+
+- Fetches repository file trees and AI context files from GitHub without cloning
+- Uses the GitHub CLI (`gh`) to access remote repositories and organizations
+- Downloads only relevant AI proficiency files into temporary directories
+- Supports scanning single repos (`scan_github_repo`) and entire organizations (`scan_github_org`)
+- Cleans up temporary directories after scanning
+
+### MCP Server (`mcp_server.py`)
+
+- Implements the [Model Context Protocol (MCP)](https://modelcontextprotocol.io) for AI assistant integration
+- Exposes 7 tools: `scan_current_repo`, `get_recommendations`, `check_cross_references`, `get_level_requirements`, `scan_github_repo`, `scan_github_org`, `validate_file_quality`
+- Runs as a stdio server launched via the `measure-ai-proficiency-mcp` script
+- Creates a meta-improvement loop where AI assistants can check and improve their own proficiency context
 
 ### Scanner (`scanner.py`)
 
