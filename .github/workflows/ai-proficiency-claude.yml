@@ -13,8 +13,6 @@
 name: AI Proficiency Assessment (Claude)
 
 on:
-  pull_request:
-    types: [opened, synchronize]
   issue_comment:
     types: [created]
   workflow_dispatch:
@@ -32,9 +30,8 @@ permissions:
 
 jobs:
   assess-proficiency:
-    # Only run on PR events, workflow dispatch, or /assess-proficiency comments
+    # Only run via manual dispatch or /assess-proficiency comments
     if: |
-      github.event_name == 'pull_request' ||
       github.event_name == 'workflow_dispatch' ||
       (github.event_name == 'issue_comment' && contains(github.event.comment.body, '/assess-proficiency'))
     runs-on: ubuntu-latest

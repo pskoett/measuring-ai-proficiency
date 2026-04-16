@@ -240,8 +240,6 @@ Add labels to weekly report issues by modifying the workflow to include label as
 
 ---
 
----
-
 ## Organizational Discovery
 
 Before setting up automated proficiency tracking, discover and assess repositories in your organization.
