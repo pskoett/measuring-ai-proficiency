@@ -233,12 +233,16 @@ Installed via `gh aw add githubnext/agentics/<name>`. These are general-purpose 
 |----------|---------|---------|
 | [`ai-proficiency-pr-review.md`](../.github/workflows/ai-proficiency-pr-review.md) | PR opened / `/assess-proficiency` | AI proficiency score on every PR |
 | [`ai-proficiency-weekly-report.md`](../.github/workflows/ai-proficiency-weekly-report.md) | Weekly (Monday 9am UTC) | Track proficiency trends over time |
+| [`simplify-and-harden-ci.md`](../.github/workflows/simplify-and-harden-ci.md) | PR opened / updated | Post-completion quality and security sweep |
+| [`learning-aggregator-ci.md`](../.github/workflows/learning-aggregator-ci.md) | Weekly (Monday) | Cross-session pattern detection and promotion ranking |
+| [`eval-creator-ci.md`](../.github/workflows/eval-creator-ci.md) | PR opened / updated | Create regression test cases from promoted learnings |
 
 ## Skills Used by the Factory
 
 | Skill | Used by | Purpose |
 |-------|---------|---------|
 | [`plan-interview`](../.claude/skills/plan-interview/SKILL.md) | spec-refiner | Structured requirements interview before planning |
+| `self-improvement` | self-improvement-meta | Learning capture, categorization, and promotion (skill instructions embedded in the workflow; no standalone SKILL.md file) |
 | [`intent-framed-agent`](../.claude/skills/intent-framed-agent/SKILL.md) | reviewer | Scope drift detection against plan intent |
 | [`simplify-and-harden`](../.claude/skills/simplify-and-harden/SKILL.md) | simplify-and-harden-ci | Post-completion quality and security sweep |
 | [`learning-aggregator`](../.claude/skills/learning-aggregator/SKILL.md) | learning-aggregator-ci | Cross-session pattern detection and promotion ranking |

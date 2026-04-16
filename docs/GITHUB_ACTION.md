@@ -421,4 +421,4 @@ This workflow:
 - [GitHub Agentic Workflows Docs](https://githubnext.github.io/gh-aw/)
 - [Claude Code Action Docs](https://github.com/anthropics/claude-code-action)
 - [measure-ai-proficiency Tool](https://github.com/pskoett/measuring-ai-proficiency)
-- [Discovery Script Documentation](scripts/README.md)
+- [Discovery Script Documentation](../scripts/README.md)
