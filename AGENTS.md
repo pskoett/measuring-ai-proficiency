@@ -56,7 +56,7 @@ This document defines agent roles, behavioral guidelines, and factory chain cont
 - `plan-interview` - Interview-based planning
 - `agentic-workflow` - GitHub agentic workflow creation
 - `self-improvement` - Learning capture and prevention rule promotion
-- `dx-data-navigator` - DX Data Cloud queries for DORA metrics
+
 - `intent-framed-agent` - Intent contract to prevent scope drift
 - `context-surfing` - Context window health monitoring
 
@@ -157,7 +157,7 @@ When a workflow tells you to use a skill, read `.claude/skills/<skill-name>/SKIL
 Currently available skills:
 - `.claude/skills/plan-interview/`: structured requirements interview before planning
 - `.claude/skills/self-improvement/`: learning capture and prevention rule promotion
-- `.claude/skills/dx-data-navigator/`: DX Data Cloud queries for DORA metrics and PR analytics
+
 - `.claude/skills/intent-framed-agent/`: explicit intent contract to prevent scope drift
 - `.claude/skills/context-surfing/`: context window health monitoring with clean exits
 - `.claude/skills/measure-ai-proficiency/`: run AI proficiency assessments
@@ -275,7 +275,7 @@ The routing rules above are about the **implementer step** (who writes the code 
 - `bash: true` for shell commands (ci-cleaner, pr-fix)
 - `edit:` for file modifications (ci-cleaner, pr-fix)
 - `web-fetch:` for external content (issue-triage, pr-fix)
-- DX Data Cloud MCP server (configured per workflow that needs it, optional for PoC). Reviewer agents should use this for context when available.
+
 
 ### Workflow inventory
 
@@ -283,7 +283,7 @@ The routing rules above are about the **implementer step** (who writes the code 
 |----------|---------|-------------|-------|
 | `spec-refiner` | Issue labeled `needs-spec` | update-issue, add-comment, create-pull-request, add-labels, remove-labels | plan-interview |
 | `implementer-dispatcher` | Sub-issue labeled `ready-for-implementation` | assign-to-agent, add-comment, add-labels | (none, reads parent issue labels) |
-| `reviewer` | PR opened / updated | add-comment, add-labels | dx-data-navigator, intent-framed-agent |
+| `reviewer` | PR opened / updated | add-comment, add-labels | intent-framed-agent |
 | `self-improvement-meta` | Nightly (~2am) | create-pull-request, create-issue | self-improvement |
 | `ci-cleaner` | CI failure on main | create-pull-request | (none, uses bash/edit directly) |
 | `contribution-checker` | PR opened / updated | add-comment | (none, reads CONTRIBUTING.md) |

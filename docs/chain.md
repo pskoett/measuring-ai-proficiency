@@ -22,7 +22,7 @@ How the workflows in this repo chain together into a spec, plan, implement, revi
 |                    Agent Skills Library                      |
 |  (.claude/skills/ in this repo)                             |
 |                                                              |
-|   plan-interview/    dx-data-navigator/   self-improvement/  |
+|   plan-interview/    self-improvement/    intent-framed-agent/|
 |   intent-framed-agent/              context-surfing/        |
 +-------------------------------------------------------------+
 ```
@@ -63,8 +63,7 @@ issues.opened [needs-spec]
        +------------+-----------+
                     v
 +----------------------+
-|   reviewer       |   reads .claude/skills/dx-data-navigator/SKILL.md
-|                      |         .claude/skills/intent-framed-agent/SKILL.md
+|   reviewer       |   reads .claude/skills/intent-framed-agent/SKILL.md
 |                      |   detects implementer, applies calibration
 +----------+-----------+
            | labels ai-reviewed | needs-changes | spec-drift | fast-track
