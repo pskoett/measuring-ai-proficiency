@@ -6,8 +6,9 @@ We release patches for security vulnerabilities in the following versions:
 
 | Version | Supported          |
 | ------- | ------------------ |
-| 0.2.x   | :white_check_mark: |
-| 0.1.x   | :x:                |
+| 0.5.x   | :white_check_mark: |
+| 0.4.x   | :x:                |
+| < 0.4   | :x:                |
 
 ## Reporting a Vulnerability
 
@@ -44,12 +45,20 @@ When reporting a security issue, please include:
 
 ### What This Tool Does
 
-measure-ai-proficiency is a **local filesystem scanner**:
+measure-ai-proficiency is primarily a **local filesystem scanner**:
 
 - Reads files in directories you specify
-- Does NOT send data over the network
+- Does NOT send data over the network (local mode)
 - Does NOT execute code from scanned repositories
 - Does NOT modify scanned repositories (read-only)
+
+**GitHub CLI mode** (`--github-repo`, `--github-org`) is an optional scanning mode that:
+
+- Uses the GitHub API to fetch AI context files without cloning
+- Requires `gh` CLI authenticated with `gh auth login`
+- Sends file path lookups and file content requests to the GitHub API
+- Downloads only AI context files, not the full repository
+- Stores fetched files temporarily and removes them after scanning
 
 ### Potential Risks
 
