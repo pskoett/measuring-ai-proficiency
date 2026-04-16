@@ -18,7 +18,8 @@ How the workflows in this repo chain together into a spec, plan, implement, revi
 |  implementer-dispatcher.md self-improvement-meta.md          |
 |  simplify-and-harden-ci.md learning-aggregator-ci.md         |
 |  eval-creator-ci.md        ci-cleaner.md                     |
-|  contribution-checker.md   ai-proficiency-pr-review.md       |
+|  conflict-resolver.md      contribution-checker.md           |
+|  ai-proficiency-pr-review.md                                 |
 |  ai-proficiency-weekly-report.md                             |
 |  issue-triage.md           plan.md          pr-fix.md        |
 +-----------------------------+-------------------------------+
@@ -91,6 +92,23 @@ issues.opened [needs-spec]
      | loops back
      v
 (eventually merged)
+
+     | PR branch out of date with main?
+     v
++-------------------------+
+| conflict-resolver       |   triggered by needs-rebase label
+|                         |   merges origin/main into PR branch
++----------+--------------+
+           |
+   +-------+--------+
+   |                |
+clean merge      conflicts
+   |                |
+remove           add blocked-on-human,
+needs-rebase     comment with file list,
+   |             hand to human
+   v
+(PR back on track)
 
                   | (nightly, independent of the main chain)
                   v

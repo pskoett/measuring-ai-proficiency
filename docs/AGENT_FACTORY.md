@@ -35,6 +35,9 @@ PR opened
 needs-changes? ---> /pr-fix (auto-fix CI failures)
   |
   v
+dirty PR? ---> conflict-resolver (merge origin/main, hand conflicts to human)
+  |
+  v
 CI failure on main? ---> ci-cleaner (lint, test, compile fix loop)
   |
   v
@@ -81,7 +84,7 @@ You can reuse the same PAT across several of these if it has the union of scopes
 
 ### Required labels
 
-The factory is choreographed through labels. Create these once in **Issues > Labels** or run `scripts/setup-factory-labels.sh` (if present).
+The factory is choreographed through labels. Create these once in **Issues > Labels**. There is no automated label-setup script in this repository; create labels manually via the GitHub web UI or the `gh` CLI (for example: `gh label create needs-rebase --color e4e669 --description "PR branch needs merging with origin/main"`).
 
 | Label | Purpose |
 |-------|---------|
@@ -97,6 +100,7 @@ The factory is choreographed through labels. Create these once in **Issues > Lab
 | `ai-generated` | Applied to sub-issues created by `/plan` |
 | `pr-fix` | Applied to commits pushed by `/pr-fix` |
 | `task` | Applied to sub-issues created by `/plan` |
+| `needs-rebase` | PR branch needs merging with `origin/main`; triggers conflict-resolver |
 
 Without these labels, workflows that try to `add-labels: allowed: [...]` will fail their safe-output validation.
 
@@ -213,6 +217,7 @@ When you merge that PR, the next run of the affected agent reads the updated ins
 | [`self-improvement-meta.md`](../.github/workflows/self-improvement-meta.md) | Nightly (~2am) | Extract learnings from failures, commit prevention rules |
 | [`implementer-dispatcher.md`](../.github/workflows/implementer-dispatcher.md) | Sub-issue labeled `ready-for-implementation` | Auto-assign to agent based on parent issue's implementer label |
 | [`ci-cleaner.md`](../.github/workflows/ci-cleaner.md) | CI failure on main | Auto-fix lint, test, and compilation issues |
+| [`conflict-resolver.md`](../.github/workflows/conflict-resolver.md) | PR labeled `needs-rebase` | Merge `origin/main` into PR branch; remove label on success, add `blocked-on-human` on conflict |
 | [`contribution-checker.md`](../.github/workflows/contribution-checker.md) | PR opened / updated | Evaluate PR against CONTRIBUTING.md guidelines |
 | [`simplify-and-harden-ci.md`](../.github/workflows/simplify-and-harden-ci.md) | PR opened / updated | Scan changed files for simplicity and security issues |
 | [`learning-aggregator-ci.md`](../.github/workflows/learning-aggregator-ci.md) | Weekly (Monday) | Aggregate learnings, rank promotion candidates, create gap report |
@@ -281,6 +286,7 @@ Skills live in `.claude/skills/` and work identically in Claude Code, Codex CLI,
 | `self-improvement` | PR was created by the nightly learning loop | self-improvement-meta |
 | `ci-fix` | PR was created by the CI cleaner | ci-cleaner |
 | `plan-file` | PR contains a plan file | spec-refiner |
+| `needs-rebase` | PR branch needs to be merged with `origin/main` | Human; triggers conflict-resolver |
 
 ## Implementer Routing
 
