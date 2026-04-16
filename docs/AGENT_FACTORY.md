@@ -14,13 +14,16 @@ issue-triage (auto-labels by type, detects spam)
 human adds "needs-spec" label
   |
   v
-spec-refiner (structured plan file + implementer recommendation)
+spec-refiner (plan file + implementer label on issue)
+  |
+  v
+human reviews plan PR, optionally swaps implementer label  <-- ONE decision
   |
   v
 /plan (breaks plan into sub-issues)
   |
   v
-human assigns sub-issues to Claude / Copilot / Codex
+implementer-dispatcher (auto-assigns sub-issues from parent label)
   |
   v
 PR opened
@@ -63,26 +66,31 @@ After triage, add the `needs-spec` label to start the factory chain.
 The `spec-refiner` workflow triggers. It reads the issue, runs the `plan-interview` skill, and produces:
 - A plan file at `docs/plans/plan-NNN-<slug>.md` (opened as a PR)
 - A recommended implementer (Claude Opus 4.6, Claude Sonnet 4.6, Copilot, or Codex)
+- An implementer label on the issue (`impl:claude-opus`, `impl:claude-sonnet`, `impl:copilot`, or `impl:codex`)
 - A label swap: `needs-spec` removed, `needs-plan` added
 
 If the agent cannot answer something from context alone, it marks the gap with **NEEDS HUMAN INPUT** and adds the `blocked-on-human` label. Add a comment with the missing context, remove the label, and re-trigger.
 
-### Step 3: Review and Approve the Plan
+### Step 3: Review the Plan and Choose an Implementer
 
-Read the plan PR. Check the success criteria, the implementation checklist, and the recommended implementer. If it looks right, merge it.
+Read the plan PR. Check the success criteria, the implementation checklist, and the recommended implementer.
 
-The `needs-plan` label triggers the `/plan` workflow, which breaks the plan into sub-issues labeled `ready-for-implementation`.
+The spec-refiner already added an implementer label (e.g., `impl:claude-opus`) to the issue based on its complexity assessment. If you disagree with the recommendation, swap the label before proceeding:
 
-### Step 4: Assign an Implementer
+| Label | Agent | When to use |
+|-------|-------|-------------|
+| `impl:claude-opus` | Claude Opus 4.6 | Multi-file refactors, high blast radius, 6+ checklist items |
+| `impl:claude-sonnet` | Claude Sonnet 4.6 | Single-component features, medium complexity |
+| `impl:copilot` | Copilot | Trivial fixes, dependency bumps, config changes |
+| `impl:codex` | Codex GPT-5.4 | A/B comparison, different reasoning style |
 
-Open each sub-issue on github.com. Go to the Agents tab and assign it to the recommended agent:
+Merge the plan PR. The `needs-plan` label triggers the `/plan` workflow, which breaks the plan into sub-issues labeled `ready-for-implementation`.
 
-| Implementer | When to use |
-|-------------|-------------|
-| **Claude Opus 4.6** | Multi-file refactors, high blast radius, 6+ checklist items |
-| **Claude Sonnet 4.6** | Single-component features, medium complexity |
-| **Copilot** | Trivial fixes, dependency bumps, config changes |
-| **Codex GPT-5.4** | A/B comparison, different reasoning style |
+### Step 4: Auto-Assignment (No Manual Work)
+
+The `implementer-dispatcher` workflow triggers automatically when sub-issues receive the `ready-for-implementation` label. It reads the implementer label from the parent issue and assigns each sub-issue to the chosen agent via `assign-to-agent`.
+
+You assigned once at Step 3. Every sub-issue inherits that choice. No manual assignment needed.
 
 The agent opens a PR with its implementation.
 
@@ -140,6 +148,7 @@ When you merge that PR, the next run of the affected agent reads the updated ins
 | [`spec-refiner.md`](../.github/workflows/spec-refiner.md) | Issue labeled `needs-spec` | Structured plan file from issue context using plan-interview skill |
 | [`reviewer.md`](../.github/workflows/reviewer.md) | PR opened / updated | Plan-aware code review with implementer calibration |
 | [`self-improvement-meta.md`](../.github/workflows/self-improvement-meta.md) | Nightly (~2am) | Extract learnings from failures, commit prevention rules |
+| [`implementer-dispatcher.md`](../.github/workflows/implementer-dispatcher.md) | Sub-issue labeled `ready-for-implementation` | Auto-assign to agent based on parent issue's implementer label |
 | [`ci-cleaner.md`](../.github/workflows/ci-cleaner.md) | CI failure on main | Auto-fix lint, test, and compilation issues |
 | [`contribution-checker.md`](../.github/workflows/contribution-checker.md) | PR opened / updated | Evaluate PR against CONTRIBUTING.md guidelines |
 
@@ -183,6 +192,11 @@ Skills live in `.claude/skills/` and work identically in Claude Code, Codex CLI,
 | `blocked-on-human` | Agent needs human input before proceeding | spec-refiner |
 | `spec-refined` | Spec refinement is complete | spec-refiner |
 | `ready-for-implementation` | Sub-issue ready for a coding agent | /plan |
+| `impl:claude-opus` | Assign to Claude Opus 4.6 | spec-refiner (or human) |
+| `impl:claude-sonnet` | Assign to Claude Sonnet 4.6 | spec-refiner (or human) |
+| `impl:copilot` | Assign to Copilot cloud agent | spec-refiner (or human) |
+| `impl:codex` | Assign to Codex GPT-5.4 | spec-refiner (or human) |
+| `assigned-to-agent` | Sub-issue has been dispatched | implementer-dispatcher |
 | `ai-reviewed` | PR passed automated review, ready for human review | reviewer |
 | `needs-changes` | PR has critical findings or spec drift | reviewer |
 | `fast-track` | Small, well-tested, matches plan, zero findings | reviewer |

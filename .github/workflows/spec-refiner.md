@@ -31,8 +31,8 @@ safe-outputs:
     title-prefix: "[plan] "
     labels: [plan-file, automation]
   add-labels:
-    allowed: [needs-plan, blocked-on-human, spec-refined]
-    max: 2
+    allowed: [needs-plan, blocked-on-human, spec-refined, "impl:claude-opus", "impl:claude-sonnet", "impl:copilot", "impl:codex"]
+    max: 3
   remove-labels:
     allowed: [needs-spec]
     max: 1
@@ -68,7 +68,13 @@ Pick one of: `claude-opus-4.6`, `claude-sonnet-4.6`, `copilot`, or `codex-gpt-5.
 **Rationale**: Multi-file refactor across auth, session, and database layers with high blast radius and non-trivial rollback. Opus is the right default for this class of work.
 ```
 
-This is a recommendation, not an assignment. A human reviews the plan PR and assigns the sub-issues to the chosen agent via the github.com web UI when they kick off implementation. Do not attempt to assign anything yourself.
+After writing the recommendation in the plan file, also add the corresponding implementer label to the source issue:
+- `claude-opus-4.6` recommendation: add label `impl:claude-opus`
+- `claude-sonnet-4.6` recommendation: add label `impl:claude-sonnet`
+- `copilot` recommendation: add label `impl:copilot`
+- `codex-gpt-5.4` recommendation: add label `impl:codex`
+
+This label is the default. A human can change it on the issue before commenting `/plan`. The `implementer-dispatcher` workflow will read this label and auto-assign sub-issues to the chosen agent, so the human only decides once at the plan level.
 
 ## gh-aw handoff logic
 
@@ -78,6 +84,7 @@ After the skill completes, the plan file is written, and the implementer is reco
 2. **Comment on the source issue** with a one-line summary, a link to the plan PR, and the recommended implementer.
 3. **Swap labels**:
    - Remove `needs-spec`
+   - Add the implementer label (`impl:claude-opus`, `impl:claude-sonnet`, `impl:copilot`, or `impl:codex`)
    - Add `needs-plan` if the plan has no open questions (this triggers `/plan` to create sub-issues)
    - Add `blocked-on-human` if the plan has any `**NEEDS HUMAN INPUT**` markers
 
