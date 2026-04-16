@@ -1,4 +1,4 @@
-# Plan 002: Keep source issues open when plan PRs merge
+# Plan 070: Keep source issues open when plan PRs merge
 
 **Source issue**: #70
 **Status**: Ready for implementation
