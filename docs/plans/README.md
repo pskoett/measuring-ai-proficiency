@@ -1,6 +1,6 @@
 # Plan Files
 
-Plan files live here at `docs/plans/plan-NNN-<slug>.md` where NNN is the **source issue number**, zero-padded to three digits (e.g., `042`, `066`, `123`).
+Plan files live here at `docs/plans/plan-NNN-<slug>.md` where NNN is the **source issue number**, zero-padded to three digits (e.g., `007`, `042`, `123`).
 
 The `spec-refiner` workflow creates these files when an issue is labeled `needs-spec`. Each plan file contains:
 
@@ -18,13 +18,13 @@ Downstream agents use plan files as the source of truth for implementation and r
 plan-NNN-<slug>.md
 ```
 
-- `NNN`: Three-digit zero-padded **source issue number** (e.g., issue #42 → `042`, issue #66 → `066`)
+- `NNN`: Source issue number, zero-padded to three digits (e.g., issue #7 → `007`, issue #42 → `042`, issue #1042 → `1042`)
 - `slug`: Short kebab-case description of the plan topic (e.g., `docs-audit`, `add-mcp-server`)
 
 Examples:
-- `plan-042-refactor-scanner.md` (plan for issue #42)
-- `plan-066-update-plan-numbering.md` (plan for issue #66)
-- `plan-123-add-mcp-server.md` (plan for issue #123)
+- `plan-007-docs-audit.md` (from issue #7)
+- `plan-042-refactor-scanner.md` (from issue #42)
+- `plan-123-add-mcp-server.md` (from issue #123)
 
 > **Historical files**: Earlier plan files used a sequential counter (`001`, `002`, …) instead of the issue number. Those files remain valid and should **not** be renamed.
 
