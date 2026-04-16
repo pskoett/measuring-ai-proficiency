@@ -2,9 +2,26 @@
 
 Advanced metrics and architectural patterns for future development of measure-ai-proficiency.
 
-These ideas represent the frontier of context engineering measurement—moving beyond artifact detection toward understanding the **integrity of feedback loops** between AI architects and agents.
+These ideas represent the frontier of context engineering measurement: moving beyond artifact detection toward understanding the **integrity of feedback loops** between AI architects and agents.
 
 > *If traditional metrics are like counting how many bricks a worker lays per day, context engineering is reviewing the blueprints, site rules, and automated safety gear the architect has provided.*
+
+---
+
+## Shipped Features
+
+The following features were previously tracked as ideas and are now implemented:
+
+| Feature | Version | Description |
+|:--------|:--------|:------------|
+| **GitHub CLI Scanning** | 0.3.0 | `--github-repo` and `--github-org` flags scan repositories without cloning |
+| **MCP Server** | 0.5.0 | Real-time AI proficiency awareness for AI assistants via Model Context Protocol |
+| **Agent Factory Chain** | 0.5.0 | 11 agentic workflows: triage, spec, plan, implement, review, fix, learn |
+| **Implementer Dispatcher** | 0.5.0 | Auto-assigns sub-issues to agents from parent issue `impl:*` label |
+| **Skills** | 0.5.0 | 11 reusable agent skills following the Agent Skills standard |
+| **Repository Config** | 0.2.0 | `.ai-proficiency.yaml` for custom thresholds and tool filtering |
+| **Cross-Reference Detection** | 0.2.0 | Detects and validates references between AI instruction files |
+| **Content Quality Scoring** | 0.2.0 | Sections, commands, constraints, and git commit history scoring |
 
 ---
 

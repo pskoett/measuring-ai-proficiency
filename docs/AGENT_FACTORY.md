@@ -1,6 +1,6 @@
 # Agent Factory: End-to-End Agentic Workflows
 
-A complete **triage, spec, plan, implement, review, fix, learn** agent factory powered by [GitHub Agentic Workflows (gh-aw)](https://github.github.com/gh-aw/). Ten workflows chain together through GitHub events (labels, PRs, comments). No orchestrator, no DAG. Each agent does one job, hands off via a label swap, and the next agent picks it up. This is choreography, not orchestration.
+A complete **triage, spec, plan, implement, review, fix, learn** agent factory powered by [GitHub Agentic Workflows (gh-aw)](https://github.github.com/gh-aw/). Eleven workflows chain together through GitHub events (labels, PRs, comments). No orchestrator, no DAG. Each agent does one job, hands off via a label swap, and the next agent picks it up. This is choreography, not orchestration.
 
 ## The Complete Chain
 
@@ -175,10 +175,17 @@ Installed via `gh aw add githubnext/agentics/<name>`. These are general-purpose 
 | Skill | Used by | Purpose |
 |-------|---------|---------|
 | [`plan-interview`](../.claude/skills/plan-interview/SKILL.md) | spec-refiner | Structured requirements interview before planning |
-| [`self-improvement`](../.claude/skills/self-improvement/SKILL.md) | self-improvement-meta | Learning capture, categorization, and promotion |
-
+| `self-improvement` | self-improvement-meta | Learning capture, categorization, and promotion |
 | [`intent-framed-agent`](../.claude/skills/intent-framed-agent/SKILL.md) | reviewer | Scope drift detection against plan intent |
 | [`context-surfing`](../.claude/skills/context-surfing/SKILL.md) | (available) | Context window health monitoring |
+| [`simplify-and-harden`](../.claude/skills/simplify-and-harden/SKILL.md) | (available) | Post-completion quality and security sweep |
+| [`verify-gate`](../.claude/skills/verify-gate/SKILL.md) | (available) | Machine verification gate before quality review |
+| [`eval-creator`](../.claude/skills/eval-creator/SKILL.md) | eval-creator-ci | Regression test cases from promoted learnings |
+| [`learning-aggregator`](../.claude/skills/learning-aggregator/SKILL.md) | learning-aggregator-ci | Cross-session pattern detection and promotion ranking |
+| [`pre-flight-check`](../.claude/skills/pre-flight-check/SKILL.md) | (available) | Session-start scan of relevant learnings and eval status |
+| [`measure-ai-proficiency`](../.claude/skills/measure-ai-proficiency/SKILL.md) | ai-proficiency-pr-review | Run AI proficiency assessments |
+| [`customize-measurement`](../.claude/skills/customize-measurement/SKILL.md) | (available) | Configure measurement for specific repos |
+| [`agentic-workflow`](../.claude/skills/agentic-workflow/SKILL.md) | (available) | GitHub agentic workflow creation |
 
 Skills live in `.claude/skills/` and work identically in Claude Code, Codex CLI, and gh-aw. Update a skill once, every consumer gets the fix. The gh-aw workflows read skill files at runtime, not at compile time.
 
