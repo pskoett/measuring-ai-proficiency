@@ -123,7 +123,7 @@ See `docs/MCP.md` for full documentation, examples, and troubleshooting.
 
 ## Agent Factory
 
-This repo runs a 10-workflow agent factory via [GitHub Agentic Workflows (gh-aw)](https://github.github.com/gh-aw/). The chain flows: triage, spec, plan, implement, review, fix, learn.
+This repo runs a 14-workflow agent factory via [GitHub Agentic Workflows (gh-aw)](https://github.github.com/gh-aw/). The chain flows: triage, spec, plan, implement, review, fix, learn.
 
 **Workflows** live in `.github/workflows/*.md` and compile to `.lock.yml` files via `gh aw compile`.
 

@@ -94,6 +94,9 @@ The factory is choreographed through labels. Create these once in **Issues > Lab
 | `self-improvement`, `ci-fix`, `plan-file` | Provenance on factory-generated PRs |
 | `workflow-health` | Tracking issues for data-layer failures |
 | `automation`, `low-risk` | Applied to routine factory PRs |
+| `ai-generated` | Applied to sub-issues created by `/plan` |
+| `pr-fix` | Applied to commits pushed by `/pr-fix` |
+| `task` | Applied to sub-issues created by `/plan` |
 
 Without these labels, workflows that try to `add-labels: allowed: [...]` will fail their safe-output validation.
 
@@ -231,7 +234,7 @@ Installed via `gh aw add githubnext/agentics/<name>`. These are general-purpose 
 
 | Workflow | Trigger | Purpose |
 |----------|---------|---------|
-| [`ai-proficiency-pr-review.md`](../.github/workflows/ai-proficiency-pr-review.md) | PR opened / `/assess-proficiency` | AI proficiency score on every PR |
+| [`ai-proficiency-pr-review.md`](../.github/workflows/ai-proficiency-pr-review.md) | `/assess-proficiency` comment or manual dispatch | AI proficiency score (on-demand only, no auto-trigger) |
 | [`ai-proficiency-weekly-report.md`](../.github/workflows/ai-proficiency-weekly-report.md) | Weekly (Monday 9am UTC) | Track proficiency trends over time |
 | [`simplify-and-harden-ci.md`](../.github/workflows/simplify-and-harden-ci.md) | PR opened / updated | Post-completion quality and security sweep |
 | [`learning-aggregator-ci.md`](../.github/workflows/learning-aggregator-ci.md) | Weekly (Monday) | Cross-session pattern detection and promotion ranking |
