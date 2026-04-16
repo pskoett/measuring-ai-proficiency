@@ -45,10 +45,71 @@ State lives in GitHub, not in memory. Each agent starts cold. Every handoff is m
 
 ## Prerequisites
 
-- [GitHub CLI](https://cli.github.com/) installed and authenticated
+### Local tooling
+
+- [GitHub CLI](https://cli.github.com/) installed and authenticated (`gh auth login`)
 - [gh-aw extension](https://github.com/github/gh-aw): `gh extension install github/gh-aw`
-- A `COPILOT_GITHUB_TOKEN` secret in the repo (for gh-aw agent runtime)
-- Copilot cloud agent enabled on the repo (Settings > Copilot > Cloud agent)
+- Git 2.40+ (required by gh-aw for sparse checkouts)
+
+### Repository settings
+
+Apply these in **Settings** on the repo hosting the factory. Skipping any of these is the most common cause of the factory stalling between steps.
+
+| Setting | Path | Value | Why |
+|---------|------|-------|-----|
+| Workflow permissions | Settings > Actions > General > Workflow permissions | **Read and write permissions** | Workflows need write access to push fixes, open PRs, move labels |
+| Allow PR creation | Same page | **Allow GitHub Actions to create and approve pull requests** (checked) | `/pr-fix`, `ci-cleaner`, `self-improvement-meta` all open PRs |
+| Outside contributor approval | Settings > Actions > General > Approval for outside collaborators | **Require approval for first-time contributors who are new to GitHub** | Default is stricter and blocks Copilot PRs behind a manual approval click |
+| Copilot cloud agent | Settings > Copilot > Coding agent | **Enabled** | Required for `impl:copilot` sub-issue assignment |
+| Copilot code review | Settings > Copilot > Code review | **Enabled for this repo** | Lets the Copilot SWE agent annotate PRs inline |
+| Actions permissions | Settings > Actions > General > Actions permissions | **Allow all actions and reusable workflows** | Some factory workflows pull from `githubnext/agentics` and `github/gh-aw-actions` |
+
+### Required secrets
+
+Add these under **Settings > Secrets and variables > Actions**. `GITHUB_TOKEN` is provided by GitHub automatically and does not need to be created.
+
+| Secret | Required by | How to get it |
+|--------|-------------|---------------|
+| `COPILOT_GITHUB_TOKEN` | Every custom gh-aw workflow (agent runtime auth) | Personal access token with `copilot` scope, or a fine-grained token with Copilot access |
+| `GH_AW_GITHUB_TOKEN` | gh-aw runtime (fallback auth for checkout, label writes) | Same or broader PAT than `COPILOT_GITHUB_TOKEN`; can alias the same token |
+| `GH_AW_GITHUB_MCP_SERVER_TOKEN` | github-mcp-server container inside each workflow | PAT with `repo`, `read:org`, `issues`, `pull_requests` scopes |
+| `GH_AW_AGENT_TOKEN` | `implementer-dispatcher` when assigning to agents | PAT allowed to assign issues to the Copilot agent user |
+| `GH_AW_CI_TRIGGER_TOKEN` | `ci-cleaner`, `simplify-and-harden-ci` (bypasses workflow-triggering-workflow restriction) | PAT scoped to `actions: write` on this repo |
+| `ANTHROPIC_API_KEY` | **Optional** - only if you enable `ai-proficiency-claude.yml` | Get from console.anthropic.com; skip if you stick to the Copilot-powered `ai-proficiency-pr-review` |
+
+You can reuse the same PAT across several of these if it has the union of scopes. Keep them separate if you want to rotate or revoke them independently.
+
+### Required labels
+
+The factory is choreographed through labels. Create these once in **Issues > Labels** or run `scripts/setup-factory-labels.sh` (if present).
+
+| Label | Purpose |
+|-------|---------|
+| `needs-spec`, `needs-plan`, `spec-refined` | Spec refinement flow |
+| `blocked-on-human` | Agent needs human input before proceeding |
+| `ready-for-implementation`, `assigned-to-agent` | Implementation dispatch flow |
+| `impl:claude-opus`, `impl:claude-sonnet`, `impl:copilot`, `impl:codex` | Implementer routing |
+| `ai-reviewed`, `needs-changes`, `fast-track`, `spec-drift` | Reviewer verdicts |
+| `human-review` | Emergency stop: all agents call noop |
+| `self-improvement`, `ci-fix`, `plan-file` | Provenance on factory-generated PRs |
+| `workflow-health` | Tracking issues for data-layer failures |
+| `automation`, `low-risk` | Applied to routine factory PRs |
+
+Without these labels, workflows that try to `add-labels: allowed: [...]` will fail their safe-output validation.
+
+### Installed GitHub Apps
+
+- **GitHub Copilot** (coding agent + code review) - required for `impl:copilot` routing and inline review annotations
+- **`githubnext/agentics`** workflows - installed via `gh aw add githubnext/agentics/<name>` (pulls `/plan`, `/pr-fix`, `issue-triage`)
+
+### First-run checklist
+
+- [ ] All local tooling installed and `gh auth status` clean
+- [ ] Repository settings applied (workflow permissions, approval, Copilot)
+- [ ] All required secrets present in Actions secrets (not environment or Dependabot)
+- [ ] All required labels created
+- [ ] `gh aw compile` run once locally so every `.md` workflow has a matching `.lock.yml`
+- [ ] Test issue opened and labeled `needs-spec` to verify `spec-refiner` fires
 
 
 ## Quick Start: Your First Run
