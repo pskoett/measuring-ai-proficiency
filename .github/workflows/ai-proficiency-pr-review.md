@@ -6,6 +6,10 @@ on:
     types: [created]
   workflow_dispatch:
 
+engine:
+  id: copilot
+  model: gpt-5.4
+
 permissions:
   contents: read
   issues: read

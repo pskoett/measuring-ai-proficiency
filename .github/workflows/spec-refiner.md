@@ -5,15 +5,9 @@ on:
   workflow_dispatch:
 if: github.event.label.name == 'needs-spec' || github.event_name == 'workflow_dispatch'
 timeout-minutes: 10
-# engine: copilot is the current default. As of April 2026, Claude and Codex
-# cloud agents are bundled with the Copilot subscription on github.com. When
-# gh-aw extends this bundling to the engine: field (expected soon), uncomment
-# the block below to run this workflow on Claude Opus 4.6 instead. No secret
-# change needed once the bundling lands.
-#
-# engine:
-#   name: claude
-#   model: claude-opus-4-6
+engine:
+  id: copilot
+  model: gpt-5.4
 permissions:
   issues: read
   contents: read

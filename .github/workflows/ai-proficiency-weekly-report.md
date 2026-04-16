@@ -4,6 +4,10 @@ on:
     - cron: "0 9 * * 1"
   workflow_dispatch:
 
+engine:
+  id: copilot
+  model: gpt-5.4
+
 permissions:
   contents: read
   issues: read

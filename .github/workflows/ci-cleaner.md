@@ -6,6 +6,9 @@ on:
     branches: [main]
   workflow_dispatch:
 timeout-minutes: 10
+engine:
+  id: copilot
+  model: gpt-5.4
 permissions:
   contents: read
   actions: read
