@@ -35,14 +35,9 @@ Read the ENTIRE content of this file before taking any action.
 
 ## Step 1: Gate on the triggering label
 
-If the triggering event is not a labeling event for the `needs-rebase` label, call `noop` with "Not triggered by needs-rebase label" and stop.
+If the workflow was triggered by a labeling event and the label name is not `needs-rebase`, call `noop` with "Not triggered by needs-rebase label" and stop.
 
-```bash
-# The engine provides the event context. Check the label name:
-echo "Triggered label: ${{ github.event.label.name }}"
-```
-
-If `${{ github.event.label.name }}` is not `needs-rebase`, call `noop` immediately.
+If the workflow was triggered via `workflow_dispatch` (manual run), require that the pull request number is explicitly provided in context. If no pull request context is available, call `noop` with "Manual dispatch requires a pull request context" and stop.
 
 ## Step 2: Collect PR metadata
 
@@ -66,11 +61,12 @@ Do not attempt any git operations until all guards pass.
 
 ## Step 4: Attempt the merge
 
-Check out the PR branch and merge `origin/main`:
+Check out the PR branch and merge `origin/main`. Configure git credentials using the `GITHUB_TOKEN` so that the push in Step 5 is authenticated:
 
 ```bash
 git config user.email "github-actions[bot]@users.noreply.github.com"
 git config user.name "github-actions[bot]"
+git remote set-url origin "https://x-access-token:${GITHUB_TOKEN}@github.com/${{ github.repository }}.git"
 git fetch origin main
 git fetch origin "$HEAD_REF"
 git checkout "$HEAD_REF"
@@ -96,16 +92,11 @@ Do not add `blocked-on-human`. Do not comment unless the merge introduced notabl
 
 ### On merge conflict (non-zero exit code)
 
-Abort the merge to leave the working tree clean:
+Collect the conflicted file paths before aborting, then abort the merge to leave the working tree clean:
 
 ```bash
+CONFLICTED_FILES=$(git diff --name-only --diff-filter=U)
 git merge --abort
-```
-
-Collect the conflicted file paths:
-
-```bash
-git diff --name-only --diff-filter=U
 ```
 
 Add a comment on the PR listing the conflicted files. Use this format:
