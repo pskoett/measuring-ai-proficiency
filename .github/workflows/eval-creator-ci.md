@@ -2,6 +2,8 @@
 on:
   pull_request:
     types: [opened, synchronize, reopened, ready_for_review]
+    paths-ignore:
+      - 'docs/plans/**'
   workflow_dispatch:
 timeout-minutes: 8
 engine:
