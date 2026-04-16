@@ -175,7 +175,7 @@ Installed via `gh aw add githubnext/agentics/<name>`. These are general-purpose 
 | Skill | Used by | Purpose |
 |-------|---------|---------|
 | [`plan-interview`](../.claude/skills/plan-interview/SKILL.md) | spec-refiner | Structured requirements interview before planning |
-| `self-improvement` | self-improvement-meta | Learning capture, categorization, and promotion |
+| `self-improvement` | self-improvement-meta | Learning capture, categorization, and promotion (skill file referenced by workflow; not in `.claude/skills/`) |
 | [`intent-framed-agent`](../.claude/skills/intent-framed-agent/SKILL.md) | reviewer | Scope drift detection against plan intent |
 | [`context-surfing`](../.claude/skills/context-surfing/SKILL.md) | (available) | Context window health monitoring |
 | [`simplify-and-harden`](../.claude/skills/simplify-and-harden/SKILL.md) | (available) | Post-completion quality and security sweep |
