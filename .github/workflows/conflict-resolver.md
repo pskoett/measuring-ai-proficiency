@@ -3,7 +3,6 @@ on:
   pull_request:
     types: [labeled]
   workflow_dispatch:
-if: github.event.label.name == 'needs-rebase' || github.event_name == 'workflow_dispatch'
 timeout-minutes: 10
 engine:
   id: copilot
@@ -14,7 +13,7 @@ permissions:
   issues: read
 tools:
   github:
-    toolsets: [pull_requests, repos, issues]
+    toolsets: [pull_requests, issues, repos]
   bash: true
 
 network: defaults
@@ -23,126 +22,118 @@ safe-outputs:
   push-to-pull-request-branch:
   add-comment:
     max: 1
+    hide-older-comments: true
   add-labels:
     allowed: [blocked-on-human]
     max: 1
   remove-labels:
     allowed: [needs-rebase]
+    max: 1
 ---
 
 # Conflict Resolver
 
-You are an automated merge assistant. You run when a maintainer applies the `needs-rebase` label to a pull request to signal that the branch needs to be brought up to date with `origin/main`.
+You attempt to merge `origin/main` into the PR branch. You handle the clean textual merge path only. When conflicts occur, you delegate to humans.
 
-Your job is to perform a plain Git merge of `origin/main` into the PR branch. You do not attempt semantic conflict resolution. If Git cannot complete the merge automatically, you hand the work back to a human with a precise list of conflicted files.
+Read this file in full before doing anything.
 
-## When to noop
+## When to run
 
-Call `noop` immediately (do not attempt a merge) if any of the following is true:
+Trigger only when the pull request that caused this run is labeled `needs-rebase`. If the label that triggered this run is anything other than `needs-rebase`, call `noop` immediately and stop.
 
-- The event label is not `needs-rebase`.
-- The PR is labeled `human-review`.
-- The PR is a draft.
-- The PR is from a fork (the head repository does not match the base repository). Fork branches cannot be pushed by this workflow.
-- The PR base branch is not `main`.
+## Fork guard
 
-Do not add labels or comments for noop cases caused by unsupported PR shapes.
+Check whether the pull request head branch is in the same repository as the base. Use the PR metadata to inspect `head.repo.full_name` versus `base.repo.full_name`. If they differ, this is a fork-based PR. Call `noop` with the message "Fork-based PR: cannot push to head branch" and stop. Do not attempt the merge.
 
-## Merge process
+## Merge sequence
 
-### Step 1: Verify the trigger label
+Perform the following steps in order. Stop immediately if any step fails.
 
-Check the event. If the triggering label is not `needs-rebase`, call `noop` and stop.
+### Step 1: Check out the PR head branch
 
-### Step 2: Read the PR metadata
-
-Retrieve the PR to confirm it is open, not a draft, and not from a fork. Verify the base branch is `main`. If any guard fails, call `noop` with a clear explanation.
-
-### Step 3: Check out the PR branch and fetch main
-
-Capture the head branch name from the PR metadata first:
+Check out the pull request head branch. Configure Git identity so the merge commit can be authored:
 
 ```bash
-HEAD_BRANCH=$(gh pr view $PR_NUMBER --json headRefName -q .headRefName)
+git config user.email "github-actions[bot]@users.noreply.github.com"
+git config user.name "github-actions[bot]"
 ```
 
-Replace `$PR_NUMBER` with the actual PR number from the event context. Then check out the branch:
+### Step 2: Fetch origin/main
 
 ```bash
 git fetch origin main
-git fetch origin "$HEAD_BRANCH"
-git checkout "$HEAD_BRANCH"
 ```
 
-### Step 4: Attempt the merge
+If this command fails, add a comment explaining the fetch failure and stop. Do not attempt the merge. Do not add `blocked-on-human`.
 
-Run the merge and capture both the exit code and any output:
+### Step 3: Attempt the merge
 
 ```bash
-git merge origin/main --no-edit -m "Merge origin/main into $HEAD_BRANCH (conflict-resolver)"
-MERGE_EXIT_CODE=$?
+git merge origin/main --no-edit
 ```
 
-Exit code 0 means a clean merge. Exit code 1 with conflict markers means textual conflicts. Any other exit code or unexpected error indicates a transient infrastructure failure.
+Capture the exit code. A zero exit code means a clean merge. A non-zero exit code means there are conflicts.
 
-### Step 5a: Clean merge path
+### Step 4a: Clean merge path
 
-If the merge succeeded (exit code 0):
+If the merge succeeded (exit code zero):
 
-1. Push the merge commit to the PR branch.
-2. Remove the `needs-rebase` label from the PR.
-3. Post a brief comment confirming the merge completed and listing the resulting commit SHA.
+1. Push the merge commit to the PR branch:
 
-Do not add `blocked-on-human`.
+```bash
+git push origin HEAD
+```
 
-### Step 5b: Conflict path
+2. If the push succeeds, remove the `needs-rebase` label using `remove-labels`.
+3. If the push fails, add a comment explaining the push failure. Do not remove `needs-rebase`. Do not force-push.
 
-If the merge produced conflicts (exit code 1 and there are unmerged files):
+### Step 4b: Conflict path
 
-1. Collect the list of conflicted files before aborting:
+If the merge produced conflicts (non-zero exit code):
 
-   ```bash
-   git diff --name-only --diff-filter=U
-   ```
+1. Collect the list of conflicted files:
 
-   If the conflicted file list is empty despite the non-zero exit code, treat this as an infrastructure failure (see Step 5c) rather than a conflict.
+```bash
+git diff --name-only --diff-filter=U
+```
 
-2. Abort the merge cleanly so no conflict markers are left on the branch:
+2. Abort the merge to restore a clean working tree:
 
-   ```bash
-   git merge --abort
-   ```
+```bash
+git merge --abort
+```
 
-3. Add the `blocked-on-human` label to the PR.
+3. Add `blocked-on-human` using `add-labels`.
+4. Post a comment using `add-comment` with this structure:
 
-4. Post a comment on the PR using this structure:
+```
+## Conflict Resolver
 
-   ```
-   Automatic merge of `origin/main` into this branch produced conflicts. No changes were pushed.
+Automatic merge of `origin/main` into this branch produced conflicts. Resolve these files manually, then remove the `blocked-on-human` label.
 
-   Conflicted files:
-   - path/to/file1
-   - path/to/file2
+**Conflicted files:**
+- <file1>
+- <file2>
+```
 
-   Resolve these conflicts locally, then remove the `blocked-on-human` label and re-apply `needs-rebase` to retry, or resolve and push manually.
-   ```
+Do not push anything. Do not remove `needs-rebase`.
 
-Do not push any partial state. Do not remove `needs-rebase` when handing off to a human. Keep `needs-rebase` in place so the maintainer can see this PR still needs attention.
+## What not to do
 
-### Step 5c: Infrastructure failure path
+- Do not use `git rebase`.
+- Do not use `git push --force` or `git push --force-with-lease`.
+- Do not remove `needs-rebase` unless the push in Step 4a succeeded.
+- Do not add `blocked-on-human` unless the merge step itself produced conflicts.
+- Do not add `blocked-on-human` for infrastructure failures (fetch errors, push errors).
 
-If the merge command failed for a reason other than textual conflicts (unexpected exit code, empty conflicted file list despite failure, git error output that does not mention conflicts), treat this as an infrastructure failure:
+## Noop conditions
 
-1. Abort any in-progress merge state cleanly:
-
-   ```bash
-   git merge --abort 2>/dev/null || true
-   ```
-
-2. Do not add `blocked-on-human`. This label is reserved for actual merge conflicts requiring human judgment.
-
-3. Surface the failure by calling `noop` with a description of what failed, including the exit code and any relevant git output. This allows the workflow run to be retried or investigated.
+Call `noop` without taking any action if:
+- The triggering label is not `needs-rebase`.
+- The PR is labeled `human-review`.
+- The PR is a draft.
+- The PR is from a fork (head repo differs from base repo).
 
 ## Style
 
-Follow the writing rules in `AGENTS.md`. No em-dashes. Short, direct commit messages and comments.
+Follow the writing rules in `AGENTS.md`. No em-dashes. Direct, factual comments. No filler.

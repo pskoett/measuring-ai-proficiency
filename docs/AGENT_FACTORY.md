@@ -35,7 +35,7 @@ PR opened
 needs-changes? ---> /pr-fix (auto-fix CI failures)
   |
   v
-PR behind main? ---> conflict-resolver (merge origin/main, hand conflicts to human)
+PR labeled needs-rebase? ---> conflict-resolver (merge origin/main; push on clean merge, hand off on conflict)
   |
   v
 CI failure on main? ---> ci-cleaner (lint, test, compile fix loop)
@@ -94,6 +94,7 @@ The factory is choreographed through labels. Create these once in **Issues > Lab
 | `impl:claude-opus`, `impl:claude-sonnet`, `impl:copilot`, `impl:codex` | Implementer routing |
 | `ai-reviewed`, `needs-changes`, `fast-track`, `spec-drift` | Reviewer verdicts |
 | `human-review` | Emergency stop: all agents call noop |
+| `needs-rebase` | PR branch needs a merge from main; triggers conflict-resolver |
 | `self-improvement`, `ci-fix`, `plan-file` | Provenance on factory-generated PRs |
 | `workflow-health` | Tracking issues for data-layer failures |
 | `automation`, `low-risk` | Applied to routine factory PRs |
@@ -151,7 +152,9 @@ The spec-refiner already added an implementer label (e.g., `impl:claude-opus`) t
 | `impl:copilot` | Copilot | Trivial fixes, dependency bumps, config changes |
 | `impl:codex` | Codex GPT-5.4 | A/B comparison, different reasoning style |
 
-Merge the plan PR. The `needs-plan` label triggers the `/plan` workflow, which breaks the plan into sub-issues labeled `ready-for-implementation`.
+Merge the plan PR. The plan PR references the source issue with a non-closing link (e.g. `Refs #NN`), so merging it does not close the source issue. The source issue stays open as the tracking anchor through the planning and implementation window. It should only be closed after all implementation sub-issues are resolved and the actual fix ships.
+
+The `needs-plan` label triggers the `/plan` workflow, which breaks the plan into sub-issues labeled `ready-for-implementation`.
 
 ### Step 4: Auto-Assignment (No Manual Work)
 
@@ -213,10 +216,8 @@ When you merge that PR, the next run of the affected agent reads the updated ins
 |----------|---------|---------|
 | [`spec-refiner.md`](../.github/workflows/spec-refiner.md) | Issue labeled `needs-spec` | Structured plan file from issue context using plan-interview skill |
 | [`reviewer.md`](../.github/workflows/reviewer.md) | PR opened / updated | Plan-aware code review with implementer calibration |
-| [`conflict-resolver.md`](../.github/workflows/conflict-resolver.md) | PR labeled `needs-rebase` | Merge origin/main into PR branch; hand conflicts back to human |
+| [`conflict-resolver.md`](../.github/workflows/conflict-resolver.md) | PR labeled `needs-rebase` | Merge `origin/main` into PR branch; push on clean merge, hand off on conflict |
 | [`self-improvement-meta.md`](../.github/workflows/self-improvement-meta.md) | Nightly (~2am) | Extract learnings from failures, commit prevention rules |
-| [`implementer-dispatcher.md`](../.github/workflows/implementer-dispatcher.md) | Sub-issue labeled `ready-for-implementation` | Auto-assign to agent based on parent issue's implementer label |
-| [`ci-cleaner.md`](../.github/workflows/ci-cleaner.md) | CI failure on main | Auto-fix lint, test, and compilation issues |
 | [`contribution-checker.md`](../.github/workflows/contribution-checker.md) | PR opened / updated | Evaluate PR against CONTRIBUTING.md guidelines |
 | [`simplify-and-harden-ci.md`](../.github/workflows/simplify-and-harden-ci.md) | PR opened / updated | Scan changed files for simplicity and security issues |
 | [`learning-aggregator-ci.md`](../.github/workflows/learning-aggregator-ci.md) | Weekly (Monday) | Aggregate learnings, rank promotion candidates, create gap report |
