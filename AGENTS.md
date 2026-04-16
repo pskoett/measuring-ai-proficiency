@@ -124,7 +124,13 @@ After updating documentation, update skills:
 
 ## Agent Factory: Shared Context
 
-The sections below are read by every agentic workflow in the factory chain (`spec-refiner`, `reviewer`, `self-improvement-meta`).
+The sections below are read by every agentic workflow in the factory chain. The factory consists of 10 workflows organized in three tiers:
+
+**Factory chain** (custom, skill-backed): `spec-refiner`, `reviewer`, `self-improvement-meta`, `ci-cleaner`, `contribution-checker`
+**Support workflows** (from githubnext/agentics): `issue-triage`, `plan`, `pr-fix`
+**Project-specific**: `ai-proficiency-pr-review`, `ai-proficiency-weekly-report`
+
+See `docs/AGENT_FACTORY.md` for the full guide with step-by-step usage instructions, label reference, and debugging commands.
 
 ### Core principles
 
@@ -256,7 +262,25 @@ The routing rules above are about the **implementer step** (who writes the code 
 
 - GitHub toolset (read-only by default, write via safe-outputs only)
 - `cache-memory` and `repo-memory` for cross-run state
+- `bash: true` for shell commands (ci-cleaner, pr-fix)
+- `edit:` for file modifications (ci-cleaner, pr-fix)
+- `web-fetch:` for external content (issue-triage, pr-fix)
 - DX Data Cloud MCP server (configured per workflow that needs it, optional for PoC). Reviewer agents should use this for context when available.
+
+### Workflow inventory
+
+| Workflow | Trigger | Safe outputs | Skill |
+|----------|---------|-------------|-------|
+| `spec-refiner` | Issue labeled `needs-spec` | update-issue, add-comment, create-pull-request, add-labels, remove-labels | plan-interview |
+| `reviewer` | PR opened / updated | add-comment, add-labels | dx-data-navigator, intent-framed-agent |
+| `self-improvement-meta` | Nightly (~2am) | create-pull-request, create-issue | self-improvement |
+| `ci-cleaner` | CI failure on main | create-pull-request | (none, uses bash/edit directly) |
+| `contribution-checker` | PR opened / updated | add-comment | (none, reads CONTRIBUTING.md) |
+| `issue-triage` | Issue opened / reopened | add-labels, add-comment | (none, githubnext/agentics) |
+| `plan` | `/plan` slash command | create-issue | (none, githubnext/agentics) |
+| `pr-fix` | `/pr-fix` slash command | push-to-pull-request-branch, add-comment, create-issue | (none, githubnext/agentics) |
+| `ai-proficiency-pr-review` | PR opened / `/assess-proficiency` | add-comment | measure-ai-proficiency |
+| `ai-proficiency-weekly-report` | Weekly (Monday 9am) | create-issue | measure-ai-proficiency |
 
 ### Human circuit breaker
 

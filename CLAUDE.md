@@ -121,6 +121,28 @@ The project now includes an **MCP (Model Context Protocol) server** that makes A
 
 See `docs/MCP.md` for full documentation, examples, and troubleshooting.
 
+## Agent Factory
+
+This repo runs a 10-workflow agent factory via [GitHub Agentic Workflows (gh-aw)](https://github.github.com/gh-aw/). The chain flows: triage, spec, plan, implement, review, fix, learn.
+
+**Workflows** live in `.github/workflows/*.md` and compile to `.lock.yml` files via `gh aw compile`.
+
+**Key files:**
+- `docs/AGENT_FACTORY.md` - Full usage guide with step-by-step instructions
+- `docs/chain.md` - Architecture diagram and design rationale
+- `AGENTS.md` - Shared context read by every workflow at run start
+
+**Common tasks:**
+- Add a new workflow: create `.github/workflows/<name>.md`, run `gh aw compile <name>`
+- Edit a workflow: modify the `.md` file, run `gh aw compile <name>`, commit both `.md` and `.lock.yml`
+- Update gh-aw: `gh extension upgrade gh-aw`, then `gh aw compile` to recompile all lock files
+- Add a skill for workflows: create `.claude/skills/<name>/SKILL.md`, reference it from the workflow body
+- Debug a run: `gh aw logs <workflow>` or `gh aw audit <run-id>`
+
+**Factory chain:** issue-triage > spec-refiner > /plan > implementer > reviewer + contribution-checker > /pr-fix > ci-cleaner > self-improvement-meta (nightly)
+
+**Human decisions:** (1) approve the plan PR, (2) assign the implementer, (3) merge the final PR, (4) approve learnings. Everything else is automated.
+
 ## Architecture
 
 ```
@@ -137,6 +159,19 @@ measure_ai_proficiency/
 scripts/
 ├── find-org-repos.sh  # GitHub org discovery script (uses gh CLI)
 └── README.md          # Script documentation
+
+.github/workflows/     # Agentic workflows (gh-aw)
+├── spec-refiner.md              # Plan file from issue context
+├── reviewer.md                  # Plan-aware PR review
+├── self-improvement-meta.md     # Nightly learnings extraction
+├── ci-cleaner.md                # Auto-fix CI on main
+├── contribution-checker.md      # CONTRIBUTING.md compliance
+├── issue-triage.md              # Auto-label issues (githubnext/agentics)
+├── plan.md                      # /plan slash command (githubnext/agentics)
+├── pr-fix.md                    # /pr-fix slash command (githubnext/agentics)
+├── ai-proficiency-pr-review.md  # Proficiency score per PR
+├── ai-proficiency-weekly-report.md  # Weekly proficiency trends
+└── *.lock.yml                   # Compiled GitHub Actions YAML
 ```
 
 ## Key Abstractions
