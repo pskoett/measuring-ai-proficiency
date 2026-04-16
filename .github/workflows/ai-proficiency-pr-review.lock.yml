@@ -49,10 +49,6 @@ name: "AI Proficiency Assessment for Pull Requests"
   issue_comment:
     types:
     - created
-  pull_request:
-    types:
-    - opened
-    - synchronize
   workflow_dispatch:
     inputs:
       aw_context:
