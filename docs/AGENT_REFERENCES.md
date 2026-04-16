@@ -312,13 +312,39 @@ project/
 
 ## Agent Skills
 
-Claude Code, GitHub Copilot, and OpenAI Codex all support the [Agent Skills](https://agentskills.io/) open standard. Skills are stored in:
+Claude Code, GitHub Copilot, Cursor, OpenAI Codex, and generic tooling all support the [Agent Skills](https://agentskills.io/) open standard. Skills are stored in:
 
 - **Claude Code**: `.claude/skills/*/SKILL.md`
-- **GitHub Copilot**: `.github/skills/*/SKILL.md` or `.copilot/skills/*/SKILL.md`
+- **GitHub Copilot**: `.github/skills/*/SKILL.md`
+- **Cursor**: `.cursor/skills/*/SKILL.md`
 - **OpenAI Codex**: `.codex/skills/*/SKILL.md`
+- **Generic**: `skills/*/SKILL.md`
 
 Skills are task-specific instructions that AI tools load when relevant, based on the skill's description. Unlike agent files that define roles, skills define procedures for specific tasks.
+
+## Scanner Reference: Instruction Files and Known Targets
+
+The scanner reads these files for cross-reference and quality analysis (`INSTRUCTION_FILES` in `scanner.py`):
+
+```
+CLAUDE.md
+AGENTS.md
+.cursorrules
+CODEX.md
+.github/copilot-instructions.md
+.copilot-instructions.md
+.github/AGENTS.md
+```
+
+References that point to one of the following filenames are counted as "resolved" when calculating the cross-reference bonus (`KNOWN_TARGETS` in `scanner.py`):
+
+```
+CLAUDE.md        AGENTS.md         .cursorrules      CODEX.md
+ARCHITECTURE.md  CONVENTIONS.md    SKILL.md          TESTING.md
+API.md           SECURITY.md       CONTRIBUTING.md   PATTERNS.md
+DEVELOPMENT.md   DEPLOYMENT.md     MEMORY.md         LEARNINGS.md
+HANDOFFS.md      GOVERNANCE.md     SHARED_CONTEXT.md
+```
 
 ## Remember
 

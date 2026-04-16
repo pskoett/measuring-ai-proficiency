@@ -33,6 +33,11 @@ tools:
   - claude-code
   - github-copilot
 
+# Map custom file paths to standard documentation categories
+documentation:
+  architecture: "system-design/OVERVIEW.md"   # Override default ARCHITECTURE.md
+  conventions: "eng-docs/STYLE_GUIDE.md"
+
 # Lower thresholds if defaults are too strict
 thresholds:
   level_3: 10   # Default: 15
@@ -54,9 +59,35 @@ skip_validation_patterns:
   - "HIPAA.md"           # Example compliance file mentioned in docs
   - ".mcp.json"          # Best practice mentioned but not used yet
   - "docs/api/README.md" # Example path shown in documentation
+
+# Tune quality scoring (optional - shown with defaults)
+quality:
+  max_file_size: 100000       # Max bytes to scan per file (default: 100000)
+  min_substantive_bytes: 100  # Min bytes for a file to count as substantive (default: 100)
+  word_threshold_partial: 50  # Words for partial quality points (default: 50)
+  word_threshold_full: 200    # Words for full quality points (default: 200)
+  git_timeout: 5              # Seconds before git log command times out (default: 5)
 ```
 
 See `.ai-proficiency.yaml.example` in this repo for a full example.
+
+### Config Option Reference
+
+All options accepted by `.ai-proficiency.yaml`:
+
+| Key | Type | Default | Description |
+|-----|------|---------|-------------|
+| `tools` | list of strings | auto-detected | AI tools in use: `claude-code`, `github-copilot`, `cursor`, `openai-codex` |
+| `documentation` | dict | `{}` | Map standard doc categories to custom file paths (`architecture`, `conventions`, etc.) |
+| `thresholds` | dict | see SPEC.md | Coverage % required per level (`level_3` through `level_8`) |
+| `skip_recommendations` | list | `[]` | Recommendation IDs to suppress (e.g. `hooks`, `gastown`) |
+| `focus_areas` | list | `[]` | Limit recommendations to these areas (e.g. `documentation`, `testing`) |
+| `skip_validation_patterns` | list | `[]` | File name patterns to exclude from validation warnings |
+| `quality.max_file_size` | int | `100000` | Max bytes to read per file for cross-ref scanning |
+| `quality.min_substantive_bytes` | int | `100` | Min bytes for a file to count as substantive |
+| `quality.word_threshold_partial` | int | `50` | Word count for partial quality points |
+| `quality.word_threshold_full` | int | `200` | Word count for full quality points |
+| `quality.git_timeout` | int | `5` | Seconds before `git log` command times out |
 
 ### Skipping Validation Warnings
 
