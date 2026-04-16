@@ -113,12 +113,15 @@ If there are no failures, it calls noop. Silence is the correct signal when the 
 | File | Trigger | Purpose |
 |------|---------|---------|
 | [`spec-refiner.md`](../.github/workflows/spec-refiner.md) | Issue labeled `needs-spec` | Structured plan file from issue context |
+| [`plan.md`](../.github/workflows/plan.md) | `/plan` slash command | Break plan into sub-issues with task labels |
 | [`reviewer.md`](../.github/workflows/reviewer.md) | PR opened / updated | Plan-aware code review with implementer calibration |
+| [`pr-fix.md`](../.github/workflows/pr-fix.md) | `/pr-fix` slash command | Auto-fix failing CI on PR branches |
 | [`self-improvement-meta.md`](../.github/workflows/self-improvement-meta.md) | Nightly (~2am) | Extract learnings from failures, commit prevention rules |
+| [`issue-triage.md`](../.github/workflows/issue-triage.md) | Issue opened / reopened | Label, categorize, and provide analysis notes |
 | [`ci-cleaner.md`](../.github/workflows/ci-cleaner.md) | CI failure on main | Auto-fix lint, test, and compilation issues |
 | [`contribution-checker.md`](../.github/workflows/contribution-checker.md) | PR opened / updated | Evaluate PR against CONTRIBUTING.md guidelines |
 
-The factory workflows are thin adapter shells. The actual agent logic lives in skills.
+The factory workflows (`spec-refiner`, `reviewer`, `self-improvement-meta`) are thin adapter shells. The actual agent logic lives in skills. The support workflows (`plan`, `pr-fix`, `issue-triage`) come from the [githubnext/agentics](https://github.com/githubnext/agentics) sample pack.
 
 ## Skills Used by the Factory
 
