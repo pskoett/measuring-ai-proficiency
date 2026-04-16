@@ -82,7 +82,7 @@ After interview completes, explore the codebase to understand:
 
 ### Phase 3: Plan Generation
 
-Write plan to `docs/plans/plan-NNN-<slug>.md` where NNN is sequential.
+Write plan to `docs/plans/plan-NNN-<slug>.md` where NNN is the source issue number, zero-padded to three digits (e.g., issue #7 → `007`, issue #123 → `123`, issue #1042 → `1042`).
 
 #### Required Elements
 
@@ -177,7 +177,7 @@ User: Fall back to standard login. Link accounts by email if user confirms.
 
 Claude: [Explores codebase for auth patterns, session handling, database schema]
 
-Claude: [Writes docs/plans/plan-003-oauth-authentication.md]
+Claude: [Writes docs/plans/plan-042-oauth-authentication.md]  ← issue #42
 
         Plan created. The main decision point is whether to use Passport.js
         or implement OAuth flows directly - I've documented both approaches
