@@ -40,18 +40,15 @@ jobs:
           set -euo pipefail
 
           PROJECT_ID='PVT_kwHOCpF41s4BU8ja'
-          FIELD_ID='PVTSSF_lAHOCpF41s4BU8jazhMLy_8'
+          FIELD_ID='PVTSSF_lAHOCpF41s4BU8jazhMLwks'  # Status (6-column overview)
 
           declare -A OPT=(
-            [Triage]='aabd9c13'
-            [Spec]='ac3f63b0'
-            [Planning]='2c967050'
-            [Ready]='197b15b8'
-            [Assigned]='5a44a584'
-            [Review]='9ba04603'
-            [Needs-changes]='45b74231'
-            [Merged]='6e1dec0d'
-            [Learning]='cf3543b1'
+            [Inbox]='f75ad846'
+            [Planning]='47fc9ee4'
+            [InFlight]='98236657'
+            [Review]='0ed44c4a'
+            [NeedsAttention]='37fdf3fc'
+            [Done]='675bf0bb'
           )
 
           # Fetch current labels + node id + state from REST (works for both issues and PRs)
@@ -65,32 +62,26 @@ jobs:
           echo "Item: $REPO#$ISSUE_NUMBER  state=$ITEM_STATE  pr=$IS_PR  merged=$EVENT_MERGED"
           echo "Labels: $LABELS"
 
-          # Priority-ordered label-to-state derivation.
-          # Merged is terminal. Learning is next (self-improvement PRs).
-          # Needs-changes covers any human-block label.
-          # Then forward progress states in reverse chain order (Review -> Triage).
+          # Priority-ordered label-to-lane derivation (6-column overview).
+          # Done is terminal. Needs Attention covers any human-block label.
+          # Everything else collapses forward-progress states into 4 lanes.
           L=",$LABELS,"
-          if [ "$ITEM_STATE" = "closed" ]; then
-            STATE_NAME=Merged
-          elif [[ "$L" == *",self-improvement,"* ]]; then
-            STATE_NAME=Learning
+          if [ "$ITEM_STATE" = "closed" ] || [[ "$L" == *",self-improvement,"* ]]; then
+            STATE_NAME=Done
           elif [[ "$L" == *",needs-changes,"* || "$L" == *",needs-rebase,"* || "$L" == *",human-review,"* || "$L" == *",blocked-on-human,"* ]]; then
-            STATE_NAME=Needs-changes
+            STATE_NAME=NeedsAttention
           elif [[ "$L" == *",ai-reviewed,"* ]]; then
             STATE_NAME=Review
-          elif [[ "$L" == *",assigned-to-agent,"* ]]; then
-            STATE_NAME=Assigned
-          elif [[ "$L" == *",ready-for-implementation,"* ]]; then
-            STATE_NAME=Ready
+          elif [[ "$L" == *",ready-for-implementation,"* || "$L" == *",assigned-to-agent,"* ]]; then
+            STATE_NAME=InFlight
           elif [[ "$L" == *",needs-plan,"* ]]; then
             STATE_NAME=Planning
-          elif [[ "$L" == *",needs-spec,"* ]]; then
-            STATE_NAME=Spec
           else
-            STATE_NAME=Triage
+            # needs-spec OR no factory labels yet
+            STATE_NAME=Inbox
           fi
           OPT_ID="${OPT[$STATE_NAME]}"
-          echo "Factory state -> $STATE_NAME ($OPT_ID)"
+          echo "Lane -> $STATE_NAME ($OPT_ID)"
 
           # Ensure item is on the project (idempotent) + capture item id
           ITEM_ID=$(gh api graphql -f query='
