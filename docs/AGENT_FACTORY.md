@@ -214,6 +214,39 @@ When you merge that PR, the next run of the affected agent reads the updated ins
 | **Fix a failing PR** | Comment `/pr-fix` on the PR |
 | **Fast-forward simple changes** | For trivial fixes, skip the whole chain: just open a PR directly |
 
+## Landing a PR that modifies a protected workflow file
+
+The reviewer's [self-tamper guard](../.github/workflows/reviewer.md) applies the `human-review` label and noops before running any checks if the PR diff touches any of these paths:
+
+- `.github/workflows/reviewer.md`
+- `.github/workflows/self-improvement-meta.md`
+- `.github/copilot-instructions.md`
+
+This is intentional: these files can alter the reviewer's own instructions or adjacent guardrails, so a model review of them is not a meaningful signal. Human eyes are required.
+
+### What happens automatically
+
+1. Reviewer applies `human-review` and calls noop.
+2. `contribution-checker`, `simplify-and-harden-ci`, and `eval-creator-ci` also noop — they respect the `human-review` label as an emergency stop.
+3. CI (tests, lockfile sync) still runs normally and must pass.
+
+### How to unblock the PR
+
+1. Read the diff yourself. Pay attention to whether it weakens guards, changes the self-tamper list, or alters review logic.
+2. If the change is correct and intentional, **remove the `human-review` label** from the PR. The quality-gate workflows will NOT rerun on label removal by design — you are now the reviewer of record.
+3. Merge the PR.
+
+If the change needs work, leave `human-review` on and either push fixes to the branch yourself or ask the PR author to.
+
+### When the guard fires on an unrelated PR
+
+Sometimes a PR touches a protected file as a side effect of an otherwise routine change (e.g. a lockfile regeneration after a frontmatter tweak). Two options:
+
+- Split the PR. Land the non-protected changes through the normal factory chain, then land the protected file change as a separate PR with your own review.
+- Or review the whole PR yourself using the procedure above.
+
+Do not disable the guard to let the PR through. The guard is one line of `case` logic in [`reviewer.md`](../.github/workflows/reviewer.md) — disabling it for convenience defeats the purpose.
+
 ## All Workflows
 
 ### Factory Chain (custom, skill-backed)
