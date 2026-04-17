@@ -46,33 +46,31 @@ ${{ steps.sanitized.outputs.text }}
 
 ## Your Mission
 
-Analyze the issue or discussion and its comments, then create a sequence of clear, actionable sub-issues (at most 5) that break down the work into manageable tasks for GitHub Copilot agents.
+Analyze the issue or discussion and its comments, then create **one consolidated sub-issue** that captures the full plan as a single checklist. Do not split the plan into multiple parallel sub-issues. See "Why one sub-issue, not many" below for the rationale.
 
-## Guidelines for Creating Sub-Issues
+## Guidelines for Creating the Sub-Issue
 
 ### 1. Clarity and Specificity
-Each sub-issue should:
-- Have a clear, specific objective that can be completed independently
-- Use concrete language that a SWE agent can understand and execute
-- Include specific files, functions, or components when relevant
+The sub-issue should:
+- Cover every work item the plan calls for in a single ordered checklist
+- Use concrete language a SWE agent can read top-to-bottom and execute
+- Include specific files, functions, or components next to each checklist item when relevant
 - Avoid ambiguity and vague requirements
 
-### 2. Proper Sequencing
-Order the tasks logically:
+### 2. Proper Sequencing inside the checklist
+Order the checklist items logically:
 - Start with foundational work (setup, infrastructure, dependencies)
 - Follow with implementation tasks
 - End with validation and documentation
-- Consider dependencies between tasks
+- Flag dependencies between items inline
 
 ### 3. Right Level of Granularity
-Each task should:
-- Be completable in a single PR
-- Not be too large (avoid epic-sized tasks)
-- With a single focus or goal. Keep them extremely small and focused even if it means more tasks.
-- Have clear acceptance criteria
+- The sub-issue as a whole is completable in a single PR that lands on main
+- Each checklist item is a single self-contained change the implementer can make in one pass
+- Keep individual checklist items small and focused even if it means more items
 
 ### 4. SWE Agent Formulation
-Write tasks as if instructing a software engineer:
+Write the sub-issue body as if instructing a software engineer:
 - Use imperative language: "Implement X", "Add Y", "Update Z"
 - Provide context: "In file X, add function Y to handle Z"
 - Include relevant technical details
@@ -82,9 +80,15 @@ Write tasks as if instructing a software engineer:
 
 1. **Analyze the Content**: Read the issue or discussion title, description, and comments carefully
 2. **Identify Scope**: Determine the overall scope and complexity
-3. **Break Down Work**: Identify 3-5 logical work items
-4. **Formulate Tasks**: Write clear, actionable descriptions for each task
-5. **Create Sub-Issues**: Use safe-outputs to create the sub-issues
+3. **Plan the Checklist**: Identify 3-10 ordered work items that together complete the plan
+4. **Write the Sub-Issue**: One checklist inside one sub-issue body
+5. **Create the Sub-Issue**: Use safe-outputs to create exactly one sub-issue
+
+## Why one sub-issue, not many
+
+The factory previously produced 3-5 parallel sub-issues per plan. Each sub-issue was then dispatched to Copilot, which opened a separate PR for each. When sub-issues touched the same files (workflow sources, shared skills, shared docs), the first PR to merge generated immediate merge conflicts on every sibling PR. Resolving those conflicts consumed human and agent time every single time a plan landed.
+
+A single consolidated sub-issue produces a single PR that the implementer can drive to completion without sibling-PR conflicts. If the implementer wants to split work internally, it can do so within that one PR using commits. The factory stops paying the parallel-PR conflict tax while keeping the checklist-driven structure that made plans useful in the first place.
 
 ## Output Format
 
@@ -129,10 +133,10 @@ This is needed to secure API endpoints before implementing user-specific feature
 
 ## Important Notes
 
-- **Maximum 5 sub-issues**: Don't create more than 5 sub-issues (as configured in safe-outputs)
-- **Parent Reference**: You must specify the current issue (#${{ github.event.issue.number }}) or discussion (#${{ github.event.discussion.number }}) as the parent when creating sub-issues. The system will automatically link them with "Related to #N" in the issue body.
-- **Clear Steps**: Each sub-issue should have clear, actionable steps
-- **No Duplication**: Don't create sub-issues for work that's already done
+- **Exactly one sub-issue**: Create one consolidated sub-issue per plan. The safe-outputs cap is still `max: 5` but use only one slot. Do not split the plan into parallel sub-issues.
+- **Parent Reference**: Specify the current issue (#${{ github.event.issue.number }}) or discussion (#${{ github.event.discussion.number }}) as the parent when creating the sub-issue. The system will automatically link with "Related to #N" in the issue body.
+- **Clear Steps**: The sub-issue's checklist must have clear, actionable items
+- **No Duplication**: Do not list work that's already done in the checklist
 - **Prioritize Clarity**: SWE agents need unambiguous instructions
 
 ## Instructions
@@ -141,6 +145,6 @@ Review instructions in `.github/instructions/*.instructions.md` if you need guid
 
 ## Begin Planning
 
-Analyze the issue or discussion and create the sub-issues now. Remember to use the safe-outputs mechanism to create each issue. Each sub-issue you create will be automatically linked to the parent (issue #${{ github.event.issue.number }} or discussion #${{ github.event.discussion.number }}).
+Analyze the issue or discussion and create one consolidated sub-issue now. Use the safe-outputs mechanism to create a single issue whose body contains the full ordered checklist. The sub-issue will be automatically linked to the parent (issue #${{ github.event.issue.number }} or discussion #${{ github.event.discussion.number }}).
 
-After creating all the sub-issues successfully, if this was triggered from a discussion in the "Ideas" category, close the discussion with a comment summarizing the plan and resolution reason "RESOLVED".
+After creating the sub-issue successfully, if this was triggered from a discussion in the "Ideas" category, close the discussion with a comment summarizing the plan and resolution reason "RESOLVED".
