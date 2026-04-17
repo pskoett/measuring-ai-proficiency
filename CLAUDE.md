@@ -141,7 +141,7 @@ This repo runs an agent factory via [GitHub Agentic Workflows (gh-aw)](https://g
 
 **Factory chain:** issue-triage > spec-refiner > plan PR merged > plan-merged-dispatcher > implementer-dispatcher > reviewer + contribution-checker > /pr-fix > ci-cleaner > self-improvement-meta (nightly)
 
-**Human decisions:** (1) approve the plan PR, (2) assign the implementer, (3) merge the final PR, (4) approve learnings. Everything else is automated.
+**Human decisions:** (1) review and merge the plan PR (optionally swap the implementer label), (2) merge the final PR, (3) approve learnings. Everything else is automated.
 
 ## Architecture
 

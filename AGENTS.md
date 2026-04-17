@@ -124,10 +124,10 @@ After updating documentation, update skills:
 
 ## Agent Factory: Shared Context
 
-The sections below are read by every agentic workflow in the factory chain. The factory consists of 10 workflows organized in three tiers:
+The sections below are read by every agentic workflow in the factory chain. The factory consists of 14 workflows organized in three tiers:
 
-**Factory chain** (custom, skill-backed): `spec-refiner`, `reviewer`, `self-improvement-meta`, `ci-cleaner`, `contribution-checker`
-**Support workflows** (from githubnext/agentics): `issue-triage`, `plan`, `pr-fix`
+**Factory chain** (custom, skill-backed): `spec-refiner`, `plan-merged-dispatcher`, `implementer-dispatcher`, `reviewer`, `self-improvement-meta`, `ci-cleaner`, `contribution-checker`, `simplify-and-harden-ci`, `learning-aggregator-ci`, `eval-creator-ci`
+**Support workflows** (from githubnext/agentics): `issue-triage`, `pr-fix`
 **Project-specific**: `ai-proficiency-pr-review`, `ai-proficiency-weekly-report`
 
 See `docs/AGENT_FACTORY.md` for the full guide with step-by-step usage instructions, label reference, and debugging commands.
@@ -191,7 +191,6 @@ These rules apply to every comment, issue body, PR description, and commit messa
 ### Spec and plan files
 
 Plans live in `docs/plans/plan-NNN-<slug>.md` where NNN is the **source issue number**, zero-padded to three digits (e.g., issue #66 → `plan-066-<slug>.md`). The format is defined in `.claude/skills/plan-interview/SKILL.md`. Downstream agents use these files as the source of truth for implementation and review. Older plans created with a sequential counter remain valid and should not be renamed.
-Plans live in `docs/plans/plan-NNN-<slug>.md` where NNN is the source issue number, zero-padded to three digits. The format is defined in `.claude/skills/plan-interview/SKILL.md`. Downstream agents use these files as the source of truth for implementation and review.
 
 ### Learnings
 

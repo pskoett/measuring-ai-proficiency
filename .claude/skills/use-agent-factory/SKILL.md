@@ -141,21 +141,9 @@ These are the concrete failure modes this factory has hit. When you see symptoms
 
 ### Symptom: PR has merge conflicts; "Update branch" button fails
 
-**Cause**: Parallel sibling PRs landed first. No factory workflow handles conflict resolution (tracked as a gap; see issue #61 if not yet shipped).
+**Cause**: PR branch is behind `origin/main`.
 
-**Action**: Clone locally, `git fetch origin main`, `git merge origin/main` on the PR branch, resolve textual conflicts, push. Document what you kept and why in the merge commit. Do not let `/pr-fix` near a conflicted branch; it is not designed for rebase work.
-
-### Symptom: Reviewer marks PR `needs-changes` for items that are actually covered by a sibling PR
-
-**Cause**: Reviewer has no cross-PR awareness (tracked as a gap; see issue #62). It evaluates each PR against the full plan in isolation.
-
-**Action**: Do not blindly run `/pr-fix`. Explain to the user that the reviewer is wrong and show which sibling PRs cover the missed items. Let the user decide whether to override or merge anyway.
-
-### Symptom: Two spec-refiner runs produced plans with the same number
-
-**Cause**: Numbering race (tracked as issue #66). Both runs read `main` concurrently, saw the same highest plan number, and picked the same next integer.
-
-**Action**: Keep the earlier-opened PR at the current number. Rename the later one's plan file and title to the next integer via `git mv`, update the in-file title heading, push. Update the PR title via `update_pull_request`.
+**Action**: Add the `needs-rebase` label. The `conflict-resolver` workflow will merge `origin/main` into the branch automatically. If conflicts exist, it posts a comment listing the files and adds `blocked-on-human`. Clone locally, resolve the conflicts, and push. Remove `blocked-on-human` after the push. Do not let `/pr-fix` near a conflicted branch; it is not designed for rebase work.
 
 ### Symptom: Reviewer did not post a verdict after the PR was opened
 
