@@ -123,7 +123,7 @@ See `docs/MCP.md` for full documentation, examples, and troubleshooting.
 
 ## Agent Factory
 
-This repo runs a 14-workflow agent factory via [GitHub Agentic Workflows (gh-aw)](https://github.github.com/gh-aw/). The chain flows: triage, spec, plan, implement, review, fix, learn.
+This repo runs an agent factory via [GitHub Agentic Workflows (gh-aw)](https://github.github.com/gh-aw/) plus one plain GitHub Actions workflow (`plan-merged-dispatcher`). The chain flows: triage, spec, plan, implement, review, fix, learn. The source issue is the unit of work end-to-end; there is no sub-issue layer.
 
 **Workflows** live in `.github/workflows/*.md` and compile to `.lock.yml` files via `gh aw compile`.
 
@@ -139,7 +139,7 @@ This repo runs a 14-workflow agent factory via [GitHub Agentic Workflows (gh-aw)
 - Add a skill for workflows: create `.claude/skills/<name>/SKILL.md`, reference it from the workflow body
 - Debug a run: `gh aw logs <workflow>` or `gh aw audit <run-id>`
 
-**Factory chain:** issue-triage > spec-refiner > /plan > implementer > reviewer + contribution-checker > /pr-fix > ci-cleaner > self-improvement-meta (nightly)
+**Factory chain:** issue-triage > spec-refiner > plan PR merged > plan-merged-dispatcher > implementer-dispatcher > reviewer + contribution-checker > /pr-fix > ci-cleaner > self-improvement-meta (nightly)
 
 **Human decisions:** (1) approve the plan PR, (2) assign the implementer, (3) merge the final PR, (4) approve learnings. Everything else is automated.
 
@@ -167,7 +167,7 @@ scripts/
 ├── ci-cleaner.md                # Auto-fix CI on main
 ├── contribution-checker.md      # CONTRIBUTING.md compliance
 ├── issue-triage.md              # Auto-label issues (githubnext/agentics)
-├── plan.md                      # /plan slash command (githubnext/agentics)
+├── plan-merged-dispatcher.yml   # Activates source issue on plan PR merge (plain Actions)
 ├── pr-fix.md                    # /pr-fix slash command (githubnext/agentics)
 ├── ai-proficiency-pr-review.md  # Proficiency score per PR
 ├── ai-proficiency-weekly-report.md  # Weekly proficiency trends

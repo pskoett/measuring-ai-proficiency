@@ -27,6 +27,9 @@ tools:
     min-integrity: none # This workflow is allowed to examine and comment on any issues
 
 timeout-minutes: 10
+engine:
+  id: copilot
+  model: gpt-5.4
 source: githubnext/agentics/workflows/issue-triage.md@11c9a2c442e519ff2b427bf58679f5a525353f76
 ---
 

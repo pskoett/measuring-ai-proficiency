@@ -30,6 +30,10 @@ safe-outputs:
 
 timeout-minutes: 20
 
+engine:
+  id: copilot
+  model: gpt-5.4
+
 source: githubnext/agentics/workflows/pr-fix.md@11c9a2c442e519ff2b427bf58679f5a525353f76
 ---
 

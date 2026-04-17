@@ -268,11 +268,11 @@ The skills in `.claude/skills/` were originally designed for Claude Code. Runnin
 
 #### How the recommendation gets made
 
-`spec-refiner` adds a `## Recommended implementer` section to every plan file and applies the `impl:copilot` label to the parent issue. Copilot is the only implementer the factory can auto-route today because `implementer-dispatcher`'s `assign-to-agent` safe output targets GitHub user accounts and only the Copilot cloud agent has one. The human reviews the plan PR; if they want to hand-assign to Claude Opus, Claude Sonnet, or Codex instead, they swap the label to `impl:claude-opus`, `impl:claude-sonnet`, or `impl:codex` before commenting `/plan`. For non-`impl:copilot` labels the dispatcher calls `noop` and the human assigns the sub-issues manually via claude.ai/code or equivalent. For `impl:copilot` the dispatcher auto-assigns every sub-issue, so one decision at the plan level replaces N manual assignments.
+`spec-refiner` adds a `## Recommended implementer` section to every plan file and applies the `impl:copilot` label to the source issue. Copilot is the only implementer the factory can auto-route today because `implementer-dispatcher`'s `assign-to-agent` safe output targets GitHub user accounts and only the Copilot cloud agent has one. The human reviews the plan PR; if they want to hand-assign to Claude Opus, Claude Sonnet, or Codex instead, they swap the label on the source issue before merging. On merge, `plan-merged-dispatcher` writes the plan checklist onto the source issue body and applies `ready-for-implementation`. For non-`impl:copilot` labels the dispatcher calls `noop` and the human assigns the issue manually via claude.ai/code or equivalent. For `impl:copilot` the dispatcher auto-assigns the source issue directly.
 
 #### A note on gh-aw engine selection
 
-The routing rules above are about the **implementer step** (who writes the code from a sub-issue). The gh-aw engine that runs the workflows in this pack (`spec-refiner`, `reviewer`, `self-improvement-meta`) is a separate choice in each workflow's frontmatter. All workflows here currently use Copilot as the engine because it is bundled with the existing `COPILOT_GITHUB_TOKEN` secret. When gh-aw supports running the Claude engine through the same bundled subscription (expected soon based on the April 2026 changelog), flipping these workflows to `engine: claude` will be a one-line change per workflow.
+The routing rules above are about the **implementer step** (who writes the code from the source issue). The gh-aw engine that runs the workflows in this pack (`spec-refiner`, `reviewer`, `self-improvement-meta`) is a separate choice in each workflow's frontmatter. All workflows here currently use Copilot as the engine because it is bundled with the existing `COPILOT_GITHUB_TOKEN` secret. When gh-aw supports running the Claude engine through the same bundled subscription (expected soon based on the April 2026 changelog), flipping these workflows to `engine: claude` will be a one-line change per workflow.
 
 ### Tooling available to agents in this repo
 
@@ -288,13 +288,13 @@ The routing rules above are about the **implementer step** (who writes the code 
 | Workflow | Trigger | Safe outputs | Skill |
 |----------|---------|-------------|-------|
 | `spec-refiner` | Issue labeled `needs-spec` | update-issue, add-comment, create-pull-request, add-labels, remove-labels | plan-interview |
-| `implementer-dispatcher` | Sub-issue labeled `ready-for-implementation` | assign-to-agent, add-comment, add-labels | (none, reads parent issue labels) |
+| `plan-merged-dispatcher` | Plan PR merged (path filter `docs/plans/plan-*.md`) | (plain Actions: edits source issue body, moves labels) | (none) |
+| `implementer-dispatcher` | Source issue labeled `ready-for-implementation` | assign-to-agent, add-comment, add-labels | (none, reads `impl:*` label on the same issue) |
 | `reviewer` | PR opened / updated | add-comment, add-labels | intent-framed-agent |
 | `self-improvement-meta` | Nightly (~2am) | create-pull-request, create-issue | self-improvement |
 | `ci-cleaner` | CI failure on main | create-pull-request | (none, uses bash/edit directly) |
 | `contribution-checker` | PR opened / updated | add-comment | (none, reads CONTRIBUTING.md) |
 | `issue-triage` | Issue opened / reopened | add-labels, add-comment | (none, githubnext/agentics) |
-| `plan` | `/plan` slash command | create-issue | (none, githubnext/agentics) |
 | `pr-fix` | `/pr-fix` slash command | push-to-pull-request-branch, add-comment, create-issue | (none, githubnext/agentics) |
 | `simplify-and-harden-ci` | PR opened / updated | add-comment | simplify-and-harden |
 | `learning-aggregator-ci` | Weekly (Monday) | create-issue | learning-aggregator |

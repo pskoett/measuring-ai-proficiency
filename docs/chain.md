@@ -20,7 +20,8 @@ How the workflows in this repo chain together into a spec, plan, implement, revi
 |  eval-creator-ci.md        ci-cleaner.md                     |
 |  conflict-resolver.md      contribution-checker.md           |
 |  ai-proficiency-pr-review.md ai-proficiency-weekly-report.md |
-|  issue-triage.md           plan.md          pr-fix.md        |
+|  issue-triage.md           plan-merged-dispatcher.yml        |
+|  pr-fix.md                                                   |
 +-----------------------------+-------------------------------+
                               | reads skills from
                               v
@@ -54,14 +55,18 @@ issues.opened [needs-spec]
            | writes docs/plans/plan-NNN-<slug>.md with implementer recommendation
            | labels needs-plan
            v
-+----------------------+
-|   /plan              |   from githubnext/agentics
-+----------+-----------+
-           | creates sub-issues labeled ready-for-implementation
+(human reviews + merges plan PR)
+           |
            v
 +----------------------+
-|  implementer-        |   reads impl:* label from parent issue
-|  dispatcher          |   auto-assigns sub-issue to chosen agent
+| plan-merged-         |   plain GitHub Actions workflow
+| dispatcher           |   writes plan checklist into source issue body
++----------+-----------+   labels source issue ready-for-implementation
+           |
+           v
++----------------------+
+|  implementer-        |   reads impl:* label on source issue
+|  dispatcher          |   auto-assigns source issue to chosen agent
 +----------+-----------+
            | opens PR
            v
@@ -124,7 +129,7 @@ As of April 2026, the implementer step in the chain has four choices, all bundle
 | **Copilot cloud agent** | Trivial changes, dependency bumps, mechanical edits | Fast, cheap, bundled |
 | **Codex GPT-5.4** | Opportunistic, A/B data, different reasoning style | Strong on common patterns |
 
-`spec-refiner` assesses the plan and writes a recommendation into the plan file itself. A human reviewing the plan PR sees the recommendation. The `implementer-dispatcher` workflow then auto-assigns each sub-issue to the chosen agent based on the `impl:*` label on the parent issue. No manual assignment per sub-issue is required.
+`spec-refiner` assesses the plan and writes a recommendation into the plan file itself. A human reviewing the plan PR sees the recommendation. When the plan PR merges, `plan-merged-dispatcher` labels the source issue `ready-for-implementation`; `implementer-dispatcher` then auto-assigns that issue to the chosen agent based on its `impl:*` label. One plan, one source issue, one PR.
 
 This is a deliberate human-in-the-loop decision point. The routing rule is "complexity warrants Opus" and only a human can decide, for a given repo on a given day, whether the cost or latency difference is worth it. The spec-refiner recommends, the human chooses, and `reviewer` calibrates the review based on who actually produced the code.
 
@@ -136,7 +141,7 @@ Specialization. Each workflow does one job well. When one fails, you can isolate
 
 ## How state moves through the chain
 
-State lives in GitHub, not in memory. Each agent starts cold. The spec file must be written back to the repo so the planner can read it. The plan sub-issues must be labeled so the implementer can find them. The reviewer must read the plan file from disk. Every handoff is mediated by a file, a label, or a PR.
+State lives in GitHub, not in memory. Each agent starts cold. The spec file must be written back to the repo so the planner can read it. The source issue must be labeled `ready-for-implementation` so the dispatcher can find it. The reviewer must read the plan file from disk. Every handoff is mediated by a file, a label, or a PR.
 
 This makes the chain debuggable. You can inspect the state at any point by looking at the repo.
 

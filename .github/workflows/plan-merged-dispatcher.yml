@@ -1,0 +1,103 @@
+name: Plan Merged Dispatcher
+
+on:
+  pull_request:
+    types: [closed]
+    paths:
+      - 'docs/plans/plan-*.md'
+
+permissions:
+  contents: read
+  issues: write
+  pull-requests: read
+
+jobs:
+  dispatch:
+    if: github.event.pull_request.merged == true
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout merged plan file
+        uses: actions/checkout@v5
+        with:
+          ref: ${{ github.event.pull_request.merge_commit_sha }}
+          sparse-checkout: docs/plans
+          sparse-checkout-cone-mode: false
+
+      - name: Activate source issues from merged plan files
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: |
+          set -euo pipefail
+
+          PLAN_FILES=$(gh pr diff "$PR_NUMBER" --name-only \
+            | grep -E '^docs/plans/plan-[0-9]+-.+\.md$' || true)
+
+          if [ -z "$PLAN_FILES" ]; then
+            echo "No plan files in this PR. Nothing to activate."
+            exit 0
+          fi
+
+          activated=0
+          while IFS= read -r plan_path; do
+            [ -f "$plan_path" ] || { echo "Plan file missing after checkout: $plan_path"; continue; }
+
+            filename=$(basename "$plan_path")
+            issue_num=$(printf '%s' "$filename" | sed -E 's/^plan-0*([0-9]+)-.*\.md$/\1/')
+            if ! [[ "$issue_num" =~ ^[0-9]+$ ]]; then
+              echo "Could not parse issue number from $filename; skipping."
+              continue
+            fi
+
+            if ! gh issue view "$issue_num" --json state >/dev/null 2>&1; then
+              echo "Issue #$issue_num not found; skipping $filename."
+              continue
+            fi
+
+            checklist=$(awk '
+              /^## Implementation Checklist[[:space:]]*$/ { grab=1; next }
+              grab && /^## / { exit }
+              grab { print }
+            ' "$plan_path")
+
+            if [ -z "$(printf '%s' "$checklist" | tr -d '[:space:]')" ]; then
+              echo "Plan $filename has no Implementation Checklist section; skipping."
+              continue
+            fi
+
+            plan_slug="${filename%.md}"
+            marker_begin="<!-- plan-checklist:${plan_slug}:begin -->"
+            marker_end="<!-- plan-checklist:${plan_slug}:end -->"
+
+            current_body=$(gh issue view "$issue_num" --json body --jq .body)
+
+            cleaned_body=$(printf '%s' "$current_body" \
+              | awk -v begin="$marker_begin" -v end="$marker_end" '
+                  index($0, begin) { skip=1; next }
+                  skip && index($0, end) { skip=0; next }
+                  !skip { print }
+                ')
+
+            cleaned_body=$(printf '%s' "$cleaned_body" | awk '
+              /^[[:space:]]*$/ { blank++; next }
+              { for (i=0;i<blank;i++) print ""; blank=0; print }
+            ')
+
+            {
+              printf '%s\n' "$cleaned_body"
+              printf '\n%s\n' "$marker_begin"
+              printf '## Implementation Checklist (from %s)\n\n' "$plan_slug"
+              printf '%s\n' "$checklist"
+              printf '%s\n' "$marker_end"
+            } > /tmp/issue_body.md
+
+            gh issue edit "$issue_num" --body-file /tmp/issue_body.md
+            gh issue edit "$issue_num" --remove-label needs-plan 2>/dev/null || true
+            gh issue edit "$issue_num" --remove-label needs-spec 2>/dev/null || true
+            gh issue edit "$issue_num" --add-label ready-for-implementation
+
+            echo "Activated issue #$issue_num from $filename."
+            activated=$((activated + 1))
+          done <<< "$PLAN_FILES"
+
+          echo "Activated $activated source issue(s)."
