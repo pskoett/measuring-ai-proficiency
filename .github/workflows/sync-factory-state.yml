@@ -76,8 +76,11 @@ jobs:
             STATE_NAME=InFlight
           elif [[ "$L" == *",needs-plan,"* ]]; then
             STATE_NAME=Planning
+          elif [ "$IS_PR" = "true" ] && [ "$ITEM_STATE" = "open" ]; then
+            # Any other open PR is awaiting human review/merge.
+            STATE_NAME=Review
           else
-            # needs-spec OR no factory labels yet
+            # Issue with needs-spec or no factory labels yet.
             STATE_NAME=Inbox
           fi
           OPT_ID="${OPT[$STATE_NAME]}"
