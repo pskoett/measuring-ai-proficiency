@@ -108,7 +108,7 @@ Map each finding to a `Pattern-Key` using the taxonomy from the skill. Merge wit
 
 ### Step 4: Deduplicate against existing learnings
 
-Before adding any transcript-derived pattern to the output, check whether a matching `Pattern-Key` already exists in `.learnings/LEARNINGS.md` with `Status: promoted_to_skill`. If so, skip it.
+Before adding any transcript-derived pattern to the output, check whether a matching `Pattern-Key` already exists in `.learnings/LEARNINGS.md` with `Status: promoted_to_skill` OR `Status: pending`. If a pending entry already covers the same pattern, increment its recurrence count in the issue body rather than creating a new row.
 
 ## Phase 3: Classify and rank
 

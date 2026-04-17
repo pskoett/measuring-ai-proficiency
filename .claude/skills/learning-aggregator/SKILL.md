@@ -223,7 +223,7 @@ Artifact retention is 90 days by default (the gh-aw default). After 90 days, the
 For each `agent-stdio.log` file, parse the conversation and look for:
 
 1. **Tool call repetition** — same tool + similar args called 3+ times in sequence → likely a retry loop. Pattern-key: `retry-loop.<tool>`
-2. **Noop on actionable input** — agent called noop but the triggering event clearly warranted action → Pattern-key: `noop-mifire.<workflow>`
+2. **Noop on actionable input** — agent called noop but the triggering event clearly warranted action → Pattern-key: `noop-misfire.<workflow>`
 3. **Error patterns in tool output** — responses containing `error`, `failed`, `Traceback`, `not found` before the agent recovered → Pattern-key: `error.<category>`
 4. **Approach changes mid-task** — agent abandoning a path and restarting (visible as repeated similar tool calls with different parameters after an error) → Pattern-key: `approach-switch.<domain>`
 5. **Token anomalies** — `agent_usage.json` showing token count more than 2x the median for similar workflows → Pattern-key: `cost.<workflow>`

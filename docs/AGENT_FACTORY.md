@@ -385,7 +385,7 @@ Every gh-aw agent workflow uploads an `agent` artifact after the agent step comp
 
 | File | Contents |
 |------|----------|
-| `agent-stdio.log` | Full session: prompt, all tool calls, tool outputs, and agent reasoning in order |
+| `agent-stdio.log` | Full session: prompt, all tool calls, tool outputs, and final agent responses in order |
 | `sandbox/agent/logs/` | Structured agent logs with timestamps and tool metadata |
 | `safeoutputs.jsonl` | Every safe-output action taken (issues created, comments posted, PRs opened) |
 | `agent_output.json` | Final structured output payload |
