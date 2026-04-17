@@ -25,7 +25,7 @@ safe-outputs:
     title-prefix: "[plan] "
     labels: [plan-file, automation]
   add-labels:
-    allowed: [needs-plan, blocked-on-human, spec-refined, "impl:claude-opus", "impl:claude-sonnet", "impl:copilot", "impl:codex"]
+    allowed: [needs-plan, blocked-on-human, spec-refined, "impl:copilot"]
     max: 3
   remove-labels:
     allowed: [needs-spec]
@@ -46,7 +46,7 @@ This is a single-shot gh-aw run, not a live session. Follow the skill's process,
 
 Before writing the PR, append a `## Recommended implementer` section to the plan file.
 
-Always recommend `copilot`. It is the only implementer the factory can actually auto-assign today: `implementer-dispatcher` uses the `assign-to-agent` safe output, which only routes to the Copilot cloud agent (a real GitHub user). `impl:claude-*` and `impl:codex` labels exist for humans who want to hand-assign a plan outside the factory, but they do not produce an automatic assignment and cause the sub-issue to stall silently.
+Always recommend `copilot`. It is the only implementer the factory can actually auto-assign today: `implementer-dispatcher` uses the `assign-to-agent` safe output, which only routes to the Copilot cloud agent (a real GitHub user). `impl:claude-*` and `impl:codex` labels exist for humans who want to hand-assign a plan outside the factory, but they do not produce an automatic assignment and cause the source issue to stall silently.
 
 Example:
 
@@ -68,7 +68,7 @@ After the skill completes, the plan file is written, and the implementer is reco
 3. **Swap labels**:
    - Remove `needs-spec`
    - Add `impl:copilot`
-   - Add `needs-plan` if the plan has no open questions (this triggers `/plan` to create sub-issues)
+   - Add `needs-plan` if the plan has no open questions. On merge of the plan PR, `plan-merged-dispatcher` reads the plan checklist, writes it onto the source issue body, and transitions `needs-plan` → `ready-for-implementation` on the source issue.
    - Add `blocked-on-human` if the plan has any `**NEEDS HUMAN INPUT**` markers
 
 ## Skip conditions (call noop)

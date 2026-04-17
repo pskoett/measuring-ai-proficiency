@@ -4,6 +4,12 @@ on:
     types: [created]
   workflow_dispatch:
 
+if: github.event_name == 'workflow_dispatch' || (github.event_name == 'issue_comment' && contains(github.event.comment.body, '/assess-proficiency'))
+
+concurrency:
+  group: "gh-aw-${{ github.workflow }}-${{ github.event.issue.number || github.event.pull_request.number || github.run_id }}"
+  cancel-in-progress: true
+
 engine:
   id: copilot
   model: gpt-5.4

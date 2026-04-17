@@ -12,7 +12,7 @@ description: |
 
 ## Purpose
 
-This repo runs a 14-workflow gh-aw agent factory. Every non-trivial change should flow through it end to end: `issue > spec > plan > sub-issues > implementer > review > fix > merge > learn`. This skill tells you how to drive that flow correctly, where to stop and wait for a human, and what to do when something stalls.
+This repo runs a gh-aw agent factory plus one plain Actions workflow. Every non-trivial change should flow through it end to end: `issue > spec > plan PR merged > source issue activated > implementer > review > fix > merge > learn`. The source issue is the unit of work; there is no sub-issue layer. This skill tells you how to drive that flow correctly, where to stop and wait for a human, and what to do when something stalls.
 
 ## When to invoke
 
@@ -55,10 +55,11 @@ spec-refiner  (produces docs/plans/plan-NNN-<slug>.md as PR + implementer label)
 [human] merges plan PR  <-- GATE 1
      |
      v
-/plan  (breaks plan into sub-issues labeled `ready-for-implementation`)
+plan-merged-dispatcher  (auto: writes plan checklist onto source issue,
+                         moves label needs-plan -> ready-for-implementation)
      |
      v
-implementer-dispatcher  (auto: assigns sub-issues to the chosen agent)
+implementer-dispatcher  (auto: assigns source issue to the chosen agent)
      |
      v
 coding agent opens PR

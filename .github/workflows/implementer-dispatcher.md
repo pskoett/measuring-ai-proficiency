@@ -26,42 +26,32 @@ safe-outputs:
 
 # Implementer Dispatcher
 
-You auto-assign sub-issues to the correct cloud coding agent based on the parent issue's implementer label. This removes the need for humans to assign each sub-issue individually.
+You auto-assign issues to the correct cloud coding agent based on the issue's implementer label. This removes the need for humans to assign each issue individually.
+
+The `ready-for-implementation` label is applied directly to the source issue by `plan-merged-dispatcher` after the plan PR merges. There is no sub-issue layer.
 
 ## Process
 
-### Step 1: Find the parent issue
+### Step 1: Read the implementer label from this issue
 
-This sub-issue was labeled `ready-for-implementation` by the `/plan` workflow. Find the parent issue by:
-1. Checking for a parent issue link (sub-issue relationship)
-2. Looking for a `Related to #N` reference in the issue body (added automatically by `/plan`)
-3. Looking for a `plan-NNN` reference in the issue body
-4. Searching for the plan file referenced in the issue body and finding its source issue
+Look for one of these labels on the issue that triggered this run:
 
-**Note**: Parent discovery relies entirely on these structural references. Plan PR auto-close keywords (`Closes #N`) are not used and must not be required.
+- `impl:copilot` — assign to Copilot cloud agent. This is the only label the factory can auto-route today.
+- `impl:claude-opus`, `impl:claude-sonnet`, `impl:codex` — manual hand-off outside the factory. Call `noop` with a comment explaining that the human will assign the issue themselves; do not call `assign-to-agent` for these.
 
-If no parent issue is found, post a comment explaining that manual assignment is needed and call noop.
+If the issue has no implementer label, default to `impl:copilot`. Post a comment noting that no implementer was specified and the default was used.
 
-### Step 2: Read the implementer label from the parent
+### Step 2: Assign the issue
 
-Look for one of these labels on the parent issue:
-- `impl:copilot` - assign to Copilot cloud agent. This is the only label the factory can auto-route today.
-- `impl:claude-opus`, `impl:claude-sonnet`, `impl:codex` - manual hand-off outside the factory. Call `noop` with a comment explaining that the human will assign the sub-issue themselves; do not call `assign-to-agent` for these.
+For `impl:copilot`: use the `assign-to-agent` safe output to assign this issue to the Copilot cloud agent. Add the `assigned-to-agent` label to track that dispatch happened. Post a brief comment: "Assigned to Copilot cloud agent based on label `impl:copilot`."
 
-If the parent issue has no implementer label, default to `impl:copilot`. Post a comment noting that no implementer was specified and the default was used.
-
-### Step 3: Assign the sub-issue
-
-For `impl:copilot`: use the `assign-to-agent` safe output to assign this sub-issue to the Copilot cloud agent. Add the `assigned-to-agent` label to track that dispatch happened. Post a brief comment: "Assigned to Copilot cloud agent based on parent issue #NNN label `impl:copilot`."
-
-For `impl:claude-*` and `impl:codex`: do not call `assign-to-agent`. Post a comment saying: "Parent issue #NNN uses label `impl:X`. The factory only auto-routes `impl:copilot`; a human will hand-assign this sub-issue." Call `noop`.
+For `impl:claude-*` and `impl:codex`: do not call `assign-to-agent`. Post a comment saying: "Issue uses label `impl:X`. The factory only auto-routes `impl:copilot`; a human will hand-assign this issue." Call `noop`.
 
 ## Noop conditions
 
 Call `noop` if:
 - The issue is labeled `human-review`
 - The issue already has the `assigned-to-agent` label (prevent double-dispatch)
-- The issue is not a sub-issue (no parent found and no plan reference)
 
 ## Style
 
