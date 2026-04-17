@@ -75,7 +75,7 @@ for workflow in spec-refiner reviewer implementer-dispatcher self-improvement-me
     ci-cleaner contribution-checker simplify-and-harden-ci eval-creator-ci \
     ai-proficiency-pr-review ai-proficiency-weekly-report issue-triage pr-fix \
     conflict-resolver; do
-  gh run list --workflow "${workflow}.lock.yml" --limit 5 \
+  gh run list --workflow "${workflow}.lock.yml" --limit 20 \
     --json databaseId,displayTitle,conclusion,createdAt,event,headBranch \
     2>/dev/null || true
 done
