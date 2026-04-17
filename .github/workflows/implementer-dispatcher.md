@@ -45,20 +45,16 @@ If no parent issue is found, post a comment explaining that manual assignment is
 ### Step 2: Read the implementer label from the parent
 
 Look for one of these labels on the parent issue:
-- `impl:claude-opus` - assign to Claude Opus 4.6
-- `impl:claude-sonnet` - assign to Claude Sonnet 4.6
-- `impl:copilot` - assign to Copilot cloud agent
-- `impl:codex` - assign to Codex
+- `impl:copilot` - assign to Copilot cloud agent. This is the only label the factory can auto-route today.
+- `impl:claude-opus`, `impl:claude-sonnet`, `impl:codex` - manual hand-off outside the factory. Call `noop` with a comment explaining that the human will assign the sub-issue themselves; do not call `assign-to-agent` for these.
 
-If the parent issue has no implementer label, default to `impl:copilot` (the most constrained and cheapest option). Post a comment noting that no implementer was specified and the default was used.
+If the parent issue has no implementer label, default to `impl:copilot`. Post a comment noting that no implementer was specified and the default was used.
 
 ### Step 3: Assign the sub-issue
 
-Use the `assign-to-agent` safe output to assign this sub-issue to the chosen agent.
+For `impl:copilot`: use the `assign-to-agent` safe output to assign this sub-issue to the Copilot cloud agent. Add the `assigned-to-agent` label to track that dispatch happened. Post a brief comment: "Assigned to Copilot cloud agent based on parent issue #NNN label `impl:copilot`."
 
-Add the `assigned-to-agent` label to track that dispatch happened.
-
-Post a brief comment: "Assigned to [agent name] based on parent issue #NNN label `impl:X`."
+For `impl:claude-*` and `impl:codex`: do not call `assign-to-agent`. Post a comment saying: "Parent issue #NNN uses label `impl:X`. The factory only auto-routes `impl:copilot`; a human will hand-assign this sub-issue." Call `noop`.
 
 ## Noop conditions
 
