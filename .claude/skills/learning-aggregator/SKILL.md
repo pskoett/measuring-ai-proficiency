@@ -146,7 +146,7 @@ The gap report feeds into:
 - `--since YYYY-MM-DD` — only scan entries after this date
 - `--min-recurrence N` — raise the promotion threshold
 - `--area AREA` — filter to a specific area (frontend, backend, etc.)
-- `--deep` — also analyze session traces via Entire (see Session Trace Analysis below)
+- `--deep` — also analyze session traces (see Session Trace Analysis below)
 
 ## Session Trace Analysis
 
@@ -155,23 +155,24 @@ The outer loop reads from two complementary sources:
 | Source | What it is | Cadence | Cost |
 |--------|-----------|---------|------|
 | `.learnings/` | Explicit entries written by self-improvement during sessions. Agent's own reflections: corrections, knowledge gaps, recurring patterns it noticed. | Every session (hot path) | Near-zero |
-| Session traces | Full session transcripts captured by [Entire](https://entire.io): prompts, tool calls, outputs, files modified, token usage, checkpoints. | Weekly or on-demand (cold path) | Expensive — only run at cadence |
+| Session transcripts | Full session transcripts from GitHub Actions `agent` artifacts: prompts, tool calls, outputs, token usage. Available for all gh-aw factory workflows. | Weekly or on-demand (cold path) | Moderate — download per run |
 
-The default mode reads `.learnings/` and produces a gap report from what the agent explicitly logged. The `--deep` mode also analyzes session traces and merges findings from both sources.
+The default mode reads `.learnings/` and produces a gap report from what the agent explicitly logged. The `--deep` mode also analyzes session transcripts and merges findings from both sources.
 
 ### Why both sources matter
 
-`.learnings/` captures what the agent **noticed and chose to log** — a curated subset. Session traces capture **everything that happened**, including patterns the agent worked around, retried, or never recognized as failures.
+`.learnings/` captures what the agent **noticed and chose to log** — a curated subset. Session transcripts capture **everything that happened**, including patterns the agent worked around, retried, or never recognized as failures.
 
-Examples of patterns visible in traces but absent from `.learnings/`:
+Examples of patterns visible in transcripts but absent from `.learnings/`:
 
 - **Retry loops**: The same tool call repeated 3+ times with small variations. The agent eventually got it right but never logged the initial failures.
-- **Silent user corrections**: The user said "no, that's wrong" mid-flow. The agent corrected course but didn't log the misunderstanding.
+- **Noop patterns**: Workflows that called noop on runs that should have produced output — a signal of misconfigured triggers or overly strict noop conditions.
 - **Worked-around test failures**: A test failed, the agent changed approach, the new approach passed, the original failure was forgotten.
 - **Context handoff causes**: Which drift signals actually triggered handoffs, not just that handoffs happened.
 - **Token/time anomalies**: Sessions with disproportionate cost vs output — a signal of inefficiency the agent is unaware of.
+- **Spec drift**: Agent spending effort on out-of-scope work, visible in tool call sequences before a pivot.
 
-These patterns are high-value for the outer loop because the agent can't self-report them. Session traces are the only source.
+These patterns are high-value for the outer loop because the agent can't self-report them. Session transcripts are the only source.
 
 ### When to trigger --deep mode
 
@@ -184,44 +185,64 @@ Trace analysis is **not** per-session. It's cadenced:
 
 Running trace analysis per-session would burn tokens without producing new signal — cross-session patterns only emerge over multiple sessions.
 
-### Reading traces with Entire
+## GitHub Actions Transcript Analysis
 
-When `--deep` is requested, the skill uses the `entire` CLI to query shadow branch data:
+Every factory workflow compiled with gh-aw uploads an `agent` artifact after the agent step completes. This artifact contains the full session transcript and is the primary source for `--deep` mode analysis.
+
+### Artifact contents
+
+| File | What it contains |
+|------|-----------------|
+| `agent-stdio.log` | Full conversation: the prompt, all tool calls, tool outputs, and agent reasoning in chronological order |
+| `sandbox/agent/logs/` | Structured agent logs with timestamps and tool metadata |
+| `safeoutputs.jsonl` | Structured record of every safe-output action the agent took (issue created, comment posted, etc.) |
+| `agent_output.json` | The final structured output payload |
+| `agent_usage.json` | Token usage: prompt tokens, completion tokens, total |
+
+### Discovering artifacts
+
+Use the GitHub CLI to list recent runs and download artifacts:
 
 ```bash
-# Check availability
-entire --version
+# List recent runs for a specific factory workflow
+gh run list --workflow spec-refiner.lock.yml --limit 10 \
+  --json databaseId,displayTitle,conclusion,createdAt,event,headBranch,headSha
 
-# List recent checkpoints as JSON (id, date, session_id, message, tool_use_id)
-entire rewind --list
+# Download the agent artifact for a specific run
+mkdir -p /tmp/transcripts/<run-id>
+gh run download <run-id> --name agent --dir /tmp/transcripts/<run-id>
 
-# Read a checkpoint's full transcript
-entire explain --checkpoint <id> --full --no-pager
-
-# Or raw JSONL
-entire explain --checkpoint <id> --raw-transcript --no-pager
-
-# Filter to one session
-entire explain --session <session-id-prefix>
-
-# Generate AI summary (expensive, use sparingly)
-entire explain --checkpoint <id> --generate
+# Or via the API
+gh api repos/{owner}/{repo}/actions/runs/{run-id}/artifacts
 ```
 
-If `entire` is not installed or the current repo doesn't have Entire enabled, `--deep` falls back to `.learnings/`-only mode and reports the limitation in the gap report.
+Artifact retention is 90 days by default (the gh-aw default). After 90 days, the artifact is deleted automatically.
 
-### What to extract from a trace
+### What to extract from a transcript
 
-For each checkpoint within the time window, parse the raw transcript and look for:
+For each `agent-stdio.log` file, parse the conversation and look for:
 
-1. **Tool call repetition** — same tool + similar args > 3 times → likely a retry loop. Pattern-key: `retry-loop.<tool>`
-2. **User correction markers** — user messages containing "no", "wrong", "actually", "instead" immediately after an agent action → Pattern-key: `correction.<area>`
-3. **Error patterns in tool output** — matches against the same regex set as `error-detector.sh` (error, failed, Traceback, etc.) → Pattern-key: `error.<category>`
-4. **Handoff triggers** — context-surfing exit events and which drift signals fired → Pattern-key: `drift.<signal>`
-5. **Approach changes** — agent switching strategy mid-task without explicit pivot → Pattern-key: `approach-switch.<domain>`
-6. **Token anomalies** — sessions with token count > 2x the median for similar task types → Pattern-key: `cost.<task-type>`
+1. **Tool call repetition** — same tool + similar args called 3+ times in sequence → likely a retry loop. Pattern-key: `retry-loop.<tool>`
+2. **Noop on actionable input** — agent called noop but the triggering event clearly warranted action → Pattern-key: `noop-misfire.<workflow>`
+3. **Error patterns in tool output** — responses containing `error`, `failed`, `Traceback`, `not found` before the agent recovered → Pattern-key: `error.<category>`
+4. **Approach changes mid-task** — agent abandoning a path and restarting (visible as repeated similar tool calls with different parameters after an error) → Pattern-key: `approach-switch.<domain>`
+5. **Token anomalies** — `agent_usage.json` showing token count more than 2x the median for similar workflows → Pattern-key: `cost.<workflow>`
+6. **Spec drift signals** — tool calls accessing files or making changes clearly outside the stated scope → Pattern-key: `drift.<workflow>`
 
-Each finding is normalized to the same taxonomy as self-improvement (`harden.input_validation`, `simplify.dead_code`, etc.) where possible.
+Each finding is mapped to the same taxonomy as self-improvement:
+- `harden.*` — security, validation, permissions
+- `simplify.*` — complexity, dead code, over-abstraction
+- `process.*` — workflow ordering, handoff logic
+- `spec.*` — scope adherence, plan compliance
+
+### Privacy handling
+
+Transcripts may contain content from issue bodies, commit messages, and PR descriptions. These can include PII (names, email addresses, code snippets from private contexts). When analyzing:
+
+- Extract only the **structural patterns** (tool call sequences, error categories, retry counts)
+- Do not copy raw transcript content into issues or `.learnings/` entries
+- Do not include issue body excerpts unless they are already public on GitHub
+- Summarize patterns in abstract terms: "agent retried file-read 5 times before succeeding" not the actual file content
 
 ### How the two sources merge in the gap report
 
@@ -229,32 +250,41 @@ When `--deep` runs, each pattern in the gap report gets a `sources` field:
 
 ```yaml
 promotion_ready:
-  - pattern_key: "harden.input_validation"
+  - pattern_key: "retry-loop.file-read"
     recurrence_count: 5
     sources:
-      - .learnings/LEARNINGS.md (3 entries)
-      - entire:traces (5 occurrences across 4 sessions)
+      - .learnings/LEARNINGS.md (2 entries)
+      - transcript:spec-refiner/run-12345678 (3 occurrences)
     confidence: high  # appears in both sources
     evidence:
-      - "LRN-20260401-001: Missing bounds check on pagination"
-      - "entire:1ca16f9b: Retry loop on /api/search — pageSize rejected 4 times"
-      - "entire:8bf2e4cd: User correction 'validate before DB query'"
-    entire_checkpoints:
-      - 1ca16f9bb3801ee2a02f2384f31355a54b81ea00
-      - 8bf2e4cd63d01040b38df07c43f73e0f15d05ac9
+      - "LRN-20260401-001: File read retry on large repos"
+      - "transcript:12345678: Same grep tool called 4 times with varying patterns"
+      - "transcript:12345679: File not found on first attempt, succeeded on second"
 ```
 
-A pattern in both sources is higher confidence than one from either alone. A pattern only in `.learnings/` might be over-logged by a diligent agent. A pattern only in traces might be noise. The overlap is where the signal is strongest.
+A pattern in both sources is higher confidence than one from either alone.
 
-### Trace source compatibility
+### Reading traces with Entire (optional)
 
-The default implementation targets Entire (v0.5.4+) via the `entire rewind --list` and `entire explain` commands. The concept is source-agnostic — any session capture tool that exposes:
+If [Entire](https://entire.io) is installed and enabled on this repo, the `--deep` flag also uses the Entire CLI for local Claude Code session transcripts:
 
-- A list of recent checkpoints (with id, timestamp, session id)
-- The ability to read a checkpoint's transcript
-- Timestamps for cadence filtering
+```bash
+# Check availability
+entire --version
 
-...can serve as a trace source. Adapters for other capture tools can be added in `scripts/` or via gh-aw `mcp-scripts`.
+# List recent checkpoints as JSON
+entire rewind --list
+
+# Read a checkpoint's full transcript
+entire explain --checkpoint <id> --full --no-pager
+```
+
+If `entire` is not installed, `--deep` uses only GitHub Actions artifact transcripts as described above. Entire and Actions artifact analysis are complementary:
+
+| Source | Covers | Best for |
+|--------|--------|----------|
+| GitHub Actions artifacts | All gh-aw factory workflow runs | Automated factory patterns |
+| Entire checkpoints | Local Claude Code sessions | Human-driven interactive patterns |
 
 ## Persistence
 

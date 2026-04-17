@@ -118,3 +118,7 @@ Post a comment on the PR with the following structure:
 - Keep recommendations actionable and specific
 - If the repo is already at Level 4+, congratulate them and suggest advanced improvements
 - If at Level 1, be encouraging about starting the journey
+
+## Session capture
+
+This workflow's full session is automatically captured in the `agent` artifact for this run. The artifact includes the prompt, all tool calls, tool outputs, and token usage. The `learning-aggregator-ci` workflow downloads and analyzes these artifacts weekly to extract improvement patterns for the outer learning loop.

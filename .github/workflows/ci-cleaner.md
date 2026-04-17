@@ -182,3 +182,7 @@ Always: Install, Lint, Test, Recompile. This order ensures:
 ## Style
 
 Follow the writing rules in `AGENTS.md`. No em-dashes. Short, direct commit messages and PR descriptions.
+
+## Session capture
+
+This workflow's full session is automatically captured in the `agent` artifact for this run. The artifact includes the prompt, all tool calls, tool outputs, and token usage. The `learning-aggregator-ci` workflow downloads and analyzes these artifacts weekly to extract improvement patterns for the outer learning loop.

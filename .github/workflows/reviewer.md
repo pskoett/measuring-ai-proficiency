@@ -115,3 +115,7 @@ Call `noop` if the PR is labeled `human-review`, is a draft that is not ready fo
 ## Style
 
 Follow the writing rules in `AGENTS.md`. No em-dashes. Direct findings with file:line evidence. No filler.
+
+## Session capture
+
+This workflow's full session is automatically captured in the `agent` artifact for this run. The artifact includes the prompt, all tool calls, tool outputs, and token usage. The `learning-aggregator-ci` workflow downloads and analyzes these artifacts weekly to extract improvement patterns for the outer learning loop.

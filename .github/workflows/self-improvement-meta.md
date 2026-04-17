@@ -77,6 +77,23 @@ For each failed, cancelled, or reviewer-flagged run (`needs-changes`, `spec-drif
 - Last few tool calls before the failure
 - Any threat detection flags
 
+### Step 2b: Ingest transcript candidates from learning-aggregator-ci
+
+`learning-aggregator-ci` runs weekly. When it finds patterns in transcript artifacts that merit promotion, it flags them in its output issue/PR body with the `**TRANSCRIPT CANDIDATE**` prefix and explicitly does not write them to `.learnings/LEARNINGS.md` itself — it routes them here.
+
+1. Find the most recent `learning-aggregator-ci` output from the last 7 days:
+   ```bash
+   gh issue list --label automation --label learning-aggregator --limit 5 \
+     --json number,body,createdAt
+   gh pr list --label automation --label learning-aggregator --limit 5 \
+     --state all --json number,body,createdAt
+   ```
+2. Extract every line or block starting with `**TRANSCRIPT CANDIDATE**`. Each is a pattern description, a supporting transcript excerpt, and an intended Pattern-Key.
+3. Treat each candidate as an additional input to Step 3 alongside the log-derived patterns. The skill's categorization (prompt / tool / context / data), Pattern-Key dedupe, and promotion logic apply identically.
+4. If no `learning-aggregator-ci` output exists in the last 7 days, skip this step silently.
+
+This closes the handoff contract that `learning-aggregator-ci` documents: aggregator discovers, meta promotes.
+
 ### Step 3: Apply the self-improvement skill
 
 Follow the skill's process for:
@@ -121,3 +138,9 @@ Silence is the correct signal when the factory is healthy.
 ## Style
 
 Follow the writing rules in `AGENTS.md`. No em-dashes. Learnings are durable. Write them like you mean it.
+
+## Session capture
+
+This workflow's full session is automatically captured in the `agent` artifact for this run. The artifact includes the prompt, all tool calls, tool outputs, and token usage. The `learning-aggregator-ci` workflow downloads and analyzes these artifacts weekly to extract improvement patterns for the outer learning loop.
+
+This workflow combines two signal sources: workflow-level telemetry (`gh aw audit`, `gh run list`) plus `**TRANSCRIPT CANDIDATE**` markers ingested from the most recent `learning-aggregator-ci` output (Step 2b). Both paths feed the same Pattern-Key dedupe and promotion pipeline in Step 3.

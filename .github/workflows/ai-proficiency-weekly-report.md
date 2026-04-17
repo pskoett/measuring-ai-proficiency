@@ -148,3 +148,7 @@ If you have write access, update `.ai-proficiency/history.json` with the current
 - If level increased, celebrate the improvement
 - If level decreased (rare), investigate what files were removed
 - Keep the issue concise and scannable
+
+## Session capture
+
+This workflow's full session is automatically captured in the `agent` artifact for this run. The artifact includes the prompt, all tool calls, tool outputs, and token usage. The `learning-aggregator-ci` workflow downloads and analyzes these artifacts weekly to extract improvement patterns for the outer learning loop.

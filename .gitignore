@@ -76,3 +76,8 @@ Thumbs.db
 *.log
 reports/
 output/
+
+# Entire CLI session data (raw transcript data, never commit to git)
+# Schema documentation in .entire/metadata/README.md is committed.
+.entire/metadata/*/
+.entire/tmp/
