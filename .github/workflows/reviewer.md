@@ -3,6 +3,7 @@ on:
   pull_request:
     types: [opened, ready_for_review, synchronize]
   workflow_dispatch:
+bots: ["copilot-swe-agent[bot]", "github-actions[bot]", "claude[bot]", "codex[bot]"]
 timeout-minutes: 8
 engine:
   id: copilot
