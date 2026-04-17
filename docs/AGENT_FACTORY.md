@@ -323,6 +323,34 @@ gh aw compile
 gh aw compile --purge
 ```
 
+### Stale workflow lock files
+
+Every gh-aw workflow has two files: a `.md` source and a compiled `.lock.yml`. When you edit the YAML frontmatter in a `.md` file, the paired `.lock.yml` must be regenerated or the factory will reject the workflow run with a hash mismatch.
+
+A PR-time CI gate (`.github/workflows/lock-file-sync.yml`) enforces this on every pull request that touches workflow files. If the gate fails, the job log lists the offending file and the exact repair command.
+
+**Symptoms of a stale lock file**
+
+- CI gate `Lock File Sync` fails on a PR that edits a workflow `.md` file.
+- A workflow run fails at startup with a message about `frontmatter_hash` mismatch.
+
+**Fix**
+
+```bash
+# Repair one workflow
+gh aw compile <workflow-name>
+
+# Repair all workflows at once
+gh aw compile
+
+# Commit and push the updated .lock.yml file(s)
+git add .github/workflows/*.lock.yml
+git commit -m "chore: recompile workflow lock files"
+git push
+```
+
+Stop debugging the hash mismatch itself. Run `gh aw compile`, commit the result, and push. The CI gate will pass on the next push. Refs: https://github.com/pskoett/measuring-ai-proficiency/issues/95
+
 ## Architecture
 
 See [`chain.md`](chain.md) for the full layered architecture diagram and the design rationale for choreography over orchestration.
