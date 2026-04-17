@@ -206,3 +206,5 @@ Three decisions:
 3. **At learning**: is this prevention rule worth keeping? The meta-agent proposes. You approve.
 
 Everything else is automated. That is the point.
+
+See [`FACTORY_STATE_MACHINE.md`](FACTORY_STATE_MACHINE.md) for the one-page operator reference: label-to-lane mapping, workflow trigger table, and the happy-path sequence diagram.
