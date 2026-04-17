@@ -301,34 +301,36 @@ Today only `impl:copilot` is auto-routable — the Copilot cloud agent is the on
 
 The spec-refiner recommends, the human decides, and the reviewer calibrates based on who actually produced the code.
 
-## Failure Modes
+## Stale lock file failure mode
 
-### Stale workflow lock-file hash (ERR_CONFIG: Lock file is outdated)
+Every `.github/workflows/*.md` source file has a paired `.lock.yml` compiled by `gh aw compile`. The `frontmatter_hash` embedded in the lock file must match the source. When they diverge, gh-aw rejects the next workflow run with a hash mismatch error.
 
-**Symptom**: The `lock-file-sync` CI check fails on a PR. The job output contains a message similar to:
+This is a delayed break: the repo stays green until someone triggers the stale workflow. A PR-time guard catches it early.
 
-```
-ERR_CONFIG: Lock file is outdated! The workflow file frontmatter has changed.
-Run 'gh aw compile' to regenerate the lock file.
-```
+### CI guard
 
-Or the job explicitly lists which `.md` / `.lock.yml` pairs are out of sync and exits non-zero.
+`.github/workflows/lock-file-sync.yml` runs on every pull request that touches `*.md` or `*.lock.yml` files in `.github/workflows/`. It calls `scripts/check-workflow-lock-sync.sh`, which:
 
-**Why it happens**: gh-aw stores a SHA-256 hash of each workflow `.md` frontmatter in the compiled `.lock.yml` metadata header (`# gh-aw-metadata: {...,"frontmatter_hash":"..."}`). Any edit to the frontmatter block of a `.md` file, even a whitespace change, invalidates the stored hash. Claude Code sandboxes, Codex CLI sessions, and GitHub web edits do not have `gh aw` installed, so the paired `.lock.yml` is never regenerated automatically. The mismatch stays silent until the workflow is triggered, at which point gh-aw rejects the run entirely. The `lock-file-sync` CI guard catches this before merge.
+1. Tries `gh aw compile --check-only` when the installed gh-aw version supports it (read-only, no side effects).
+2. Falls back to running `gh aw compile` and checking `git diff` for changed lock files when `--check-only` is unavailable.
 
-**Repair**: Run locally and push the updated lock file:
+The job fails with one actionable error per stale pair, including the exact repair command.
 
-```bash
-# Recompile one workflow
-gh aw compile <workflow-name>
+### How to fix a stale lock file
 
-# Recompile all workflows at once
-gh aw compile
-```
+1. Identify the stale workflow from the CI failure message.
+2. Recompile it locally:
+   ```bash
+   gh aw compile <workflow-name>
+   ```
+3. Commit both the `.md` and the regenerated `.lock.yml`:
+   ```bash
+   git add .github/workflows/<workflow-name>.md .github/workflows/<workflow-name>.lock.yml
+   git commit -m "chore: recompile <workflow-name> lock file"
+   ```
+4. Push. The lock-file-sync check will pass on the next run.
 
-Commit the resulting `.lock.yml` changes and push. The `lock-file-sync` check will pass once the compiled hash matches the `.md` frontmatter.
-
-**Important**: CI will never auto-regenerate lock files. The recompile must be an explicit developer or agent action on a machine with `gh aw` installed. This is intentional: auto-regeneration in CI would hide workflow changes behind automation and weaken review. Refs #95.
+To recompile all workflows at once: `gh aw compile` then commit all changed `.lock.yml` files.
 
 ## Debugging
 
@@ -350,6 +352,9 @@ gh aw compile
 
 # Remove orphaned lock files
 gh aw compile --purge
+
+# Run the lock-file sync check locally (same check as CI)
+bash scripts/check-workflow-lock-sync.sh
 ```
 
 ## Architecture
