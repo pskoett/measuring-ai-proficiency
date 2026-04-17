@@ -1,0 +1,43 @@
+name: Workflow Lock File Sync
+
+# Runs on pull requests that touch workflow source or lock files.
+# Skips cleanly when no relevant files changed (path filter below).
+#
+# This is a standard GitHub Actions workflow, NOT a gh-aw markdown workflow.
+# The guard must live outside the compile-and-lock system it validates.
+#
+# Refs: pskoett/measuring-ai-proficiency#95
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+    paths:
+      - ".github/workflows/*.md"
+      - ".github/workflows/*.lock.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  check-lock-sync:
+    name: Check workflow lock files
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Install gh-aw extension
+        # gh CLI is pre-installed on ubuntu-latest runners and pre-authenticated
+        # via GITHUB_TOKEN. We install the gh-aw extension to get 'gh aw compile'.
+        # The checker script prefers --check-only (version-agnostic) and falls
+        # back to compile+diff when the flag is not available.
+        run: gh extension install github/gh-aw
+        env:
+          GH_TOKEN: ${{ github.token }}
+
+      - name: Check workflow lock file sync
+        # scripts/check-workflow-lock-sync.sh exits 0 when all lock files are
+        # in sync, 1 when any are stale (with per-workflow repair commands), and
+        # 2 when required tooling is missing.
+        run: bash scripts/check-workflow-lock-sync.sh

@@ -168,6 +168,19 @@ These are the concrete failure modes this factory has hit. When you see symptoms
 
 **Action**: Check `gh aw status` and the most recent run in the Actions tab. If the run shows "NEEDS HUMAN INPUT", read its comment for the missing context, answer in the issue, remove `blocked-on-human`, and re-trigger.
 
+### Symptom: lock-file-sync CI job fails with "stale pair" errors
+
+**Cause**: A workflow `.md` file was edited without rerunning `gh aw compile`. The `frontmatter_hash` in the paired `.lock.yml` no longer matches the source. This guard runs on every PR that touches `.github/workflows/*.md` or `.github/workflows/*.lock.yml` files. Refs pskoett/measuring-ai-proficiency#95.
+
+**Action**: Recompile the stale workflow and commit the updated lock file.
+
+1. Find the stale workflow name in the CI failure output.
+2. Run `gh aw compile <workflow-name>` locally (or `gh aw compile` to fix all at once).
+3. Commit the updated `.lock.yml` alongside the `.md` change.
+4. Push. The CI check will pass on the next run.
+
+Do not edit `.lock.yml` files by hand. Always regenerate them with `gh aw compile`.
+
 ### Symptom: ai-proficiency-pr-review auto-fired on a PR you didn't expect
 
 **Cause**: Regression: something re-added the `pull_request` trigger. It should be on `issue_comment` + `workflow_dispatch` only (see `.github/workflows/ai-proficiency-pr-review.md` and `ai-proficiency-claude.yml`).
