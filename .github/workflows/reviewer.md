@@ -21,7 +21,7 @@ safe-outputs:
     max: 1
     hide-older-comments: true
   add-labels:
-    allowed: [ai-reviewed, needs-changes, spec-drift, fast-track, needs-rebase]
+    allowed: [ai-reviewed, needs-changes, spec-drift, fast-track, needs-rebase, human-review]
     max: 3
 ---
 
@@ -37,6 +37,16 @@ Each plan maps to exactly one implementation PR. The factory no longer fans a pl
 2. If `.claude/skills/intent-framed-agent/SKILL.md` exists, apply its drift-checking discipline as a self-check: does this PR match the intent stated in the plan file, or has it drifted?
 
 ## Process
+
+### Self-tamper guard
+
+Before doing anything else, inspect the PR diff for these paths:
+
+- `.github/workflows/reviewer.md`
+- `.github/workflows/self-improvement-meta.md`
+- `.github/copilot-instructions.md`
+
+If the diff includes any of these files, apply the `human-review` label using `add-labels` and call `noop` immediately. Do not proceed to Step 0 or Step 1. These paths can alter this workflow's own instructions or adjacent guardrails, so human review is required.
 
 ### Step 0: Check merge state
 

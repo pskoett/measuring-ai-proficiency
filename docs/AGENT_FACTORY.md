@@ -176,18 +176,19 @@ Two workflows trigger on the new PR:
 
 **Reviewer** checks the PR against the plan file:
 1. Loads the plan. Each plan maps to exactly one implementation PR, so there is no sibling-PR discovery step.
-2. Detects the implementer and applies calibration:
+2. Self-tamper guard: if the PR diff touches `.github/workflows/reviewer.md`, `.github/workflows/self-improvement-meta.md`, or `.github/copilot-instructions.md`, reviewer applies `human-review` and noops before doing anything else. Human review is required for PRs that could modify the reviewer's own instructions or adjacent guardrails.
+3. Detects the implementer and applies calibration:
    - Claude PRs: checked for scope drift (tends to over-implement)
    - Copilot PRs: checked for test coverage gaps (tends to under-test)
    - Codex PRs: checked for correctness on unusual control flow
    - Human PRs: standard rigor
-3. Posts a structured review comment. Each criterion is labeled `Met`, `Partial`, `Missed`, or `Drifted`. Verdict: `ai-reviewed`, `needs-changes`, or `fast-track`.
+4. Posts a structured review comment. Each criterion is labeled `Met`, `Partial`, `Missed`, or `Drifted`. Verdict: `ai-reviewed`, `needs-changes`, or `fast-track`.
 
 **Contribution checker** evaluates the PR against `docs/CONTRIBUTING.md`: on-topic, focused, has tests, has description, skills synced.
 
 ### Step 6: Fix Loop
 
-If the reviewer labels the PR `needs-changes`, comment `/pr-fix` to trigger the automated fix workflow. It analyzes failing CI checks, identifies root causes from error logs, implements fixes, and pushes corrections to the PR branch.
+If the reviewer labels the PR `needs-changes`, comment `/pr-fix` to trigger the automated fix workflow. It analyzes failing CI checks, identifies root causes from error logs, implements fixes, and pushes corrections to the PR branch — including changes to `.github/workflows/` files when the fix requires updating a workflow source or recompiling a lock file.
 
 If CI fails on `main` after a merge, the `ci-cleaner` workflow triggers automatically. It runs `ruff check --fix`, `pytest`, and `gh aw compile` in sequence, then opens a PR with the fixes. It includes a mandatory exit protocol (always produces a PR or noop) and a file-count guard (refuses to create PRs with 50+ changed files).
 
@@ -222,8 +223,8 @@ When you merge that PR, the next run of the affected agent reads the updated ins
 | [`spec-refiner.md`](../.github/workflows/spec-refiner.md) | Issue labeled `needs-spec` | Structured plan file from issue context using plan-interview skill |
 | [`plan-merged-dispatcher.yml`](../.github/workflows/plan-merged-dispatcher.yml) | Plan PR merged (path filter on `docs/plans/plan-*.md`) | Write plan checklist onto source issue body, apply `ready-for-implementation`. Plain GitHub Actions, not gh-aw. |
 | [`implementer-dispatcher.md`](../.github/workflows/implementer-dispatcher.md) | Issue labeled `ready-for-implementation` | Assign source issue to Copilot cloud agent based on its `impl:*` label |
-| [`reviewer.md`](../.github/workflows/reviewer.md) | PR opened / updated | Plan-aware code review with implementer calibration |
-| [`conflict-resolver.md`](../.github/workflows/conflict-resolver.md) | PR labeled `needs-rebase` | Merge `origin/main` into PR branch; push on clean merge, hand off on conflict |
+| [`reviewer.md`](../.github/workflows/reviewer.md) | PR opened / updated | Plan-aware code review with implementer calibration. Refuses to review PRs that modify its own instructions (`.github/workflows/reviewer.md`, `.github/workflows/self-improvement-meta.md`, `.github/copilot-instructions.md`); applies `human-review` and noops instead. |
+| [`conflict-resolver.md`](../.github/workflows/conflict-resolver.md) | PR labeled `needs-rebase` | Merge `origin/main` into PR branch; push on clean merge (including workflow file changes), hand off on conflict |
 | [`self-improvement-meta.md`](../.github/workflows/self-improvement-meta.md) | Nightly (~2am) | Extract learnings from failures, commit prevention rules |
 
 | [`contribution-checker.md`](../.github/workflows/contribution-checker.md) | PR opened / updated | Evaluate PR against CONTRIBUTING.md guidelines |
@@ -238,7 +239,7 @@ These are thin adapter shells. The actual agent logic lives in skills in `.claud
 | Workflow | Trigger | Purpose |
 |----------|---------|---------|
 | [`issue-triage.md`](../.github/workflows/issue-triage.md) | Issue opened / reopened | Label, categorize, detect spam, provide analysis notes |
-| [`pr-fix.md`](../.github/workflows/pr-fix.md) | `/pr-fix` slash command | Analyze failing CI, implement fixes, push to PR branch |
+| [`pr-fix.md`](../.github/workflows/pr-fix.md) | `/pr-fix` slash command | Analyze failing CI, implement fixes, push to PR branch (including `.github/workflows/` changes) |
 
 Installed via `gh aw add githubnext/agentics/<name>`. These are general-purpose and work out of the box.
 
@@ -290,7 +291,7 @@ Skills live in `.claude/skills/` and work identically in Claude Code, Codex CLI,
 | `needs-changes` | PR has critical findings or spec drift | reviewer |
 | `fast-track` | Small, well-tested, matches plan, zero findings | reviewer |
 | `spec-drift` | PR does things the plan did not ask for | reviewer |
-| `human-review` | Emergency stop: all agents call noop | Human |
+| `human-review` | Emergency stop: all agents call noop | Human, or reviewer (self-tamper guard) |
 | `self-improvement` | PR was created by the nightly learning loop | self-improvement-meta |
 | `ci-fix` | PR was created by the CI cleaner | ci-cleaner |
 | `plan-file` | PR contains a plan file | spec-refiner |
