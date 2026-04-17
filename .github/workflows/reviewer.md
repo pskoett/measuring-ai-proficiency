@@ -21,8 +21,8 @@ safe-outputs:
     max: 1
     hide-older-comments: true
   add-labels:
-    allowed: [ai-reviewed, needs-changes, spec-drift, fast-track]
-    max: 2
+    allowed: [ai-reviewed, needs-changes, spec-drift, fast-track, needs-rebase]
+    max: 3
 ---
 
 # Reviewer
@@ -37,6 +37,13 @@ Each plan maps to exactly one implementation PR. The factory no longer fans a pl
 2. If `.claude/skills/intent-framed-agent/SKILL.md` exists, apply its drift-checking discipline as a self-check: does this PR match the intent stated in the plan file, or has it drifted?
 
 ## Process
+
+### Step 0: Check merge state
+
+Read the PR's merge state using the pull_requests toolset (get the PR details and check the `mergeStateStatus` field). Do this once before any other step.
+
+- If `mergeStateStatus` is `BEHIND`: apply the `needs-rebase` label. Record that you applied it so you can note it in your review comment. Continue with the rest of the review — do not skip or short-circuit the verdict.
+- If `mergeStateStatus` is anything else (`CLEAN`, `UNSTABLE`, `UNKNOWN`, etc.): do not add `needs-rebase`. Proceed normally.
 
 ### Step 1: Find the plan file
 
@@ -80,6 +87,7 @@ Post exactly one comment with this structure:
 **Plan**: [plan-NNN or "No plan file found"]
 **Implementer**: [human | claude-opus-4.6 | claude-sonnet-4.6 | copilot | codex-gpt-5.4 | unknown]
 **Size**: <lines> lines across <files> files
+**Rebase**: [CLEAN — no action taken | BEHIND — `needs-rebase` label applied; conflict-resolver will run]
 
 ### Spec compliance
 [Criteria as Met / Partial / Missed / Drifted with brief evidence, or skip if no plan.]
