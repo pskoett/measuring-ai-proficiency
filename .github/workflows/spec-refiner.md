@@ -46,7 +46,7 @@ This is a single-shot gh-aw run, not a live session. Follow the skill's process,
 
 Before writing the PR, append a `## Recommended implementer` section to the plan file.
 
-Pick the best-fit implementer based on plan complexity and blast radius. All four options auto-assign through `implementer-dispatcher`: `impl:copilot` via `assign-to-agent`, `impl:claude-opus`/`impl:claude-sonnet` via `assign-to-user claude[bot]`, `impl:codex` via `assign-to-user codex[bot]` (Claude and Codex are enabled as GitHub Partner Agents on this repo).
+Pick the best-fit implementer based on plan complexity and blast radius. All four options auto-assign through `implementer-dispatcher`: `impl:copilot` via `assign-to-agent`, `impl:claude-opus`/`impl:claude-sonnet` via `assign-to-user Claude`, `impl:codex` via `assign-to-user Codex` (Claude and Codex are enabled as GitHub Partner Agents on this repo).
 
 Heuristic:
 - `impl:claude-opus`: multi-file refactors, architectural risk, 6+ checklist items, strict scope adherence needed.

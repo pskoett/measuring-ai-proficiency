@@ -70,7 +70,7 @@ Apply these in **Settings** on the repo hosting the factory. Skipping any of the
 | Allow PR creation | Same page | **Allow GitHub Actions to create and approve pull requests** (checked) | `/pr-fix`, `ci-cleaner`, `self-improvement-meta` all open PRs |
 | Outside contributor approval | Settings > Actions > General > Approval for outside collaborators | **Require approval for first-time contributors** (not "...who are new to GitHub") | The "...new to GitHub" option does NOT exempt the Copilot bot; this one does after the first merged Copilot PR |
 | Copilot workflow approval | Settings > Copilot > Coding agent > Actions workflow approval | **Off** (recommended) or **On** (belt-and-suspenders) | Separate from the outside-contributor setting above. When **On**, every Copilot PR requires a manual "Approve and run" click before any factory workflow runs. Safe to turn off once `reviewer` + `contribution-checker` + your merge gate are in place. |
-| Copilot Partner Agents (Claude, Codex) | Settings > Copilot > Coding agent > Partner Agents | **Allow Claude coding agent: On**, **Allow Codex coding agent: On** | Required for `impl:claude-*` and `impl:codex` auto-assignment. Without this, `assign-to-user claude[bot]` / `codex[bot]` fails. |
+| Copilot Partner Agents (Claude, Codex) | Settings > Copilot > Coding agent > Partner Agents | **Allow Claude coding agent: On**, **Allow Codex coding agent: On** | Required for `impl:claude-*` and `impl:codex` auto-assignment. Without this, `assign-to-user Claude` / `Codex` fails. |
 | Copilot cloud agent | Settings > Copilot > Coding agent | **Enabled** | Required for `impl:copilot` issue assignment |
 | Copilot code review | Settings > Copilot > Code review | **Enabled for this repo** | Lets the Copilot SWE agent annotate PRs inline |
 | Actions permissions | Settings > Actions > General > Actions permissions | **Allow all actions and reusable workflows** | Some factory workflows pull from `githubnext/agentics` and `github/gh-aw-actions` |
@@ -303,11 +303,13 @@ All four `impl:*` labels auto-route via `implementer-dispatcher`. Copilot goes t
 | Label | How it routes | Use when |
 |-------|---------------|----------|
 | `impl:copilot` | `assign-to-agent` → Copilot cloud agent | Trivial fixes, doc changes, mechanical edits, dependency bumps |
-| `impl:claude-opus` | `assign-to-user claude[bot]` | Multi-file refactors, architectural risk, 6+ checklist items, strict scope adherence needed |
-| `impl:claude-sonnet` | `assign-to-user claude[bot]` | Single-component features with medium blast radius |
-| `impl:codex` | `assign-to-user codex[bot]` | Opportunistic A/B comparison or unusual control flow |
+| `impl:claude-opus` | `assign-to-user Claude` | Multi-file refactors, architectural risk, 6+ checklist items, strict scope adherence needed |
+| `impl:claude-sonnet` | `assign-to-user Claude` | Single-component features with medium blast radius |
+| `impl:codex` | `assign-to-user Codex` | Opportunistic A/B comparison or unusual control flow |
 
-Claude Partner Agent is a single bot on the GitHub side — the `-opus` vs `-sonnet` distinction is advisory calibration data until GitHub exposes per-model routing. Both labels resolve to the same `claude[bot]` assignee.
+Handles are the exact capitalized strings GitHub exposes in the assignees picker (`Claude` / `Codex`), not `[bot]`-suffixed forms. A common gotcha: GitHub's assignee PATCH endpoint silently drops unknown handles with an HTTP 200, so `claude[bot]` fails invisibly; the plain `Claude` is the right form.
+
+Claude Partner Agent is a single assignable entity on the GitHub side — the `-opus` vs `-sonnet` distinction is advisory calibration data until GitHub exposes per-model routing. Both labels resolve to the same `Claude` assignee.
 
 The spec-refiner recommends, the human decides (can swap label before merging the plan PR), and the reviewer calibrates based on who actually produced the code.
 
