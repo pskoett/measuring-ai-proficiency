@@ -17,10 +17,6 @@ tools:
 safe-outputs:
   assign-to-agent:
     target-repo: ${{ github.repository }}
-  assign-to-user:
-    target-repo: ${{ github.repository }}
-    allowed: ["Claude", "Codex"]
-    max: 1
   add-comment:
     max: 1
   add-labels:
@@ -30,37 +26,34 @@ safe-outputs:
 
 # Implementer Dispatcher
 
-You auto-assign issues to the correct cloud coding agent based on the issue's implementer label. This removes the need for humans to assign each issue individually.
+You auto-assign issues to the Copilot cloud agent based on the issue's implementer label. The `ready-for-implementation` label is applied directly to the source issue by `plan-merged-dispatcher` after the plan PR merges. There is no sub-issue layer.
 
-The `ready-for-implementation` label is applied directly to the source issue by `plan-merged-dispatcher` after the plan PR merges. There is no sub-issue layer.
+## Routing model (current state)
+
+Only `impl:copilot` auto-routes. The other `impl:*` labels exist as signals for humans who want to hand-assign via the GitHub UI, but the factory cannot dispatch them from a workflow.
+
+Why: the GitHub REST API's assignees endpoint accepts Copilot as a valid assignee but silently drops Partner Agents (`Claude`, `Codex`) — it returns HTTP 200 without actually adding them. The UI assignees picker uses a different backend path. Confirmed twice on issue #149 during the factory smoke test: both `claude[bot]` and plain `Claude` silently dropped with zero timeline events.
+
+When GitHub exposes proper API-based assignment for Partner Agents, re-introduce `assign-to-user` here and update spec-refiner to recommend all four labels.
 
 ## Process
 
 ### Step 1: Read the implementer label from this issue
 
-Look for one of these labels on the issue that triggered this run:
+- `impl:copilot` — continue to Step 2.
+- `impl:claude-opus`, `impl:claude-sonnet`, `impl:codex` — call `noop` with a comment: "Issue uses label `impl:X`. The factory only auto-routes `impl:copilot` today because GitHub's REST API silently drops Partner Agent assignees. A human can assign Claude or Codex manually via the GitHub UI's assignees picker."
+- No implementer label — default to `impl:copilot`. Post a comment noting that no implementer was specified and the default was used.
 
-- `impl:copilot` — assign to the Copilot cloud agent via `assign-to-agent`.
-- `impl:claude-opus`, `impl:claude-sonnet` — assign to the Claude Partner Agent via `assign-to-user` with assignee `Claude`.
-- `impl:codex` — assign to the Codex Partner Agent via `assign-to-user` with assignee `Codex`.
+### Step 2: Assign the issue (Copilot path only)
 
-If the issue has no implementer label, default to `impl:copilot`. Post a comment noting that no implementer was specified and the default was used.
-
-### Step 2: Assign the issue
-
-Take exactly one assignment action based on the label:
-
-- **`impl:copilot`**: call `assign-to-agent` (Copilot is the default agent). Post a comment: "Assigned to Copilot cloud agent based on label `impl:copilot`." Add the `assigned-to-agent` label.
-- **`impl:claude-opus` or `impl:claude-sonnet`**: call `assign-to-user` with assignee `Claude` (exact string, capitalized, no `[bot]` suffix — this is the Anthropic Partner Agent as shown in the GitHub assignees picker). Post a comment: "Assigned to Claude Partner Agent based on label `impl:claude-opus`." (substitute the actual label). Add the `assigned-to-agent` label. Note: Claude Partner Agent is a single assignable entity; the `-opus`/`-sonnet` distinction is advisory only until GitHub exposes per-model routing.
-- **`impl:codex`**: call `assign-to-user` with assignee `Codex` (exact string, capitalized, no `[bot]` suffix — this is the OpenAI Partner Agent). Post a comment: "Assigned to Codex Partner Agent based on label `impl:codex`." Add the `assigned-to-agent` label.
-
-If `assign-to-user` fails because the Partner Agent is not enabled on this repo, post a comment naming the failure and call `noop`. Do not retry with a different handle.
+Use `assign-to-agent` to assign this issue to the Copilot cloud agent. Add the `assigned-to-agent` label. Post a brief comment: "Assigned to Copilot cloud agent based on label `impl:copilot`."
 
 ## Noop conditions
 
 Call `noop` if:
 - The issue is labeled `human-review`
 - The issue already has the `assigned-to-agent` label (prevent double-dispatch)
+- The issue's implementer label is `impl:claude-*` or `impl:codex` (see Step 1)
 
 ## Style
 

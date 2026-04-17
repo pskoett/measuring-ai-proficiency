@@ -25,7 +25,7 @@ safe-outputs:
     title-prefix: "[plan] "
     labels: [plan-file, automation]
   add-labels:
-    allowed: [needs-plan, blocked-on-human, spec-refined, "impl:copilot", "impl:claude-opus", "impl:claude-sonnet", "impl:codex"]
+    allowed: [needs-plan, blocked-on-human, spec-refined, "impl:copilot"]
     max: 3
   remove-labels:
     allowed: [needs-spec]
@@ -46,26 +46,18 @@ This is a single-shot gh-aw run, not a live session. Follow the skill's process,
 
 Before writing the PR, append a `## Recommended implementer` section to the plan file.
 
-Pick the best-fit implementer based on plan complexity and blast radius. All four options auto-assign through `implementer-dispatcher`: `impl:copilot` via `assign-to-agent`, `impl:claude-opus`/`impl:claude-sonnet` via `assign-to-user Claude`, `impl:codex` via `assign-to-user Codex` (Claude and Codex are enabled as GitHub Partner Agents on this repo).
-
-Heuristic:
-- `impl:claude-opus`: multi-file refactors, architectural risk, 6+ checklist items, strict scope adherence needed.
-- `impl:claude-sonnet`: single-component features with medium blast radius.
-- `impl:copilot` (default): trivial fixes, dependency bumps, mechanical edits, doc-only changes.
-- `impl:codex`: opportunistic A/B comparison or unusual control flow.
-
-A human reviewing the plan PR can swap the label on the source issue before merging if they disagree with the recommendation.
+Always recommend `copilot`. Copilot is the only implementer the factory can auto-assign today. GitHub Partner Agents (Claude, Codex) are visible in the UI assignees picker but the REST API endpoint silently drops them, so `assign-to-user` cannot route to them from a workflow. Until GitHub exposes proper API assignment for Partner Agents, the `impl:claude-*` and `impl:codex` labels exist only as human-override signals for manual UI assignment.
 
 Example:
 
 ```markdown
 ## Recommended implementer
 
-**Choice**: claude-opus
-**Rationale**: Multi-file refactor touching four workflows and two docs with tight scope constraints. Claude Opus's scope adherence calibration fits.
+**Choice**: copilot
+**Rationale**: Auto-assignable via `implementer-dispatcher`. For manual hand-off to Claude or Codex (UI assignment only, no auto-dispatch), a human can swap the label on the source issue before merging the plan PR.
 ```
 
-After writing the recommendation in the plan file, add exactly one `impl:*` label to the source issue matching the recommendation. A human can swap it before merging the plan PR if they disagree.
+After writing the recommendation in the plan file, add the `impl:copilot` label to the source issue. A human can swap it to `impl:claude-opus`, `impl:claude-sonnet`, or `impl:codex` before merging if they want to hand-assign via the GitHub UI outside the factory.
 
 ## gh-aw handoff logic
 
@@ -75,7 +67,7 @@ After the skill completes, the plan file is written, and the implementer is reco
 2. **Comment on the source issue** with a one-line summary, a link to the plan PR, and the recommended implementer.
 3. **Swap labels**:
    - Remove `needs-spec`
-   - Add exactly one `impl:*` label matching the recommendation (`impl:copilot`, `impl:claude-opus`, `impl:claude-sonnet`, or `impl:codex`)
+   - Add `impl:copilot`
    - Add `needs-plan` if the plan has no open questions. On merge of the plan PR, `plan-merged-dispatcher` reads the plan checklist, writes it onto the source issue body, and transitions `needs-plan` → `ready-for-implementation` on the source issue.
    - Add `blocked-on-human` if the plan has any `**NEEDS HUMAN INPUT**` markers
 
