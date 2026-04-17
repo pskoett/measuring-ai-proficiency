@@ -45,7 +45,7 @@ if ! command -v gh &>/dev/null; then
   die "'gh' CLI is not installed. See https://cli.github.com/ then run: gh extension install github/gh-aw"
 fi
 
-if ! gh aw --version &>/dev/null 2>&1; then
+if ! gh aw --version &>/dev/null; then
   die "'gh aw' extension is not installed. Run: gh extension install github/gh-aw"
 fi
 
@@ -68,23 +68,16 @@ echo ""
 
 # ── strategy 1: native --check-only ──────────────────────────────────────────
 #
-# Probe by running the flag and inspecting whether the error output indicates
-# an unknown-flag condition. If the flag is supported the tool exits 0 (synced)
-# or non-zero (stale); either way we forward the result. If the flag is not
-# supported we fall through to the compile-and-diff fallback.
+# Detect support by consulting the help text. This is more reliable than
+# parsing error messages, which vary across versions and locales. If the flag
+# is listed in help, run it and forward the result. If the flag is not in help,
+# fall through to the compile-and-diff fallback.
 
-CHECK_ONLY_OUT=$(gh aw compile --check-only 2>&1) || CHECK_ONLY_RC=$?
-CHECK_ONLY_RC=${CHECK_ONLY_RC:-0}
-
-if echo "$CHECK_ONLY_OUT" | grep -qiE "unknown.*(flag|option)|flag.*not.*defined|unrecognized.*flag"; then
-  # --check-only not available in this version; use fallback.
-  echo "Note: 'gh aw compile --check-only' is not available in the installed"
-  echo "  gh-aw version. Switching to compile-and-diff fallback."
-  echo ""
-else
-  # Strategy 1 ran. Forward its output and exit code.
+if gh aw compile --help 2>&1 | grep -q -- "--check-only"; then
   echo "Strategy: native 'gh aw compile --check-only' (read-only, no side effects)"
   echo ""
+  CHECK_ONLY_OUT=$(gh aw compile --check-only 2>&1) || CHECK_ONLY_RC=$?
+  CHECK_ONLY_RC=${CHECK_ONLY_RC:-0}
   echo "$CHECK_ONLY_OUT"
   if [ "$CHECK_ONLY_RC" -eq 0 ]; then
     echo ""
@@ -96,6 +89,10 @@ else
     echo "Refs ${ISSUE_REF}"
     exit 1
   fi
+else
+  echo "Note: 'gh aw compile --check-only' is not listed in 'gh aw compile --help'."
+  echo "  Switching to compile-and-diff fallback."
+  echo ""
 fi
 
 # ── strategy 2: compile-and-diff fallback ────────────────────────────────────
