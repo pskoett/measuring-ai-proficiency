@@ -5,6 +5,7 @@ on:
     paths-ignore:
       - docs/plans/**
   workflow_dispatch:
+bots: ["copilot-swe-agent[bot]", "github-actions[bot]", "claude[bot]", "codex[bot]"]
 timeout-minutes: 8
 engine:
   id: copilot
