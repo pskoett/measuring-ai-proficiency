@@ -20,6 +20,7 @@ network: defaults
 
 safe-outputs:
   push-to-pull-request-branch:
+    allowed-files: [".github/workflows/*.md", ".github/workflows/*.lock.yml", ".github/workflows/*.yml"]
   add-comment:
     max: 1
     hide-older-comments: true

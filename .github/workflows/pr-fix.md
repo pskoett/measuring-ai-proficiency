@@ -23,6 +23,7 @@ tools:
 
 safe-outputs:
   push-to-pull-request-branch:
+    allowed-files: [".github/workflows/*.md", ".github/workflows/*.lock.yml"]
   create-issue:
     title-prefix: "${{ github.workflow }}"
     labels: [automation, pr-fix]
