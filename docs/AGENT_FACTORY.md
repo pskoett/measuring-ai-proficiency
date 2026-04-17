@@ -408,6 +408,8 @@ bash scripts/check-workflow-lock-sync.sh
 
 See [`chain.md`](chain.md) for the full layered architecture diagram and the design rationale for choreography over orchestration.
 
+See [`FACTORY_STATE_MACHINE.md`](FACTORY_STATE_MACHINE.md) for the one-page operator reference: label-to-lane mapping, workflow trigger table, and the happy-path sequence diagram.
+
 ## Observability
 
 Every factory workflow captures its full session as a GitHub Actions artifact. This section explains where to find transcripts, what they contain, how long they live, and how they feed the outer learning loop.
