@@ -42,33 +42,22 @@ Read `.claude/skills/plan-interview/SKILL.md` in full and follow its process. Th
 
 This is a single-shot gh-aw run, not a live session. Follow the skill's process, but when it expects to ask the user questions, apply rule 1 from the "Adapting skills for single-shot gh-aw runs" section of `AGENTS.md`: simulate the interview by answering from issue context, and mark anything you cannot answer with confidence using `**NEEDS HUMAN INPUT**` plus a specific question.
 
-## Complexity assessment and implementer recommendation
+## Implementer recommendation
 
-Before writing the PR, assess the plan against the routing rules in the "Agent routing guidelines" section of `AGENTS.md` and append a `## Recommended implementer` section to the plan file itself.
+Before writing the PR, append a `## Recommended implementer` section to the plan file.
 
-Your assessment should look at:
-- Number of affected areas (files, modules, services)
-- Blast radius from the risk section
-- Length of the implementation checklist
-- Whether rollback is trivial or complex
-- Whether the plan has multiple valid approaches
+Always recommend `copilot`. It is the only implementer the factory can actually auto-assign today: `implementer-dispatcher` uses the `assign-to-agent` safe output, which only routes to the Copilot cloud agent (a real GitHub user). `impl:claude-*` and `impl:codex` labels exist for humans who want to hand-assign a plan outside the factory, but they do not produce an automatic assignment and cause the sub-issue to stall silently.
 
-Pick one of: `claude-opus-4.6`, `claude-sonnet-4.6`, `copilot`, or `codex-gpt-5.4`. Write a one-line rationale explaining the choice. Example:
+Example:
 
 ```markdown
 ## Recommended implementer
 
-**Choice**: claude-opus-4.6
-**Rationale**: Multi-file refactor across auth, session, and database layers with high blast radius and non-trivial rollback. Opus is the right default for this class of work.
+**Choice**: copilot
+**Rationale**: Auto-assignable via `implementer-dispatcher`. For manual hand-off to Claude or Codex, a human can swap the label on the source issue before merging the plan PR.
 ```
 
-After writing the recommendation in the plan file, also add the corresponding implementer label to the source issue:
-- `claude-opus-4.6` recommendation: add label `impl:claude-opus`
-- `claude-sonnet-4.6` recommendation: add label `impl:claude-sonnet`
-- `copilot` recommendation: add label `impl:copilot`
-- `codex-gpt-5.4` recommendation: add label `impl:codex`
-
-This label is the default. A human can change it on the issue before commenting `/plan`. The `implementer-dispatcher` workflow will read this label and auto-assign sub-issues to the chosen agent, so the human only decides once at the plan level.
+After writing the recommendation in the plan file, add the `impl:copilot` label to the source issue. A human can change it to `impl:claude-opus`, `impl:claude-sonnet`, or `impl:codex` before commenting `/plan` if they want to hand-assign outside the factory.
 
 ## gh-aw handoff logic
 
@@ -78,7 +67,7 @@ After the skill completes, the plan file is written, and the implementer is reco
 2. **Comment on the source issue** with a one-line summary, a link to the plan PR, and the recommended implementer.
 3. **Swap labels**:
    - Remove `needs-spec`
-   - Add the implementer label (`impl:claude-opus`, `impl:claude-sonnet`, `impl:copilot`, or `impl:codex`)
+   - Add `impl:copilot`
    - Add `needs-plan` if the plan has no open questions (this triggers `/plan` to create sub-issues)
    - Add `blocked-on-human` if the plan has any `**NEEDS HUMAN INPUT**` markers
 

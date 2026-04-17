@@ -268,7 +268,7 @@ The skills in `.claude/skills/` were originally designed for Claude Code. Runnin
 
 #### How the recommendation gets made
 
-`spec-refiner` adds a `## Recommended implementer` section to every plan file and adds the corresponding `impl:*` label to the parent issue (e.g., `impl:claude-opus`). The human reviews the plan PR and can swap the label if they disagree. When `/plan` creates sub-issues, the `implementer-dispatcher` workflow reads the `impl:*` label from the parent issue and auto-assigns each sub-issue to the chosen agent. One decision at the plan level, zero manual assignment per sub-issue.
+`spec-refiner` adds a `## Recommended implementer` section to every plan file and applies the `impl:copilot` label to the parent issue. Copilot is the only implementer the factory can auto-route today because `implementer-dispatcher`'s `assign-to-agent` safe output targets GitHub user accounts and only the Copilot cloud agent has one. The human reviews the plan PR; if they want to hand-assign to Claude Opus, Claude Sonnet, or Codex instead, they swap the label to `impl:claude-opus`, `impl:claude-sonnet`, or `impl:codex` before commenting `/plan`. For non-`impl:copilot` labels the dispatcher calls `noop` and the human assigns the sub-issues manually via claude.ai/code or equivalent. For `impl:copilot` the dispatcher auto-assigns every sub-issue, so one decision at the plan level replaces N manual assignments.
 
 #### A note on gh-aw engine selection
 
