@@ -36,6 +36,27 @@ How the workflows in this repo chain together into a spec, plan, implement, revi
 |  customize-measurement/ agentic-workflow/                    |
 |  pre-flight-check/                                           |
 +-------------------------------------------------------------+
+
++-------------------------------------------------------------+
+|                    Observability Layer                       |
+|  (session transcripts, artifact storage, learning loop)     |
+|                                                              |
+|  Each gh-aw run uploads an `agent` artifact:                |
+|    agent-stdio.log  (full conversation transcript)          |
+|    agent_usage.json (token usage)                           |
+|    safeoutputs.jsonl (actions taken)                        |
+|    sandbox/agent/logs/ (structured tool logs)               |
+|                                                              |
+|  Retention: 90 days (GitHub Actions artifact storage)       |
+|  .entire/metadata/ — schema docs, not raw data              |
++-----------------------------+-------------------------------+
+                              | learning-aggregator-ci reads weekly
+                              v
++-------------------------------------------------------------+
+|                    Learning Loop                             |
+|  .learnings/LEARNINGS.md + transcript-derived patterns      |
+|  self-improvement-meta writes durable guardrails to repo    |
++-------------------------------------------------------------+
 ```
 
 The adapter layer is thin on purpose. It owns GitHub-specific concerns: when to trigger, what permissions to request, which safe outputs to configure, how to move labels around to hand off to the next workflow. It does **not** own the agent's internal process. That lives in the skills.
@@ -116,6 +137,19 @@ PR labeled needs-rebase?
                     v
               permanent
               guardrails
+
+                  | (weekly, independent of the main chain)
+                  v
+       +---------------------------+
+       | learning-aggregator-ci    |   reads .learnings/ + agent artifact transcripts
+       +------------+--------------+
+                    | downloads agent artifacts from all factory workflow runs (last 7 days)
+                    | merges explicit learnings + transcript-derived patterns
+                    | creates gap report issue with promotion candidates
+                    v
+              transcript-derived
+              pattern candidates
+              (routed to self-improvement-meta for PR creation)
 ```
 
 ## The implementer routing decision
@@ -159,7 +193,9 @@ The chain is opinionated, not rigid. You control which steps run.
 
 `self-improvement-meta` runs nightly. It reads the run logs of every agent that ran in the last 24 hours, extracts failure patterns, and opens a PR that updates `AGENTS.md` or the individual workflow files. When the PR merges, the next run of the affected agent reads the updated instructions.
 
-This is the two-loop model shipped as GitHub Actions. Inner loops run per-task. The outer loop runs per-day. Both are visible in the repo, inspectable as markdown, and owned by the team.
+`learning-aggregator-ci` runs weekly (Monday). It reads both `.learnings/` entries AND the `agent` artifact transcripts from recent factory workflow runs. Transcript analysis surfaces patterns that agents never explicitly logged — retry loops, noop misfires, approach changes. Transcript-derived patterns feed into the same `.learnings/LEARNINGS.md` write path via `self-improvement-meta`.
+
+This is the two-loop model shipped as GitHub Actions. Inner loops run per-task. The outer loop runs per-day (telemetry) and per-week (transcripts). Both are visible in the repo, inspectable as markdown, and owned by the team.
 
 ## The human's job
 

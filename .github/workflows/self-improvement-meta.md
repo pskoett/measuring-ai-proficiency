@@ -121,3 +121,9 @@ Silence is the correct signal when the factory is healthy.
 ## Style
 
 Follow the writing rules in `AGENTS.md`. No em-dashes. Learnings are durable. Write them like you mean it.
+
+## Session capture
+
+This workflow's full session is automatically captured in the `agent` artifact for this run. The artifact includes the prompt, all tool calls, tool outputs, and token usage. The `learning-aggregator-ci` workflow downloads and analyzes these artifacts weekly to extract improvement patterns for the outer learning loop.
+
+In the MVP, this workflow reads workflow-level telemetry (`gh aw audit`, `gh run list`) as its primary signal source. Transcript-derived patterns from `learning-aggregator-ci` may supplement this in future iterations when they have accumulated enough volume.

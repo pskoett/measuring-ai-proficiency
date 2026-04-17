@@ -370,3 +370,93 @@ bash scripts/check-workflow-lock-sync.sh
 ## Architecture
 
 See [`chain.md`](chain.md) for the full layered architecture diagram and the design rationale for choreography over orchestration.
+
+## Observability
+
+Every factory workflow captures its full session as a GitHub Actions artifact. This section explains where to find transcripts, what they contain, how long they live, and how they feed the outer learning loop.
+
+### Session transcript artifacts
+
+Every gh-aw agent workflow uploads an `agent` artifact after the agent step completes. The artifact is uploaded unconditionally (`if: always()`) with `if-no-files-found: ignore`, so it never causes a workflow failure when the agent does not produce output.
+
+**Artifact name**: `agent`
+
+**Contents**:
+
+| File | Contents |
+|------|----------|
+| `agent-stdio.log` | Full session: prompt, all tool calls, tool outputs, and agent reasoning in order |
+| `sandbox/agent/logs/` | Structured agent logs with timestamps and tool metadata |
+| `safeoutputs.jsonl` | Every safe-output action taken (issues created, comments posted, PRs opened) |
+| `agent_output.json` | Final structured output payload |
+| `agent_usage.json` | Token usage: prompt tokens, completion tokens, total |
+| `aw-prompts/prompt.txt` | The rendered system prompt that was sent to the agent |
+| `mcp-logs/` | MCP gateway request/response logs |
+
+**Artifact retention**: 90 days (GitHub Actions default). After 90 days the artifact is deleted automatically. Raw transcripts are never committed to git history.
+
+### Finding transcripts
+
+```bash
+# List recent runs for a specific workflow and see their IDs
+gh run list --workflow spec-refiner.lock.yml --limit 10 \
+  --json databaseId,displayTitle,conclusion,createdAt
+
+# Download the agent artifact for a specific run
+mkdir -p /tmp/transcript-<run-id>
+gh run download <run-id> --name agent --dir /tmp/transcript-<run-id>
+
+# Read the session transcript
+cat /tmp/transcript-<run-id>/agent-stdio.log
+
+# Check token usage
+cat /tmp/transcript-<run-id>/agent_usage.json
+
+# See what safe outputs the agent took
+cat /tmp/transcript-<run-id>/safeoutputs.jsonl | jq .
+```
+
+You can also browse artifacts in the GitHub UI: navigate to Actions, select the workflow run, and look for the `agent` artifact in the run summary.
+
+### Retention and access
+
+Transcripts are stored as GitHub Actions run artifacts. They are:
+
+- **Scoped to the repository** — same access as Actions logs (repo read access required)
+- **Retained for 90 days** — the default for GitHub Actions artifacts; configurable in Settings > Actions > Artifact and log retention
+- **Automatically deleted** after the retention period
+- **Never committed to git** — raw transcript data stays in artifact storage only
+
+The `.entire/metadata/` directory in this repository does NOT store raw transcript data. See `.entire/metadata/README.md` for its purpose and layout.
+
+### Privacy and PII
+
+Session transcripts may contain content from:
+- Issue bodies and titles (which users authored)
+- Commit messages and PR descriptions
+- File contents from the repository
+- Error messages and log output
+
+**Policy**:
+- Do not share transcript artifacts outside the repository
+- Do not copy raw transcript content into issues, comments, or `.learnings/` entries
+- When analyzing transcripts, extract only structural patterns (tool sequences, error categories, retry counts)
+- Use abstract summaries in learning entries: "agent retried file-read 5 times" not the actual file content
+
+### How transcripts feed the learning loop
+
+The `learning-aggregator-ci` workflow runs weekly (Monday) and:
+
+1. Reads accumulated entries in `.learnings/` (explicit, manually logged patterns)
+2. Downloads `agent` artifacts from the last 7 days of each factory workflow run
+3. Parses `agent-stdio.log` for structural patterns (retry loops, noop misfires, approach changes, token anomalies)
+4. Merges transcript findings with `.learnings/` entries, deduplicating by `Pattern-Key`
+5. Creates a weekly gap report issue with promotion candidates
+
+Transcript-derived patterns labeled `**TRANSCRIPT CANDIDATE**` in the weekly issue are routed to `self-improvement-meta` for addition to `.learnings/LEARNINGS.md` via a reviewed PR. This preserves the two-step write path: discover in transcript analysis, land in a PR that a human approves.
+
+### What `self-improvement-meta` uses
+
+`self-improvement-meta` (nightly) reads workflow-level telemetry from `gh aw audit` and `gh run list` as its primary signal source. This covers conclusion outcomes (success, failure, noop), token usage summaries, and error categories surfaced by gh-aw's detection steps.
+
+For the MVP, `self-improvement-meta` does not download individual `agent` artifacts. It relies on the weekly `learning-aggregator-ci` run to surface transcript-derived patterns. This avoids running expensive transcript downloads nightly when weekly cadence is sufficient.
