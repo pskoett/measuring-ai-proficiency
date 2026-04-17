@@ -132,9 +132,8 @@ The `issue-triage` workflow fires automatically on new issues. It reads the cont
 After triage, add the `needs-spec` label to start the factory chain.
 
 The `spec-refiner` workflow triggers. It reads the issue, runs the `plan-interview` skill, and produces:
-- A plan file at `docs/plans/plan-NNN-<slug>.md` (opened as a PR)
-- A recommended implementer (Claude Opus 4.6, Claude Sonnet 4.6, Copilot, or Codex)
-- An implementer label on the issue (`impl:claude-opus`, `impl:claude-sonnet`, `impl:copilot`, or `impl:codex`)
+- A plan file at `docs/plans/plan-NNN-<slug>.md` where **NNN is the source issue number** (for example, issue #61 produces `plan-061-*.md`). This prevents numbering races when parallel plans land and guarantees one plan per issue (opened as a PR).
+- An `impl:copilot` label on the source issue. Only Copilot is auto-assignable today; see Step 3 for the reasoning.
 - A label swap: `needs-spec` removed, `needs-plan` added
 
 If the agent cannot answer something from context alone, it marks the gap with **NEEDS HUMAN INPUT** and adds the `blocked-on-human` label. Add a comment with the missing context, remove the label, and re-trigger.
@@ -143,14 +142,14 @@ If the agent cannot answer something from context alone, it marks the gap with *
 
 Read the plan PR. Check the success criteria, the implementation checklist, and the recommended implementer.
 
-The spec-refiner already added an implementer label (e.g., `impl:claude-opus`) to the issue based on its complexity assessment. If you disagree with the recommendation, swap the label before proceeding:
+Spec-refiner always applies `impl:copilot` today. Only Copilot has a real GitHub agent user that `implementer-dispatcher` can assign to via `assign-to-agent`. If the recommendation looks wrong (for example, you want to hand a complex refactor to Claude Opus yourself), swap the label on the source issue before proceeding. `impl:claude-*` and `impl:codex` exist for this manual-override case only — they will _not_ auto-route to an agent.
 
-| Label | Agent | When to use |
-|-------|-------|-------------|
-| `impl:claude-opus` | Claude Opus 4.6 | Multi-file refactors, high blast radius, 6+ checklist items |
-| `impl:claude-sonnet` | Claude Sonnet 4.6 | Single-component features, medium complexity |
-| `impl:copilot` | Copilot | Trivial fixes, dependency bumps, config changes |
-| `impl:codex` | Codex GPT-5.4 | A/B comparison, different reasoning style |
+| Label | Who can auto-assign | Use when |
+|-------|---------------------|----------|
+| `impl:copilot` | **Yes** — Copilot cloud agent | Default for everything today |
+| `impl:claude-opus` | **No, manual only** | You will hand the sub-issues to Claude Opus yourself via claude.ai/code |
+| `impl:claude-sonnet` | **No, manual only** | Same, for Claude Sonnet |
+| `impl:codex` | **No, manual only** | Same, for Codex |
 
 Merge the plan PR. The plan PR references the source issue with a non-closing link (e.g. `Refs #NN`), so merging it does not close the source issue. The source issue stays open as the tracking anchor through the planning and implementation window. It should only be closed after all implementation sub-issues are resolved and the actual fix ships.
 
@@ -158,24 +157,26 @@ The `needs-plan` label triggers the `/plan` workflow, which breaks the plan into
 
 ### Step 4: Auto-Assignment (No Manual Work)
 
-The `implementer-dispatcher` workflow triggers automatically when sub-issues receive the `ready-for-implementation` label. It reads the implementer label from the parent issue and assigns each sub-issue to the chosen agent via `assign-to-agent`.
+The `implementer-dispatcher` workflow triggers when sub-issues receive the `ready-for-implementation` label (on both `issues.opened` and `issues.labeled` events). It reads the implementer label from the parent issue, posts an assignment comment, and calls `assign-to-agent` when the parent label is `impl:copilot`.
 
 You assigned once at Step 3. Every sub-issue inherits that choice. No manual assignment needed.
 
 The agent opens a PR with its implementation.
+
+**Re-dispatching a sub-issue manually.** The dispatcher calls `noop` if the sub-issue already has the `assigned-to-agent` label (prevents double-dispatch). If you ever need to force dispatcher to re-run against a sub-issue — for example, you changed the parent's `impl:*` label and want the new routing to take effect — strip **both** `ready-for-implementation` and `assigned-to-agent`, then re-add `ready-for-implementation`. Re-adding alone is not enough because the noop guard on `assigned-to-agent` still fires.
 
 ### Step 5: Automated Review
 
 Two workflows trigger on the new PR:
 
 **Reviewer** checks the PR against the plan file:
-1. Finds the plan and checks every success criterion: Met, Partial, Missed, or Drifted
+1. Loads the plan, then searches for sibling PRs that reference the same plan. Criteria already covered by a sibling PR are classified as `Deferred: covered by #NN` rather than `Missed`, so multi-PR plans no longer collect false `needs-changes` verdicts.
 2. Detects the implementer and applies calibration:
    - Claude PRs: checked for scope drift (tends to over-implement)
    - Copilot PRs: checked for test coverage gaps (tends to under-test)
    - Codex PRs: checked for correctness on unusual control flow
    - Human PRs: standard rigor
-3. Posts a structured review comment with a verdict: `ai-reviewed`, `needs-changes`, or `fast-track`
+3. Posts a structured review comment. Each criterion is labeled `Met`, `Partial`, `Missed`, `Drifted`, or `Deferred: covered by #NN`. Verdict: `ai-reviewed`, `needs-changes`, or `fast-track`. A `Deferred`-only run does **not** trigger `needs-changes` on its own.
 
 **Contribution checker** evaluates the PR against `docs/CONTRIBUTING.md`: on-topic, focused, has tests, has description, skills synced.
 
@@ -287,19 +288,18 @@ Skills live in `.claude/skills/` and work identically in Claude Code, Codex CLI,
 | `human-review` | Emergency stop: all agents call noop | Human |
 | `self-improvement` | PR was created by the nightly learning loop | self-improvement-meta |
 | `ci-fix` | PR was created by the CI cleaner | ci-cleaner |
-| `needs-rebase` | PR branch is behind main and needs a merge | Human |
 | `plan-file` | PR contains a plan file | spec-refiner |
 
 ## Implementer Routing
 
-The full routing rules live in `AGENTS.md` under "Agent routing guidelines". Summary:
+Today only `impl:copilot` is auto-routable — the Copilot cloud agent is the only implementer with a GitHub user account that `assign-to-agent` can target. Spec-refiner always recommends `impl:copilot`. The other labels exist for humans who want to hand-assign a plan to a specific model outside the factory:
 
-- **Claude Opus 4.6**: complex, multi-file, architecturally risky. More than three modules, high blast radius, non-trivial rollback.
-- **Claude Sonnet 4.6**: straightforward single-component features. Clear scope, existing patterns, medium blast radius.
-- **Copilot cloud agent**: trivial or highly constrained. Dependency bumps, one-line fixes, config changes.
-- **Codex GPT-5.4**: opportunistic. Different reasoning style as a sanity check, A/B data on agent quality.
+- **`impl:copilot` (auto)**: everything the factory assigns today. The Copilot cloud agent is serial per repo, so sub-issues from one plan are worked one at a time.
+- **`impl:claude-opus` (manual)**: hand the sub-issues to Claude Opus 4.6 via claude.ai/code. Appropriate when the plan has 6+ checklist items, multi-file refactors, or high blast radius.
+- **`impl:claude-sonnet` (manual)**: same, for a cheaper Claude path on single-component features.
+- **`impl:codex` (manual)**: same, for a different reasoning style or A/B comparison.
 
-The spec-refiner recommends. The human decides. The reviewer calibrates based on who actually produced the code.
+The spec-refiner recommends, the human decides, and the reviewer calibrates based on who actually produced the code.
 
 ## Debugging
 
