@@ -277,7 +277,7 @@ Skills live in `.claude/skills/` and work identically in Claude Code, Codex CLI,
 |-------|---------|--------|
 | `needs-spec` | Issue needs a structured plan file | Human |
 | `needs-plan` | Spec is ready, waiting for a plan PR | spec-refiner |
-| `needs-rebase` | PR branch is behind main and needs a merge | Human |
+| `needs-rebase` | PR branch is behind main and needs a merge | Human or reviewer |
 | `blocked-on-human` | Agent needs human input before proceeding | spec-refiner, conflict-resolver (and other workflows) |
 | `spec-refined` | Spec refinement is complete | spec-refiner |
 | `ready-for-implementation` | Source issue ready for a coding agent | plan-merged-dispatcher |
