@@ -40,15 +40,14 @@ jobs:
           set -euo pipefail
 
           PROJECT_ID='PVT_kwHOCpF41s4BU8ja'
-          FIELD_ID='PVTSSF_lAHOCpF41s4BU8jazhMLwks'  # Status (6-column overview)
+          FIELD_ID='PVTSSF_lAHOCpF41s4BU8jazhMLwks'  # Status (4-column overview)
 
+          # 4 lanes: Waiting for spec / Factory building / Your turn / Done.
           declare -A OPT=(
-            [Inbox]='f75ad846'
-            [Planning]='47fc9ee4'
-            [InFlight]='98236657'
-            [Review]='0ed44c4a'
-            [NeedsAttention]='37fdf3fc'
-            [Done]='675bf0bb'
+            [Waiting]='f75ad846'        # 📥 Waiting for spec
+            [Factory]='47fc9ee4'        # 🤖 Factory building
+            [YourTurn]='37fdf3fc'       # 👉 Your turn
+            [Done]='675bf0bb'           # ✅ Done
           )
 
           # Fetch current labels + node id + state from REST (works for both issues and PRs)
@@ -62,26 +61,32 @@ jobs:
           echo "Item: $REPO#$ISSUE_NUMBER  state=$ITEM_STATE  pr=$IS_PR  merged=$EVENT_MERGED"
           echo "Labels: $LABELS"
 
-          # Priority-ordered label-to-lane derivation (6-column overview).
-          # Done is terminal. Needs Attention covers any human-block label.
-          # Everything else collapses forward-progress states into 4 lanes.
+          # Priority-ordered label-to-lane derivation (4-column overview).
+          # Rules, from highest priority:
+          #  1) closed -> Done
+          #  2) any human-action label, OR any open PR -> Your turn
+          #  3) factory-progress labels (ready-for-implementation, assigned-to-agent, needs-plan) -> Factory building
+          #  4) fallback -> Waiting for spec
           L=",$LABELS,"
-          if [ "$ITEM_STATE" = "closed" ] || [[ "$L" == *",self-improvement,"* ]]; then
+          if [ "$ITEM_STATE" = "closed" ]; then
             STATE_NAME=Done
-          elif [[ "$L" == *",needs-changes,"* || "$L" == *",needs-rebase,"* || "$L" == *",human-review,"* || "$L" == *",blocked-on-human,"* ]]; then
-            STATE_NAME=NeedsAttention
-          elif [[ "$L" == *",ai-reviewed,"* ]]; then
-            STATE_NAME=Review
-          elif [[ "$L" == *",ready-for-implementation,"* || "$L" == *",assigned-to-agent,"* ]]; then
-            STATE_NAME=InFlight
-          elif [[ "$L" == *",needs-plan,"* ]]; then
-            STATE_NAME=Planning
+          elif [[ "$L" == *",needs-changes,"* \
+               || "$L" == *",needs-rebase,"* \
+               || "$L" == *",human-review,"* \
+               || "$L" == *",blocked-on-human,"* \
+               || "$L" == *",ai-reviewed,"* \
+               || "$L" == *",plan-file,"* ]]; then
+            STATE_NAME=YourTurn
           elif [ "$IS_PR" = "true" ] && [ "$ITEM_STATE" = "open" ]; then
-            # Any other open PR is awaiting human review/merge.
-            STATE_NAME=Review
+            # Any open PR defaults to Your turn — you're the one who merges it.
+            STATE_NAME=YourTurn
+          elif [[ "$L" == *",ready-for-implementation,"* \
+               || "$L" == *",assigned-to-agent,"* \
+               || "$L" == *",needs-plan,"* ]]; then
+            STATE_NAME=Factory
           else
-            # Issue with needs-spec or no factory labels yet.
-            STATE_NAME=Inbox
+            # needs-spec, no labels yet, or anything else the factory hasn't picked up.
+            STATE_NAME=Waiting
           fi
           OPT_ID="${OPT[$STATE_NAME]}"
           echo "Lane -> $STATE_NAME ($OPT_ID)"
@@ -108,12 +113,12 @@ jobs:
             }' -f projectId="$PROJECT_ID" -f itemId="$ITEM_ID" -f fieldId="$FIELD_ID" -f optId="$OPT_ID" \
             --jq '.data.updateProjectV2ItemFieldValue.projectV2Item.id'
 
-          # Apply/remove the "your-turn" label so cards in Planning, Review,
-          # or Needs Attention lanes show a visible chip wherever they appear.
+          # Apply/remove the "your-turn" label so cards in the Your turn lane
+          # show a visible chip wherever they appear (Label view, filters, etc.).
           # Uses PROJECTS_PAT (which has `repo` scope) rather than GITHUB_TOKEN
           # because this workflow currently runs with `contents: read` only.
           case "$STATE_NAME" in
-            Planning|Review|NeedsAttention)
+            YourTurn)
               gh issue edit "$ISSUE_NUMBER" --add-label your-turn --repo "$REPO" 2>/dev/null \
                 || gh pr edit "$ISSUE_NUMBER" --add-label your-turn --repo "$REPO" 2>/dev/null \
                 || true
