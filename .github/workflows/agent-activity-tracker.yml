@@ -1,0 +1,138 @@
+name: Agent Activity Tracker
+
+# Reconciles which issues/PRs currently have at least one factory workflow
+# in progress. Applies the `agent-working` label and a `model:<name>` label
+# derived from the workflow's engine.model so the Projects board can show
+# "something is actively chewing on this."
+#
+# Trade-off: the tracker polls every 5 minutes instead of being event-driven,
+# because workflow_run only fires on completion (not on queued) and still
+# requires an API round-trip to find the triggering item. Polling keeps the
+# sync rule simple and idempotent.
+
+on:
+  schedule:
+    - cron: '*/5 * * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+  pull-requests: write
+  actions: read
+
+concurrency:
+  group: agent-activity-tracker
+  cancel-in-progress: true
+
+jobs:
+  reconcile:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          sparse-checkout: .github/workflows
+          sparse-checkout-cone-mode: false
+
+      - name: Reconcile agent-working labels
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+
+          # Factory workflows we care about. Anything else (CI, etc.) is not
+          # an "agent" in the factory sense and we ignore it.
+          FACTORY_WORKFLOWS=(
+            "Agentic Triage"
+            "Spec Refiner"
+            "Implementer Dispatcher"
+            "Reviewer"
+            "Contribution Checker"
+            "Simplify & Harden CI"
+            "Eval Creator CI"
+            "PR Fix"
+            "Conflict Resolver"
+            "Self-Improvement Meta"
+            "Learning Aggregator CI"
+            "CI Cleaner"
+          )
+
+          # Build a jq filter matching any of the factory workflow names.
+          WF_FILTER=$(printf '"%s",' "${FACTORY_WORKFLOWS[@]}")
+          WF_FILTER="[${WF_FILTER%,}]"
+
+          echo "::group::Fetching in-progress factory runs"
+          RUNS=$(gh api "repos/$REPO/actions/runs?status=in_progress&per_page=50" \
+            --jq "[.workflow_runs[] | select(.name as \$n | $WF_FILTER | index(\$n))] | map({id: .id, name: .name, path: .path, event: .event})")
+          echo "$RUNS" | jq '.'
+          echo "::endgroup::"
+
+          declare -A ACTIVE_ITEMS    # item_num -> 1
+          declare -A ACTIVE_MODELS   # item_num -> "gpt-5.4 claude-sonnet-4-6"
+
+          for row in $(echo "$RUNS" | jq -r '.[] | @base64'); do
+            RUN=$(echo "$row" | base64 -d)
+            RUN_ID=$(echo "$RUN" | jq -r '.id')
+            WF_PATH=$(echo "$RUN" | jq -r '.path')
+
+            # Look up the engine.model from the workflow's .md source.
+            # Compiled .lock.yml has no human-readable model; read the .md.
+            MD_PATH="${WF_PATH%.lock.yml}.md"
+            if [ -f "$MD_PATH" ]; then
+              MODEL=$(awk '/^engine:/{inside=1; next} inside && /^[^ ]/{inside=0} inside && /model:/ {print $2; exit}' "$MD_PATH" | tr -d '"')
+            else
+              MODEL=""
+            fi
+
+            # Extract triggering issue/PR number from the run's event payload.
+            ITEM_NUM=$(gh api "repos/$REPO/actions/runs/$RUN_ID" \
+              --jq '.. | .number? | numbers' | head -1)
+            if [ -z "$ITEM_NUM" ]; then
+              continue
+            fi
+
+            ACTIVE_ITEMS[$ITEM_NUM]=1
+            if [ -n "$MODEL" ]; then
+              ACTIVE_MODELS[$ITEM_NUM]="${ACTIVE_MODELS[$ITEM_NUM]:-} $MODEL"
+            fi
+          done
+
+          echo "Active items: ${!ACTIVE_ITEMS[@]}"
+
+          # Apply labels on currently-active items.
+          for num in "${!ACTIVE_ITEMS[@]}"; do
+            gh issue edit "$num" --add-label agent-working 2>/dev/null || \
+              gh pr edit "$num" --add-label agent-working 2>/dev/null || true
+
+            # Unique-sort the model list for this item.
+            MODELS=$(echo "${ACTIVE_MODELS[$num]:-}" | tr ' ' '\n' | grep -v '^$' | sort -u)
+            for m in $MODELS; do
+              LBL="model:$m"
+              # Ensure the label exists (idempotent create, ignore if already present).
+              gh label create "$LBL" --color D4C5F9 --description "Active gh-aw workflow engine.model" 2>/dev/null || true
+              gh issue edit "$num" --add-label "$LBL" 2>/dev/null || \
+                gh pr edit "$num" --add-label "$LBL" 2>/dev/null || true
+            done
+          done
+
+          # Sweep: remove agent-working + model:* from items no longer active.
+          LABELED=$(gh issue list --label agent-working --state all --json number --jq '.[].number')
+          LABELED_PRS=$(gh pr list --label agent-working --state all --json number --jq '.[].number')
+          for num in $LABELED $LABELED_PRS; do
+            if [ -z "${ACTIVE_ITEMS[$num]:-}" ]; then
+              gh issue edit "$num" --remove-label agent-working 2>/dev/null || \
+                gh pr edit "$num" --remove-label agent-working 2>/dev/null || true
+              # Remove any model:* label on this item.
+              EXISTING=$(gh issue view "$num" --json labels --jq '.labels[].name' 2>/dev/null || \
+                gh pr view "$num" --json labels --jq '.labels[].name' 2>/dev/null || true)
+              for lbl in $EXISTING; do
+                case "$lbl" in
+                  model:*)
+                    gh issue edit "$num" --remove-label "$lbl" 2>/dev/null || \
+                      gh pr edit "$num" --remove-label "$lbl" 2>/dev/null || true
+                    ;;
+                esac
+              done
+            fi
+          done
