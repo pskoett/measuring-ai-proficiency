@@ -1,0 +1,115 @@
+name: Sync Factory State
+
+# Mirrors the factory label set onto the "AI Agent Factory" Projects v2 board's
+# "Factory state" single-select field. Labels are authoritative; this workflow
+# derives the projected state one-way. Never reads field -> back to labels.
+#
+# Requires a repo secret PROJECTS_PAT with `project` scope (fine-grained PAT,
+# access to pskoett/measuring-ai-proficiency + project permission read/write).
+# GITHUB_TOKEN cannot be used: Projects v2 requires a user PAT.
+
+on:
+  issues:
+    types: [labeled, unlabeled, closed, reopened, transferred]
+  pull_request:
+    types: [labeled, unlabeled, closed, reopened]
+  workflow_dispatch:
+    inputs:
+      issue_number:
+        description: "Issue or PR number to resync (for manual testing)"
+        required: true
+
+permissions:
+  contents: read
+
+concurrency:
+  group: sync-factory-state-${{ github.event.issue.number || github.event.pull_request.number || inputs.issue_number }}
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Compute Factory state and update project item
+        env:
+          GH_TOKEN: ${{ secrets.PROJECTS_PAT }}
+          REPO: ${{ github.repository }}
+          ISSUE_NUMBER: ${{ github.event.issue.number || github.event.pull_request.number || inputs.issue_number }}
+          EVENT_MERGED: ${{ github.event.pull_request.merged || 'false' }}
+        run: |
+          set -euo pipefail
+
+          PROJECT_ID='PVT_kwHOCpF41s4BU8ja'
+          FIELD_ID='PVTSSF_lAHOCpF41s4BU8jazhMLy_8'
+
+          declare -A OPT=(
+            [Triage]='aabd9c13'
+            [Spec]='ac3f63b0'
+            [Planning]='2c967050'
+            [Ready]='197b15b8'
+            [Assigned]='5a44a584'
+            [Review]='9ba04603'
+            [Needs-changes]='45b74231'
+            [Merged]='6e1dec0d'
+            [Learning]='cf3543b1'
+          )
+
+          # Fetch current labels + node id + state from REST (works for both issues and PRs)
+          ITEM_JSON=$(gh api "repos/$REPO/issues/$ISSUE_NUMBER" \
+            --jq '{labels: [.labels[].name], node_id: .node_id, state: .state, pr: (has("pull_request"))}')
+          LABELS=$(echo "$ITEM_JSON" | jq -r '.labels | join(",")')
+          NODE_ID=$(echo "$ITEM_JSON" | jq -r '.node_id')
+          ITEM_STATE=$(echo "$ITEM_JSON" | jq -r '.state')
+          IS_PR=$(echo "$ITEM_JSON" | jq -r '.pr')
+
+          echo "Item: $REPO#$ISSUE_NUMBER  state=$ITEM_STATE  pr=$IS_PR  merged=$EVENT_MERGED"
+          echo "Labels: $LABELS"
+
+          # Priority-ordered label-to-state derivation.
+          # Merged is terminal. Learning is next (self-improvement PRs).
+          # Needs-changes covers any human-block label.
+          # Then forward progress states in reverse chain order (Review -> Triage).
+          L=",$LABELS,"
+          if [ "$ITEM_STATE" = "closed" ]; then
+            STATE_NAME=Merged
+          elif [[ "$L" == *",self-improvement,"* ]]; then
+            STATE_NAME=Learning
+          elif [[ "$L" == *",needs-changes,"* || "$L" == *",needs-rebase,"* || "$L" == *",human-review,"* || "$L" == *",blocked-on-human,"* ]]; then
+            STATE_NAME=Needs-changes
+          elif [[ "$L" == *",ai-reviewed,"* ]]; then
+            STATE_NAME=Review
+          elif [[ "$L" == *",assigned-to-agent,"* ]]; then
+            STATE_NAME=Assigned
+          elif [[ "$L" == *",ready-for-implementation,"* ]]; then
+            STATE_NAME=Ready
+          elif [[ "$L" == *",needs-plan,"* ]]; then
+            STATE_NAME=Planning
+          elif [[ "$L" == *",needs-spec,"* ]]; then
+            STATE_NAME=Spec
+          else
+            STATE_NAME=Triage
+          fi
+          OPT_ID="${OPT[$STATE_NAME]}"
+          echo "Factory state -> $STATE_NAME ($OPT_ID)"
+
+          # Ensure item is on the project (idempotent) + capture item id
+          ITEM_ID=$(gh api graphql -f query='
+            mutation($projectId: ID!, $contentId: ID!) {
+              addProjectV2ItemById(input: { projectId: $projectId, contentId: $contentId }) {
+                item { id }
+              }
+            }' -f projectId="$PROJECT_ID" -f contentId="$NODE_ID" \
+            --jq '.data.addProjectV2ItemById.item.id')
+          echo "Project item id: $ITEM_ID"
+
+          # Update the Factory state field
+          gh api graphql -f query='
+            mutation($projectId: ID!, $itemId: ID!, $fieldId: ID!, $optId: String!) {
+              updateProjectV2ItemFieldValue(input: {
+                projectId: $projectId,
+                itemId: $itemId,
+                fieldId: $fieldId,
+                value: { singleSelectOptionId: $optId }
+              }) { projectV2Item { id } }
+            }' -f projectId="$PROJECT_ID" -f itemId="$ITEM_ID" -f fieldId="$FIELD_ID" -f optId="$OPT_ID" \
+            --jq '.data.updateProjectV2ItemFieldValue.projectV2Item.id'
