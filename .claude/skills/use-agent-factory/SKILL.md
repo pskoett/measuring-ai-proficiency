@@ -168,6 +168,20 @@ These are the concrete failure modes this factory has hit. When you see symptoms
 
 **Action**: Check `gh aw status` and the most recent run in the Actions tab. If the run shows "NEEDS HUMAN INPUT", read its comment for the missing context, answer in the issue, remove `blocked-on-human`, and re-trigger.
 
+### Symptom: `lock-file-sync` CI check fails with "Lock file is outdated"
+
+**Cause**: A workflow `.md` frontmatter was edited without running `gh aw compile` to regenerate the paired `.lock.yml`. gh-aw stores a SHA-256 hash of each workflow's frontmatter in the lock file (`# gh-aw-metadata: {...,"frontmatter_hash":"..."}`). Any change to the frontmatter block invalidates the hash. Claude Code sandboxes, Codex CLI sessions, and GitHub web edits do not have `gh aw` installed, so the lock file is never updated automatically. The `lock-file-sync` CI guard introduced in Refs #95 catches this before merge.
+
+**Action**: Run `gh aw compile <workflow-name>` locally, commit the updated `.lock.yml`, and push. If multiple workflows are stale, run `gh aw compile` with no arguments to recompile all of them in one step. Do not expect CI to regenerate the lock file automatically — that is intentionally not supported. The repair is always an explicit recompile on a machine with `gh aw` installed.
+
+```bash
+# Fix a single stale workflow
+gh aw compile <workflow-name>
+
+# Fix all stale workflows at once
+gh aw compile
+```
+
 ### Symptom: ai-proficiency-pr-review auto-fired on a PR you didn't expect
 
 **Cause**: Regression: something re-added the `pull_request` trigger. It should be on `issue_comment` + `workflow_dispatch` only (see `.github/workflows/ai-proficiency-pr-review.md` and `ai-proficiency-claude.yml`).

@@ -301,6 +301,35 @@ Today only `impl:copilot` is auto-routable — the Copilot cloud agent is the on
 
 The spec-refiner recommends, the human decides, and the reviewer calibrates based on who actually produced the code.
 
+## Failure Modes
+
+### Stale workflow lock-file hash (ERR_CONFIG: Lock file is outdated)
+
+**Symptom**: The `lock-file-sync` CI check fails on a PR. The job output contains a message similar to:
+
+```
+ERR_CONFIG: Lock file is outdated! The workflow file frontmatter has changed.
+Run 'gh aw compile' to regenerate the lock file.
+```
+
+Or the job explicitly lists which `.md` / `.lock.yml` pairs are out of sync and exits non-zero.
+
+**Why it happens**: gh-aw stores a SHA-256 hash of each workflow `.md` frontmatter in the compiled `.lock.yml` metadata header (`# gh-aw-metadata: {...,"frontmatter_hash":"..."}`). Any edit to the frontmatter block of a `.md` file, even a whitespace change, invalidates the stored hash. Claude Code sandboxes, Codex CLI sessions, and GitHub web edits do not have `gh aw` installed, so the paired `.lock.yml` is never regenerated automatically. The mismatch stays silent until the workflow is triggered, at which point gh-aw rejects the run entirely. The `lock-file-sync` CI guard catches this before merge.
+
+**Repair**: Run locally and push the updated lock file:
+
+```bash
+# Recompile one workflow
+gh aw compile <workflow-name>
+
+# Recompile all workflows at once
+gh aw compile
+```
+
+Commit the resulting `.lock.yml` changes and push. The `lock-file-sync` check will pass once the compiled hash matches the `.md` frontmatter.
+
+**Important**: CI will never auto-regenerate lock files. The recompile must be an explicit developer or agent action on a machine with `gh aw` installed. This is intentional: auto-regeneration in CI would hide workflow changes behind automation and weaken review. Refs #95.
+
 ## Debugging
 
 ```bash
