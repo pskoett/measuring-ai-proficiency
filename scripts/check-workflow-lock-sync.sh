@@ -73,7 +73,7 @@ echo ""
 # is listed in help, run it and forward the result. If the flag is not in help,
 # fall through to the compile-and-diff fallback.
 
-if gh aw compile --help 2>&1 | grep -q -- "--check-only"; then
+if gh aw compile --help | grep -q -- "--check-only"; then
   echo "Strategy: native 'gh aw compile --check-only' (read-only, no side effects)"
   echo ""
   CHECK_ONLY_OUT=$(gh aw compile --check-only 2>&1) || CHECK_ONLY_RC=$?
