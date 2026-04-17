@@ -76,8 +76,11 @@ jobs:
             STATE_NAME=InFlight
           elif [[ "$L" == *",needs-plan,"* ]]; then
             STATE_NAME=Planning
+          elif [ "$IS_PR" = "true" ] && [ "$ITEM_STATE" = "open" ]; then
+            # Any other open PR is awaiting human review/merge.
+            STATE_NAME=Review
           else
-            # needs-spec OR no factory labels yet
+            # Issue with needs-spec or no factory labels yet.
             STATE_NAME=Inbox
           fi
           OPT_ID="${OPT[$STATE_NAME]}"
@@ -104,3 +107,20 @@ jobs:
               }) { projectV2Item { id } }
             }' -f projectId="$PROJECT_ID" -f itemId="$ITEM_ID" -f fieldId="$FIELD_ID" -f optId="$OPT_ID" \
             --jq '.data.updateProjectV2ItemFieldValue.projectV2Item.id'
+
+          # Apply/remove the "your-turn" label so cards in Planning, Review,
+          # or Needs Attention lanes show a visible chip wherever they appear.
+          # Uses PROJECTS_PAT (which has `repo` scope) rather than GITHUB_TOKEN
+          # because this workflow currently runs with `contents: read` only.
+          case "$STATE_NAME" in
+            Planning|Review|NeedsAttention)
+              gh issue edit "$ISSUE_NUMBER" --add-label your-turn --repo "$REPO" 2>/dev/null \
+                || gh pr edit "$ISSUE_NUMBER" --add-label your-turn --repo "$REPO" 2>/dev/null \
+                || true
+              ;;
+            *)
+              gh issue edit "$ISSUE_NUMBER" --remove-label your-turn --repo "$REPO" 2>/dev/null \
+                || gh pr edit "$ISSUE_NUMBER" --remove-label your-turn --repo "$REPO" 2>/dev/null \
+                || true
+              ;;
+          esac
