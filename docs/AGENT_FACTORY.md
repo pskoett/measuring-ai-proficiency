@@ -301,6 +301,37 @@ Today only `impl:copilot` is auto-routable — the Copilot cloud agent is the on
 
 The spec-refiner recommends, the human decides, and the reviewer calibrates based on who actually produced the code.
 
+## Stale lock file failure mode
+
+Every `.github/workflows/*.md` source file has a paired `.lock.yml` compiled by `gh aw compile`. The `frontmatter_hash` embedded in the lock file must match the source. When they diverge, gh-aw rejects the next workflow run with a hash mismatch error.
+
+This is a delayed break: the repo stays green until someone triggers the stale workflow. A PR-time guard catches it early.
+
+### CI guard
+
+`.github/workflows/lock-file-sync.yml` runs on every pull request that touches `*.md` or `*.lock.yml` files in `.github/workflows/`. It calls `scripts/check-workflow-lock-sync.sh`, which:
+
+1. Tries `gh aw compile --check-only` when the installed gh-aw version supports it (read-only, no side effects).
+2. Falls back to running `gh aw compile` and checking `git diff` for changed lock files when `--check-only` is unavailable.
+
+The job fails with one actionable error per stale pair, including the exact repair command.
+
+### How to fix a stale lock file
+
+1. Identify the stale workflow from the CI failure message.
+2. Recompile it locally:
+   ```bash
+   gh aw compile <workflow-name>
+   ```
+3. Commit both the `.md` and the regenerated `.lock.yml`:
+   ```bash
+   git add .github/workflows/<workflow-name>.md .github/workflows/<workflow-name>.lock.yml
+   git commit -m "chore: recompile <workflow-name> lock file"
+   ```
+4. Push. The lock-file-sync check will pass on the next run.
+
+To recompile all workflows at once: `gh aw compile` then commit all changed `.lock.yml` files.
+
 ## Debugging
 
 ```bash
@@ -321,6 +352,9 @@ gh aw compile
 
 # Remove orphaned lock files
 gh aw compile --purge
+
+# Run the lock-file sync check locally (same check as CI)
+bash scripts/check-workflow-lock-sync.sh
 ```
 
 ### Stale workflow lock files

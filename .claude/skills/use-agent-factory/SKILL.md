@@ -168,22 +168,18 @@ These are the concrete failure modes this factory has hit. When you see symptoms
 
 **Action**: Check `gh aw status` and the most recent run in the Actions tab. If the run shows "NEEDS HUMAN INPUT", read its comment for the missing context, answer in the issue, remove `blocked-on-human`, and re-trigger.
 
-### Symptom: CI gate "Lock File Sync" fails on a PR
+### Symptom: lock-file-sync CI job fails with "stale pair" errors
 
-**Cause**: The YAML frontmatter of a `.github/workflows/*.md` file was edited but the paired `.lock.yml` was not regenerated. The CI gate runs `gh aw compile` and detects the mismatch.
+**Cause**: A workflow `.md` file was edited without rerunning `gh aw compile`. The `frontmatter_hash` in the paired `.lock.yml` no longer matches the source. This guard runs on every PR that touches `.github/workflows/*.md` or `.github/workflows/*.lock.yml` files. Refs pskoett/measuring-ai-proficiency#95.
 
-**Action**: Do not debug the hash. Run the repair commands from the job log. Each stale file is listed with its exact fix:
+**Action**: Recompile the stale workflow and commit the updated lock file.
 
-```bash
-gh aw compile <workflow-name>   # repair one
-gh aw compile                   # repair all
+1. Find the stale workflow name in the CI failure output.
+2. Run `gh aw compile <workflow-name>` locally (or `gh aw compile` to fix all at once).
+3. Commit the updated `.lock.yml` alongside the `.md` change.
+4. Push. The CI check will pass on the next run.
 
-git add .github/workflows/*.lock.yml
-git commit -m "chore: recompile workflow lock files"
-git push
-```
-
-The CI gate passes automatically on the next push. Refs: https://github.com/pskoett/measuring-ai-proficiency/issues/95
+Do not edit `.lock.yml` files by hand. Always regenerate them with `gh aw compile`.
 
 ### Symptom: ai-proficiency-pr-review auto-fired on a PR you didn't expect
 

@@ -1,7 +1,13 @@
-name: Lock File Sync
+name: Workflow Lock File Sync
 
-# Blocks merge when gh-aw workflow .md frontmatter and compiled .lock.yml files diverge.
-# See https://github.com/pskoett/measuring-ai-proficiency/issues/95 for context.
+# Runs on pull requests that touch workflow source or lock files.
+# Skips cleanly when no relevant files changed (path filter below).
+#
+# This is a standard GitHub Actions workflow, NOT a gh-aw markdown workflow.
+# The guard must live outside the compile-and-lock system it validates.
+#
+# Refs: pskoett/measuring-ai-proficiency#95
+
 on:
   pull_request:
     types: [opened, synchronize, reopened]
@@ -14,50 +20,24 @@ permissions:
 
 jobs:
   check-lock-sync:
-    name: Check workflow lock files are in sync
+    name: Check workflow lock files
     runs-on: ubuntu-latest
+
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
 
-      - name: Install gh-aw
+      - name: Install gh-aw extension
+        # gh CLI is pre-installed on ubuntu-latest runners and pre-authenticated
+        # via GITHUB_TOKEN. We install the gh-aw extension to get 'gh aw compile'.
+        # The checker script prefers --check-only (version-agnostic) and falls
+        # back to compile+diff when the flag is not available.
+        run: gh extension install github/gh-aw
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          curl -fsSL https://raw.githubusercontent.com/githubnext/gh-aw/refs/heads/main/install-gh-aw.sh | bash
-          gh aw version
+          GH_TOKEN: ${{ github.token }}
 
-      - name: Recompile workflow lock files
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: gh aw compile
-
-      - name: Detect stale lock files
-        run: |
-          # Collect modified existing lock files and any newly-generated ones,
-          # scoped to .github/workflows/ to avoid matching lock files elsewhere.
-          stale_files=$(
-            { git diff --name-only -- ".github/workflows/*.lock.yml"
-              git ls-files --others --exclude-standard -- ".github/workflows/*.lock.yml"; } \
-            | grep -v '^$'
-          )
-
-          if [ -z "$stale_files" ]; then
-            echo "All workflow lock files are in sync with their source .md files."
-            exit 0
-          fi
-
-          echo "Stale workflow lock files detected. Regenerate each one before merging."
-          echo ""
-          while IFS= read -r f; do
-            name=$(basename "$f" .lock.yml)
-            echo "  $f  ->  gh aw compile $name"
-            echo "::error file=$f::Lock file is stale. Regenerate with: gh aw compile $name"
-          done <<< "$stale_files"
-          echo ""
-          echo "To regenerate all stale files at once:"
-          echo "  gh aw compile"
-          echo ""
-          echo "Commit the updated .lock.yml files and push to pass this check."
-          echo "Refs: https://github.com/pskoett/measuring-ai-proficiency/issues/95"
-          exit 1
+      - name: Check workflow lock file sync
+        # scripts/check-workflow-lock-sync.sh exits 0 when all lock files are
+        # in sync, 1 when any are stale (with per-workflow repair commands), and
+        # 2 when required tooling is missing.
+        run: bash scripts/check-workflow-lock-sync.sh
