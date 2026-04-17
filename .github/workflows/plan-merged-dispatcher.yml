@@ -25,7 +25,12 @@ jobs:
 
       - name: Activate source issues from merged plan files
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # Must be a PAT, not the default GITHUB_TOKEN. Events produced by
+          # GITHUB_TOKEN do not trigger downstream workflows (GitHub's
+          # anti-loop rule), which would leave `implementer-dispatcher`
+          # inert on the `ready-for-implementation` label we add below.
+          # Same pattern as `ci-cleaner` and `simplify-and-harden-ci`.
+          GH_TOKEN: ${{ secrets.GH_AW_CI_TRIGGER_TOKEN }}
           PR_NUMBER: ${{ github.event.pull_request.number }}
         run: |
           set -euo pipefail
