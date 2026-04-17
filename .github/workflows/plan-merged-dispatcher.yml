@@ -29,8 +29,11 @@ jobs:
           # GITHUB_TOKEN do not trigger downstream workflows (GitHub's
           # anti-loop rule), which would leave `implementer-dispatcher`
           # inert on the `ready-for-implementation` label we add below.
-          # Same pattern as `ci-cleaner` and `simplify-and-harden-ci`.
-          GH_TOKEN: ${{ secrets.GH_AW_CI_TRIGGER_TOKEN }}
+          # Uses GH_AW_AGENT_TOKEN because it already exists as a
+          # configured secret in this repo (GH_AW_CI_TRIGGER_TOKEN was
+          # referenced by an earlier fix but never existed) and is
+          # scoped for issue editing + label-event cascades.
+          GH_TOKEN: ${{ secrets.GH_AW_AGENT_TOKEN }}
           PR_NUMBER: ${{ github.event.pull_request.number }}
         run: |
           set -euo pipefail
