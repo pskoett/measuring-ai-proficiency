@@ -19,7 +19,7 @@ safe-outputs:
     target-repo: ${{ github.repository }}
   assign-to-user:
     target-repo: ${{ github.repository }}
-    allowed: ["claude[bot]", "codex[bot]"]
+    allowed: ["Claude", "Codex"]
     max: 1
   add-comment:
     max: 1
@@ -41,8 +41,8 @@ The `ready-for-implementation` label is applied directly to the source issue by 
 Look for one of these labels on the issue that triggered this run:
 
 - `impl:copilot` — assign to the Copilot cloud agent via `assign-to-agent`.
-- `impl:claude-opus`, `impl:claude-sonnet` — assign to the Claude Partner Agent via `assign-to-user` with assignee `claude[bot]`.
-- `impl:codex` — assign to the Codex Partner Agent via `assign-to-user` with assignee `codex[bot]`.
+- `impl:claude-opus`, `impl:claude-sonnet` — assign to the Claude Partner Agent via `assign-to-user` with assignee `Claude`.
+- `impl:codex` — assign to the Codex Partner Agent via `assign-to-user` with assignee `Codex`.
 
 If the issue has no implementer label, default to `impl:copilot`. Post a comment noting that no implementer was specified and the default was used.
 
@@ -51,10 +51,10 @@ If the issue has no implementer label, default to `impl:copilot`. Post a comment
 Take exactly one assignment action based on the label:
 
 - **`impl:copilot`**: call `assign-to-agent` (Copilot is the default agent). Post a comment: "Assigned to Copilot cloud agent based on label `impl:copilot`." Add the `assigned-to-agent` label.
-- **`impl:claude-opus` or `impl:claude-sonnet`**: call `assign-to-user` with assignee `claude[bot]`. Post a comment: "Assigned to Claude Partner Agent based on label `impl:claude-opus`." (substitute the actual label). Add the `assigned-to-agent` label. Note: Claude Partner Agent is a single bot; the `-opus`/`-sonnet` distinction is advisory only until GitHub exposes per-model routing.
-- **`impl:codex`**: call `assign-to-user` with assignee `codex[bot]`. Post a comment: "Assigned to Codex Partner Agent based on label `impl:codex`." Add the `assigned-to-agent` label.
+- **`impl:claude-opus` or `impl:claude-sonnet`**: call `assign-to-user` with assignee `Claude` (exact string, capitalized, no `[bot]` suffix — this is the Anthropic Partner Agent as shown in the GitHub assignees picker). Post a comment: "Assigned to Claude Partner Agent based on label `impl:claude-opus`." (substitute the actual label). Add the `assigned-to-agent` label. Note: Claude Partner Agent is a single assignable entity; the `-opus`/`-sonnet` distinction is advisory only until GitHub exposes per-model routing.
+- **`impl:codex`**: call `assign-to-user` with assignee `Codex` (exact string, capitalized, no `[bot]` suffix — this is the OpenAI Partner Agent). Post a comment: "Assigned to Codex Partner Agent based on label `impl:codex`." Add the `assigned-to-agent` label.
 
-If `assign-to-user` fails because the bot handle is not enabled as a Partner Agent on this repo, post a comment naming the failure and call `noop`. Do not retry with a different handle.
+If `assign-to-user` fails because the Partner Agent is not enabled on this repo, post a comment naming the failure and call `noop`. Do not retry with a different handle.
 
 ## Noop conditions
 
