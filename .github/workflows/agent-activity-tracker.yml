@@ -11,12 +11,10 @@ name: Agent Activity Tracker
 # sync rule simple and idempotent.
 
 on:
-  schedule:
-    # Every 30 min. Tracker only has useful work when a factory workflow is
-    # mid-run (< 5% of the time); 5-min polling was 288 noop runs/day.
-    # 30 min resolution on `agent-working` / `model:*` labels is fine for
-    # board-level signal.
-    - cron: '*/30 * * * *'
+  # No schedule. Tracker's only job is applying cosmetic `agent-working` /
+  # `model:*` labels for board decoration. The board's Status lane works
+  # without them. Operators can `gh workflow run agent-activity-tracker.yml`
+  # if they want fresh labels on demand.
   workflow_dispatch:
 
 permissions:

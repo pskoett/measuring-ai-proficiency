@@ -21,7 +21,7 @@ on:
   pull_request:
     types: [opened, edited, labeled, unlabeled, closed, reopened, ready_for_review, converted_to_draft]
   schedule:
-    - cron: '*/30 * * * *'  # reconcile every 30 min as a safety net for missed webhooks. Webhooks handle ~95% of events; the cron catches the rest (gh pr close, gh api label edits, Copilot draft PR opens). 30 min avoids 288 noop runs/day.
+    - cron: '0 3 * * *'      # daily at 03:00 UTC as a last-resort reconcile. Webhooks handle nearly all events in real-time; this cron exists only to catch events that were permanently missed (rare). Board may lag up to 24h in that edge case; `workflow_dispatch` is available for manual reconcile.
   workflow_dispatch:
     inputs:
       issue_number:
