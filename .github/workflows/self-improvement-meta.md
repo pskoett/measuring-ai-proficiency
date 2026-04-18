@@ -33,6 +33,13 @@ safe-outputs:
     max: 1
     title-prefix: "[learnings] "
     labels: [self-improvement, automation, low-risk]
+    allowed-files:
+      - AGENTS.md
+      - .github/copilot-instructions.md
+      - CLAUDE.md
+      - .learnings/**
+      - .github/workflows/*.md
+      - .claude/skills/**/SKILL.md
   create-issue:
     title-prefix: "[meta] "
     labels: [self-improvement, workflow-health]
