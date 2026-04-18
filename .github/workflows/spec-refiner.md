@@ -63,7 +63,17 @@ After writing the recommendation in the plan file, add the `impl:copilot` label 
 
 After the skill completes, the plan file is written, and the implementer is recommended:
 
-1. **Open a PR** with the new plan file at `docs/plans/plan-NNN-<slug>.md` where NNN is the source issue number, zero-padded to at least three digits (e.g., issue #7 → `007`, issue #42 → `042`, issue #1234 → `1234`). Do not scan `docs/plans/` for the next sequential number. Title: `[plan] Plan NNN: <title>` using the same padded issue number. Body references the source issue with `Refs #NN` (not a closing keyword such as `Closes` or `Fixes`). The plan PR must not close the source issue on merge. The body also summarizes the key decisions and restates the implementer recommendation.
+1. **Open a PR** with the new plan file at `docs/plans/plan-NNN-<slug>.md` where NNN is the source issue number, zero-padded to at least three digits (e.g., issue #7 → `007`, issue #42 → `042`, issue #1234 → `1234`). Do not scan `docs/plans/` for the next sequential number. Title: `[plan] Plan NNN: <title>` using the same padded issue number.
+
+   **CRITICAL — plan PR body rules. Read every bullet. Re-read before writing the body:**
+
+   - Reference the source issue with exactly `Refs #NN` at the top.
+   - **NEVER** write `Closes #NN`, `Close #NN`, `Closed #NN`, `Fixes #NN`, `Fix #NN`, `Fixed #NN`, `Resolves #NN`, `Resolve #NN`, `Resolved #NN`, or any of these keywords anywhere in the body, even in sub-lists, footers, or checklists. GitHub auto-closes the linked issue on merge when it sees any of those keywords; a plan PR must not close its source issue.
+   - Do not include a `- Fixes #NN` bullet in any "Summary" or "Changes" section.
+   - Before finalizing the body, grep your own draft for `/\\b(close[sd]?|fix(es|ed)?|resolve[sd]?) #\\d/i` — if anything matches, rewrite it to `Refs #NN` or remove the line.
+   - Safe synonyms: `Refs #NN`, `For #NN`, `Part of #NN`, `Tracks #NN`, `See #NN`. Use these instead of closing keywords.
+
+   The body also summarizes the key decisions and restates the implementer recommendation.
 2. **Comment on the source issue** with a one-line summary, a link to the plan PR, and the recommended implementer.
 3. **Swap labels**:
    - Remove `needs-spec`

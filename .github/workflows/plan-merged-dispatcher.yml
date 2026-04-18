@@ -99,6 +99,18 @@ jobs:
               printf '%s\n' "$marker_end"
             } > /tmp/issue_body.md
 
+            # Defense in depth: a plan PR that contained a closing keyword
+            # (Closes/Fixes/Resolves #NN) will have auto-closed the source
+            # issue on merge. A closed issue cannot be assigned to Copilot,
+            # so the implementer-dispatcher cascade silently dies. Detect
+            # that state and reopen, with a comment pointing at the bug.
+            issue_state=$(gh issue view "$issue_num" --json state --jq .state 2>/dev/null || echo "")
+            if [ "$issue_state" = "CLOSED" ]; then
+              echo "Source issue #$issue_num was auto-closed by plan PR merge (closing keyword in body). Reopening."
+              gh issue reopen "$issue_num" --comment \
+                "Auto-reopened by plan-merged-dispatcher: the plan PR body contained a closing keyword (Closes/Fixes/Resolves) that GitHub honored on merge. Plan PRs must use \`Refs #NN\` only. Tracked in spec-refiner hardening." 2>/dev/null || true
+            fi
+
             gh issue edit "$issue_num" --body-file /tmp/issue_body.md
             gh issue edit "$issue_num" --remove-label needs-plan 2>/dev/null || true
             gh issue edit "$issue_num" --remove-label needs-spec 2>/dev/null || true
