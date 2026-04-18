@@ -15,7 +15,7 @@ Four board lanes, derived from label semantics by [`sync-factory-state.yml`](../
 | Priority | Condition | Board lane |
 |----------|-----------|------------|
 | 1 | Item is `closed` | ✅ **Done** |
-| 2 | Has any of: `needs-changes`, `needs-rebase`, `human-review`, `blocked-on-human`, `ai-reviewed`, `plan-file` | 👉 **Your turn** |
+| 2 | Has any of: `needs-changes`, `needs-rebase`, `human-review`, `blocked-on-human`, `ai-reviewed`, `plan-file`, `eval-regression` | 👉 **Your turn** |
 | 3 | Is an open PR (no signal above) | 👉 **Your turn** |
 | 4 | Has any of: `ready-for-implementation`, `assigned-to-agent`, `needs-plan` | 🤖 **Factory building** |
 | 5 | Everything else | 📥 **Waiting for spec** |
@@ -40,6 +40,7 @@ Four board lanes, derived from label semantics by [`sync-factory-state.yml`](../
 | `needs-changes` | Critical findings or missed criteria | `reviewer` |
 | `needs-rebase` | PR branch is behind main | `reviewer` or human |
 | `human-review` | Emergency stop; all agents call noop | human or `reviewer` (self-tamper guard) |
+| `eval-regression` | One or more eval cases failed on this PR | `eval-creator-ci` |
 
 ### Derived labels (set by the board-sync side)
 
@@ -75,7 +76,7 @@ All factory workflows. Plain GitHub Actions workflows are marked **[Actions]**; 
 | `reviewer` | `pull_request: [opened, ready_for_review, synchronize]` | Bot authors only | Posts structured review comment, applies `ai-reviewed` / `needs-changes` / `fast-track`; adds `needs-rebase` when PR is behind main |
 | `contribution-checker` | `pull_request: [opened, synchronize, ready_for_review]` | Bot authors only | Posts CONTRIBUTING.md compliance check comment |
 | `simplify-and-harden-ci` | `pull_request: [opened, synchronize, reopened, ready_for_review]` | Bot authors; ignores `docs/plans/**` | Posts simplify/harden/document scan report |
-| `eval-creator-ci` | `pull_request: [opened, synchronize, reopened, ready_for_review]` | Bot authors; ignores `docs/plans/**` | Runs eval cases in `.evals/`; posts pass/fail/skip table |
+| `eval-creator-ci` | `pull_request: [opened, synchronize, reopened, ready_for_review]` | Bot authors; ignores `docs/plans/**` | Runs eval cases in `.evals/`; posts pass/fail/skip table; adds `eval-regression` label when `fail_count > 0`, removes it on green run |
 | `conflict-resolver` | `pull_request: [labeled]` | `needs-rebase` label | Merges `origin/main` into PR branch; removes `needs-rebase` on clean merge or adds `blocked-on-human` on conflict |
 | `pr-fix` | `slash_command: pr-fix` | Comment containing `/pr-fix` | Analyzes CI failures, pushes fix commits to PR branch |
 | `ci-cleaner` | `workflow_run` (CI completed) | CI workflow, `main` branch, failed | Runs lint + test + recompile, opens `[ci-fix]` PR |

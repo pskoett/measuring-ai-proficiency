@@ -92,7 +92,8 @@ jobs:
                  || "$L" == *",human-review,"* \
                  || "$L" == *",blocked-on-human,"* \
                  || "$L" == *",ai-reviewed,"* \
-                 || "$L" == *",plan-file,"* ]]; then
+                 || "$L" == *",plan-file,"* \
+                 || "$L" == *",eval-regression,"* ]]; then
               state_name=YourTurn
             elif [ "$is_pr" = "true" ] && [ "$item_state" = "open" ] && [ "$is_draft" = "true" ]; then
               state_name=Factory

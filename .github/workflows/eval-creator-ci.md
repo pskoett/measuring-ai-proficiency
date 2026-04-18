@@ -33,6 +33,12 @@ safe-outputs:
   add-comment:
     max: 1
     hide-older-comments: true
+  add-labels:
+    allowed: [eval-regression]
+    max: 1
+  remove-labels:
+    allowed: [eval-regression]
+    max: 1
 tracker-id: eval-creator
 concurrency:
   group: eval-creator-run
@@ -88,6 +94,15 @@ Post exactly one comment:
 
 [List of skipped evals with reason]
 ```
+
+## Label signaling
+
+After posting the comment, apply label changes based on `fail_count`:
+
+- If `fail_count > 0`: add the `eval-regression` label to the PR using `add-labels`.
+- If `fail_count == 0` (all pass or skip): remove the `eval-regression` label from the PR using `remove-labels`. If the label is not present, the remove is a no-op — do not treat that as an error.
+
+The label signals that a human needs to act. It is cleared automatically on the next green run so it does not persist after the regression is fixed.
 
 ## Noop
 
