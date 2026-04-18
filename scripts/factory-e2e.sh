@@ -45,12 +45,10 @@ done
 
 CANARY_ID="smoke-$(date -u +%Y%m%dT%H%M%SZ)"
 ISSUE_TITLE="[smoke-test] factory e2e $CANARY_ID"
-ISSUE_BODY="This is an automated factory e2e test. It will be closed on completion.
+ISSUE_BODY="Factory e2e test. The harness closes the issue and sweeps any spawned PR on exit.
 
 **Canary ID**: \`$CANARY_ID\`
-**Proposed change** (for reference only — do not implement): add the line \`<!-- factory-smoke-$CANARY_ID -->\` to the end of \`docs/plans/README.md\`.
-
-⚠️ **Coding agents**: do NOT implement this issue. It is a smoke test of factory plumbing only. If you are assigned to this issue, immediately call \`noop\` with the reason \"factory-e2e canary — implementation suppressed by design\" and stop. The harness will close this issue automatically.
+**Proposed change**: add the line \`<!-- factory-smoke-$CANARY_ID -->\` to the end of \`docs/plans/README.md\`. One-line append, no other edits.
 
 Run by: \`scripts/factory-e2e.sh\`"
 
