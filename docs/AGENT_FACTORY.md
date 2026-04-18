@@ -274,8 +274,8 @@ Do not disable the guard to let the PR through. The guard is one line of `case` 
 | [`implementer-dispatcher.md`](../.github/workflows/implementer-dispatcher.md) | Issue labeled `ready-for-implementation` | Assign source issue to Copilot cloud agent based on its `impl:*` label |
 | [`reviewer.md`](../.github/workflows/reviewer.md) | PR opened / updated | Plan-aware code review with implementer calibration. Refuses to review PRs that modify its own instructions (`.github/workflows/reviewer.md`, `.github/workflows/self-improvement-meta.md`, `.github/copilot-instructions.md`); applies `human-review` and noops instead. |
 | [`conflict-resolver.md`](../.github/workflows/conflict-resolver.md) | PR labeled `needs-rebase` | Merge `origin/main` into PR branch; push on clean merge (including workflow file changes), hand off on conflict |
+| [`ci-cleaner.md`](../.github/workflows/ci-cleaner.md) | CI failure on `main` | Run `ruff`, `pytest`, `gh aw compile` fix loop; open a PR with repairs; mandatory noop if no changes |
 | [`self-improvement-meta.md`](../.github/workflows/self-improvement-meta.md) | Nightly (~2am) | Extract learnings from failures, commit prevention rules |
-
 | [`contribution-checker.md`](../.github/workflows/contribution-checker.md) | PR opened / updated | Evaluate PR against CONTRIBUTING.md guidelines |
 | [`simplify-and-harden-ci.md`](../.github/workflows/simplify-and-harden-ci.md) | PR opened / updated | Scan changed files for simplicity and security issues |
 | [`learning-aggregator-ci.md`](../.github/workflows/learning-aggregator-ci.md) | Weekly (Monday) | Aggregate learnings, rank promotion candidates, create gap report |
@@ -298,9 +298,6 @@ Installed via `gh aw add githubnext/agentics/<name>`. These are general-purpose 
 |----------|---------|---------|
 | [`ai-proficiency-pr-review.md`](../.github/workflows/ai-proficiency-pr-review.md) | `/assess-proficiency` comment or manual dispatch | AI proficiency score (on-demand only, no auto-trigger) |
 | [`ai-proficiency-weekly-report.md`](../.github/workflows/ai-proficiency-weekly-report.md) | Weekly (Monday 9am UTC) | Track proficiency trends over time |
-| [`simplify-and-harden-ci.md`](../.github/workflows/simplify-and-harden-ci.md) | PR opened / updated | Post-completion quality and security sweep |
-| [`learning-aggregator-ci.md`](../.github/workflows/learning-aggregator-ci.md) | Weekly (Monday) | Cross-session pattern detection and promotion ranking |
-| [`eval-creator-ci.md`](../.github/workflows/eval-creator-ci.md) | PR opened / updated | Create regression test cases from promoted learnings |
 
 ## Skills Used by the Factory
 
