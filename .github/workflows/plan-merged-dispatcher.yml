@@ -145,8 +145,10 @@ jobs:
           while IFS= read -r plan_path; do
             [ -f "$plan_path" ] || { echo "Plan file missing: $plan_path"; continue; }
 
-            # Idempotency: skip if frontmatter already has a status field.
-            if head -10 "$plan_path" | grep -qE '^status:'; then
+            # Idempotency: skip if frontmatter already contains a status field.
+            # The frontmatter (if present) starts with --- on line 1 and ends
+            # with --- shortly after. Check up to 20 lines to be safe.
+            if head -20 "$plan_path" | grep -qE '^status:'; then
               echo "$(basename $plan_path) already has status marker; skipping."
               continue
             fi
