@@ -78,8 +78,12 @@ jobs:
           fi
 
           # ── Locate the plan file for this issue number ─────────────────────
-          PLAN_FILE=$(find docs/plans -maxdepth 1 -name "*.md" 2>/dev/null \
-            | grep -E "/plan-0*${ISSUE_NUMBER}-" | head -1 || true)
+          # Use both zero-padded (plan-066-*) and unpadded (plan-66-*) forms to
+          # handle any naming variation without false-positive matches.
+          ISSUE_PAD=$(printf '%03d' "$ISSUE_NUMBER")
+          PLAN_FILE=$(find docs/plans -maxdepth 1 \
+            \( -name "plan-${ISSUE_PAD}-*.md" -o -name "plan-${ISSUE_NUMBER}-*.md" \) \
+            2>/dev/null | head -1 || true)
 
           if [ -z "$PLAN_FILE" ]; then
             # No plan file merged into main yet.
@@ -125,7 +129,7 @@ jobs:
             grab { print }
           ' "$PLAN_FILE")
 
-          if [ -z "$(printf '%s' "$checklist" | tr -d '[:space:]')" ]; then
+          if ! printf '%s' "$checklist" | grep -q '[^[:space:]]'; then
             echo "Plan file $PLAN_FILE has no Implementation Checklist section; transitioning labels only."
             gh issue edit "$ISSUE_NUMBER" --remove-label needs-plan 2>/dev/null || true
             gh issue edit "$ISSUE_NUMBER" --add-label ready-for-implementation
