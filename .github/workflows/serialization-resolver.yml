@@ -224,8 +224,7 @@ jobs:
 
               if [ -n "$overlap_files" ]; then
                 overlap_found=true
-                overlap_details="${overlap_details}- PR #${pr_num}: ${overlap_files}
-"
+                overlap_details+="- PR #${pr_num}: ${overlap_files}"$'\n'
               fi
             done
 
@@ -241,12 +240,11 @@ jobs:
               echo "  #$issue_num: Unblocked."
             else
               echo "  #$issue_num: Still overlapping. Leaving blocked."
-              gh issue comment "$issue_num" --repo "$REPO" \
-                --body "Serialization check: still blocked. The following open factory PRs still overlap with this issue's harness targets:
-
-${overlap_details}
-This issue will be re-evaluated automatically when those PRs merge or close." \
-                2>/dev/null || true
+              body=$(printf '%s\n\n%s\n%s' \
+                "Serialization check: still blocked. The following open factory PRs still overlap with this issue's harness targets:" \
+                "${overlap_details}" \
+                "This issue will be re-evaluated automatically when those PRs merge or close.")
+              gh issue comment "$issue_num" --repo "$REPO" --body "$body" 2>/dev/null || true
             fi
           done
 
