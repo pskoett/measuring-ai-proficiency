@@ -232,25 +232,24 @@ If the rule is workflow-specific (only applies to one workflow), also add it to 
 
 ### Agent routing guidelines
 
-As of April 2026, GitHub offers three cloud coding agents, all bundled with the Copilot subscription: Copilot cloud agent, Claude (Sonnet 4.5/4.6, Opus 4.5/4.6), and Codex (GPT-5.2/5.3/5.4-Codex). Model selection happens when a task is kicked off on github.com. For workflows in this pack, `spec-refiner` recommends an implementer in the plan file, and a human confirms the assignment via the web UI.
+As of April 2026, GitHub offers three cloud coding agents, all bundled with the Copilot subscription: Copilot cloud agent, Claude (Sonnet 4.5/4.6, Opus 4.5/4.6), and Codex (GPT-5.2/5.3/5.4-Codex). The factory auto-routes to Copilot only. If a maintainer wants a different implementer for a given issue, that assignment happens outside the factory via the GitHub UI.
 
-Use these rules when recommending or choosing an implementer:
+Use these guidelines when advising a maintainer which implementer to pick:
 
-**Claude Opus 4.6**: default for complex, multi-file, or architecturally risky work
+**Claude Opus 4.6**: best for complex, multi-file, or architecturally risky work
 - Multi-file refactors touching more than three modules
 - Plan files with `Blast radius: high`
 - Anything with a non-trivial rollback path
 - Plan files with more than six items in the implementation checklist
 - Work that needs precise spec adherence because drift would matter
 
-**Claude Sonnet 4.6**: default for straightforward single-component features
+**Claude Sonnet 4.6**: best for straightforward single-component features
 - Single-module feature additions with clear scope
 - New API endpoints with existing patterns to follow
 - Plan files with `Blast radius: medium`
 - Bug fixes that require moderate investigation
-- Anything where Opus would be overkill but you still want Claude's reasoning
 
-**Copilot cloud agent**: default for trivial or highly-constrained work
+**Copilot cloud agent**: best for trivial or highly-constrained work (factory default)
 - Dependency version bumps
 - Obvious one-line fixes where the fix is already in the issue body
 - Config file updates
@@ -261,13 +260,13 @@ Use these rules when recommending or choosing an implementer:
 - Tasks that benefit from a different reasoning style as a sanity check on Claude
 - When the team wants A/B data on agent quality
 
-#### Why Claude is the default for non-trivial work
+#### Why Claude reasoning is valuable for non-trivial work
 
 The skills in `.claude/skills/` were originally designed for Claude Code. Running them on their native runtime gives better fidelity than any translation layer. The `plan-interview` structure, the intent framing discipline, the simplify-and-harden pass: all of it was tuned against Claude's reasoning patterns.
 
 #### How the recommendation gets made
 
-`spec-refiner` classifies each issue and routes it. For plan-worthy issues, it adds a `## Recommended implementer` section to the plan file and applies `impl:copilot` to the source issue. Copilot is the only implementer the factory can auto-dispatch today: `assign-to-agent` targets the Copilot cloud agent's GitHub user account, and GitHub's REST assignees endpoint silently drops Partner Agent handles (`Claude`, `Codex`) even though the UI assignees picker accepts them. The `impl:claude-opus`, `impl:claude-sonnet`, and `impl:codex` labels exist as human-override signals: swap the label on the source issue before merging the plan PR, then assign `Claude` or `Codex` via the GitHub UI once `plan-merged-dispatcher` activates the issue. On merge of the plan PR, `plan-merged-dispatcher` writes the plan checklist onto the source issue body and applies `ready-for-implementation`, which triggers `implementer-dispatcher`.
+`spec-refiner` classifies each issue and routes it. For plan-worthy issues, it adds a `## Recommended implementer` section to the plan file and applies `impl:copilot` to the source issue. Copilot is the only implementer the factory can auto-dispatch today. On merge of the plan PR, `plan-merged-dispatcher` writes the plan checklist onto the source issue body and applies `ready-for-implementation`, which triggers `implementer-dispatcher`.
 
 For simple, clearly bounded issues, `spec-refiner` skips the plan file, applies `ready-for-implementation` and `impl:copilot`, and calls `assign-to-agent` directly in the same run. No plan PR, no merge gate, no dependency on `implementer-dispatcher`. GitHub's anti-loop rule blocks `GITHUB_TOKEN` label events from triggering downstream workflows, so direct-route assignment happens inside `spec-refiner` rather than waiting for a cascade.
 
@@ -290,7 +289,7 @@ The routing rules above are about the **implementer step** (who writes the code 
 |----------|---------|-------------|-------|
 | `spec-refiner` | Issue labeled `needs-spec` | update-issue, add-comment, create-pull-request, add-labels, remove-labels | plan-interview |
 | `plan-merged-dispatcher` | Plan PR merged (path filter `docs/plans/plan-*.md`) | (plain Actions: edits source issue body, moves labels) | (none) |
-| `implementer-dispatcher` | Source issue labeled `ready-for-implementation` | assign-to-agent, add-comment, add-labels | (none, reads `impl:*` label on the same issue) |
+| `implementer-dispatcher` | Source issue labeled `ready-for-implementation` | assign-to-agent, add-comment, add-labels | (none, assigns Copilot via `impl:copilot` label) |
 | `reviewer` | PR opened / updated | add-comment, add-labels | intent-framed-agent |
 | `self-improvement-meta` | Nightly (~2am) | create-pull-request, create-issue | self-improvement |
 | `ci-cleaner` | CI failure on main | create-pull-request | (none, uses bash/edit directly) |

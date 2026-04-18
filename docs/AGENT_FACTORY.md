@@ -76,7 +76,6 @@ Apply these in **Settings** on the repo hosting the factory. Skipping any of the
 | Allow PR creation | Same page | **Allow GitHub Actions to create and approve pull requests** (checked) | `/pr-fix`, `ci-cleaner`, `self-improvement-meta` all open PRs |
 | Outside contributor approval | Settings > Actions > General > Approval for outside collaborators | **Require approval for first-time contributors** (not "...who are new to GitHub") | The "...new to GitHub" option does NOT exempt the Copilot bot; this one does after the first merged Copilot PR |
 | Copilot workflow approval | Settings > Copilot > Coding agent > Actions workflow approval | **Off** (recommended) or **On** (belt-and-suspenders) | Separate from the outside-contributor setting above. When **On**, every Copilot PR requires a manual "Approve and run" click before any factory workflow runs. Safe to turn off once `reviewer` + `contribution-checker` + your merge gate are in place. |
-| Copilot Partner Agents (Claude, Codex) | Settings > Copilot > Coding agent > Partner Agents | Optional: On if you plan to hand-assign Claude/Codex via the GitHub UI | Partner Agents appear in the assignees picker when enabled, but the factory cannot auto-dispatch to them today (see "Implementer Routing" below for why). |
 | Copilot cloud agent | Settings > Copilot > Coding agent | **Enabled** | Required for `impl:copilot` issue assignment |
 | Copilot code review | Settings > Copilot > Code review | **Enabled for this repo** | Lets the Copilot SWE agent annotate PRs inline |
 | Actions permissions | Settings > Actions > General > Actions permissions | **Allow all actions and reusable workflows** | Some factory workflows pull from `githubnext/agentics` and `github/gh-aw-actions` |
@@ -105,7 +104,7 @@ The factory is choreographed through labels. Create these once in **Issues > Lab
 | `needs-spec`, `needs-plan`, `spec-refined` | Spec refinement flow |
 | `blocked-on-human` | Agent needs human input before proceeding |
 | `ready-for-implementation`, `assigned-to-agent` | Implementation dispatch flow |
-| `impl:claude-opus`, `impl:claude-sonnet`, `impl:copilot`, `impl:codex` | Implementer routing |
+| `impl:copilot` | Implementer routing (factory auto-routes to Copilot only) |
 | `ai-reviewed`, `needs-changes`, `fast-track`, `spec-drift` | Reviewer verdicts |
 | `human-review` | Emergency stop: all agents call noop |
 | `needs-rebase` | PR branch needs a merge from main; triggers conflict-resolver |
@@ -168,14 +167,7 @@ If the agent cannot answer something from context alone, it marks the gap with *
 
 Read the plan PR. Check the success criteria, the implementation checklist, and the recommended implementer.
 
-Spec-refiner always applies `impl:copilot` today. Only Copilot has a real GitHub agent user that `implementer-dispatcher` can assign to via `assign-to-agent`. If the recommendation looks wrong (for example, you want to hand a complex refactor to Claude Opus yourself), swap the label on the source issue before proceeding. `impl:claude-*` and `impl:codex` exist for this manual-override case only — they will _not_ auto-route to an agent.
-
-| Label | Who can auto-assign | Use when |
-|-------|---------------------|----------|
-| `impl:copilot` | **Yes** — Copilot cloud agent | Default for everything today |
-| `impl:claude-opus` | **No, manual only** | You will hand the issue to Claude Opus yourself via claude.ai/code |
-| `impl:claude-sonnet` | **No, manual only** | Same, for Claude Sonnet |
-| `impl:codex` | **No, manual only** | Same, for Codex |
+Spec-refiner always applies `impl:copilot`. The factory auto-routes to Copilot only; `implementer-dispatcher` calls `assign-to-agent` for that label. If you want to hand off to a different implementer (Claude, Codex), do that outside the factory via the GitHub UI assignees picker after `plan-merged-dispatcher` activates the source issue.
 
 Merge the plan PR. The plan PR references the source issue with a non-closing link (e.g. `Refs #NN`), so merging it does not close the source issue. The source issue stays open as the single tracking anchor through implementation. It is closed by the implementation PR that ships the fix.
 
@@ -191,7 +183,7 @@ No sub-issue layer, no parent-issue lookup, no manual assignment.
 
 The agent opens a PR with its implementation.
 
-**Re-dispatching an issue manually.** The dispatcher (plan-worthy path) calls `noop` if the issue already has the `assigned-to-agent` label (prevents double-dispatch). If you ever need to force re-assignment — for example, you changed the `impl:*` label and want the new routing to take effect — strip **both** `ready-for-implementation` and `assigned-to-agent`, then re-add `ready-for-implementation`. Re-adding alone is not enough because the noop guard on `assigned-to-agent` still fires.
+**Re-dispatching an issue manually.** The dispatcher (plan-worthy path) calls `noop` if the issue already has the `assigned-to-agent` label (prevents double-dispatch). If you ever need to force re-assignment, strip **both** `ready-for-implementation` and `assigned-to-agent`, then re-add `ready-for-implementation`. Re-adding alone is not enough because the noop guard on `assigned-to-agent` still fires.
 
 ### Step 5: Automated Review
 
@@ -338,10 +330,7 @@ Skills live in `.claude/skills/` and work identically in Claude Code, Codex CLI,
 | `blocked-on-human` | Agent needs human input before proceeding | spec-refiner, conflict-resolver (and other workflows) |
 | `spec-refined` | Spec refinement is complete | spec-refiner |
 | `ready-for-implementation` | Source issue ready for a coding agent | plan-merged-dispatcher (plan-worthy path), spec-refiner (direct-route path) |
-| `impl:claude-opus` | Assign to Claude Opus 4.6 | spec-refiner (or human) |
-| `impl:claude-sonnet` | Assign to Claude Sonnet 4.6 | spec-refiner (or human) |
-| `impl:copilot` | Assign to Copilot cloud agent | spec-refiner (or human) |
-| `impl:codex` | Assign to Codex GPT-5.4 | spec-refiner (or human) |
+| `impl:copilot` | Assign to Copilot cloud agent (factory auto-routes) | spec-refiner (or human) |
 | `assigned-to-agent` | Issue has been dispatched to an agent | implementer-dispatcher |
 | `ai-reviewed` | PR passed automated review, ready for human review | reviewer |
 | `needs-changes` | PR has critical findings or spec drift | reviewer |
@@ -354,22 +343,7 @@ Skills live in `.claude/skills/` and work identically in Claude Code, Codex CLI,
 
 ## Implementer Routing
 
-Only `impl:copilot` auto-routes today. The other `impl:*` labels exist as human-override signals for manual assignment via the GitHub UI.
-
-| Label | Auto-route | Use |
-|-------|------------|-----|
-| `impl:copilot` | **Yes** — `assign-to-agent` → Copilot cloud agent | Default for everything the factory dispatches. |
-| `impl:claude-opus` | **No, manual only** | Swap this label on the source issue and use the GitHub UI assignees picker to assign `Claude`. |
-| `impl:claude-sonnet` | **No, manual only** | Same as above, different mental calibration for reviewer. |
-| `impl:codex` | **No, manual only** | Swap label, assign `Codex` via the UI picker. |
-
-### Why Claude and Codex are UI-only
-
-GitHub's REST API assignees endpoint accepts `Copilot` as a valid assignee but silently drops Partner Agents (`Claude`, `Codex`). It returns HTTP 200 with a "success" response, but the actual assignee list stays empty and no `assigned` timeline event fires. The UI assignees picker uses a different backend path that Partner Agents live on. Confirmed twice on #149 (both `claude[bot]` and plain `Claude` silently dropped).
-
-Until GitHub exposes proper REST-based assignment for Partner Agents, the factory cannot auto-dispatch to Claude or Codex. When that ships, re-introduce `assign-to-user` in `implementer-dispatcher.md` and widen spec-refiner's recommendation.
-
-Spec-refiner always recommends `impl:copilot`. A human can swap to a Partner-Agent label before merging the plan PR, then do the UI assignment manually after `plan-merged-dispatcher` activates the source issue. Reviewer still calibrates based on who actually opened the implementation PR.
+The factory auto-routes to Copilot only. `impl:copilot` is the one routing signal; `implementer-dispatcher` calls `assign-to-agent` for that label. If you want to hand off to a different implementer (Claude, Codex), do that outside the factory via the GitHub UI assignees picker after `plan-merged-dispatcher` activates the source issue.
 
 ## Stale lock file failure mode
 

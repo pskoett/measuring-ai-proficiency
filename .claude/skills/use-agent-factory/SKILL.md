@@ -105,16 +105,7 @@ Two or three human decisions depending on the path: for plan-worthy issues: appr
 
 ## How to pick an implementer
 
-Spec-refiner recommends one of four labels. Defaults from `docs/AGENT_FACTORY.md`:
-
-| Label | Use when |
-|-------|---------|
-| `impl:claude-opus` | Multi-file refactor, architectural risk, 6+ checklist items |
-| `impl:claude-sonnet` | Single-component feature, medium blast radius, existing patterns |
-| `impl:copilot` | Trivial fix, dependency bump, config change |
-| `impl:codex` | Opportunistic A/B comparison against another agent |
-
-If spec-refiner picked one and you disagree, tell the user to swap the label on the issue before merging the plan PR. Do not swap it yourself.
+The factory auto-routes to Copilot only. `spec-refiner` always applies `impl:copilot`. If you want a different implementer (Claude, Codex), hand-assign outside the factory via the GitHub UI assignees picker after `plan-merged-dispatcher` activates the source issue.
 
 ## How to drive existing PRs in the factory
 
