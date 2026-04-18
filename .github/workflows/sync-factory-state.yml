@@ -126,6 +126,28 @@ jobs:
                   || true
                 ;;
             esac
+
+            # Strip stale factory-stage labels once the item is Done so the board
+            # reflects "where the item is now" instead of "every stage it passed".
+            # Attribute labels (impl:*, enhancement, documentation, bug, spec-drift,
+            # plan-file, agentic-workflows, ci-fix, self-improvement) are preserved
+            # as historical signal and intentionally excluded.
+            if [ "$state_name" = "Done" ]; then
+              local stale_present=""
+              for stale_label in needs-spec needs-plan ready-for-implementation \
+                                 assigned-to-agent ai-reviewed needs-changes fast-track \
+                                 needs-rebase blocked-on-human human-review spec-refined; do
+                if [[ "$L" == *",$stale_label,"* ]]; then
+                  stale_present="${stale_present:+$stale_present,}$stale_label"
+                fi
+              done
+              if [ -n "$stale_present" ]; then
+                echo "  #$num Done: stripping stale labels [$stale_present]"
+                gh issue edit "$num" --remove-label "$stale_present" --repo "$REPO" 2>/dev/null \
+                  || gh pr edit "$num" --remove-label "$stale_present" --repo "$REPO" 2>/dev/null \
+                  || true
+              fi
+            fi
           }
 
           if [ -z "${ISSUE_NUMBER}" ]; then
