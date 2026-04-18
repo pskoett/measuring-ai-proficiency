@@ -1,0 +1,64 @@
+name: Factory Smoke Test
+
+# Dispatches each safely-dispatchable factory workflow and asserts it
+# completes with conclusion=success. Catches environment-level regressions
+# (protected-files, network sandbox, YAML parse, schema drift) without
+# needing a real feature task to ride through the chain.
+#
+# Triggers:
+#   - Manual workflow_dispatch for spot-checks after factory changes
+#   - Daily cron at 05:00 UTC — after the nightly self-improvement-meta
+#     window (~02:00 UTC) so smoke-dispatches don't compete with real runs
+#
+# Runs: scripts/factory-smoke.sh. Results surface as a step summary plus
+# the script's non-zero exit on any failure.
+
+on:
+  schedule:
+    - cron: '0 5 * * *'  # 05:00 UTC daily
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: write    # needed so the script can dispatch other workflows
+  issues: read
+  pull-requests: read
+
+concurrency:
+  group: factory-smoke
+  cancel-in-progress: false
+
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    env:
+      GH_TOKEN: ${{ secrets.GH_AW_AGENT_TOKEN || secrets.GITHUB_TOKEN }}
+      GH_AW_REPO: ${{ github.repository }}
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          sparse-checkout: scripts
+          sparse-checkout-cone-mode: false
+
+      - name: Run factory-smoke.sh
+        id: smoke
+        shell: bash
+        run: |
+          set -o pipefail
+          bash scripts/factory-smoke.sh --wait-secs 600 2>&1 | tee /tmp/smoke.log
+          echo "status=$?" >> "$GITHUB_OUTPUT"
+
+      - name: Post results to step summary
+        if: always()
+        shell: bash
+        run: |
+          {
+            echo "## Factory Smoke Test"
+            echo ""
+            echo "Triggered: \`${{ github.event_name }}\`"
+            echo ""
+            echo '```'
+            cat /tmp/smoke.log || true
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
