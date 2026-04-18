@@ -1,6 +1,7 @@
 ---
 plan-id: plan-233
-status: active
+status: shipped
+shipped-in: "#238"
 target-files:
   - docs/plans/README.md
   - .github/workflows/spec-refiner.md

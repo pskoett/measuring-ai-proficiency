@@ -1,6 +1,7 @@
 ---
 plan-id: plan-234
-status: active
+status: shipped
+shipped-in: "#239"
 ---
 # Plan 234: Auto-activate issues when `needs-plan` is applied directly
 

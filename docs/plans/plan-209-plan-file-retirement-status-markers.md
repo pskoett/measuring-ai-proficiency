@@ -1,3 +1,8 @@
+---
+plan-id: plan-209
+status: shipped
+shipped-in: "#218"
+---
 # Plan 209: Plan-file retirement status markers
 
 **Source issue**: #209

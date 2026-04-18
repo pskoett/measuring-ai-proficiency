@@ -1,6 +1,7 @@
 ---
 plan-id: plan-240
-status: active
+status: shipped
+shipped-in: "#244"
 target-files:
   - .github/workflows/sync-factory-state.yml
   - docs/AGENT_FACTORY.md

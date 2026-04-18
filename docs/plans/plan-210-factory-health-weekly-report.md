@@ -1,3 +1,8 @@
+---
+plan-id: plan-210
+status: shipped
+shipped-in: "#215"
+---
 # Plan 210: Factory health weekly report
 
 **Source issue**: #210
