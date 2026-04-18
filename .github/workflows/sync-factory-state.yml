@@ -64,7 +64,7 @@ jobs:
           sync_one() {
             local num="$1"
 
-            local item_json labels node_id item_state is_pr
+            local item_json labels node_id item_state is_pr is_draft
             item_json=$(gh api "repos/$REPO/issues/$num" \
               --jq '{labels: [.labels[].name], node_id: .node_id, state: .state, pr: (has("pull_request"))}' 2>/dev/null) || {
               echo "  skip #$num: not accessible"
@@ -74,6 +74,14 @@ jobs:
             node_id=$(echo "$item_json" | jq -r '.node_id')
             item_state=$(echo "$item_json" | jq -r '.state')
             is_pr=$(echo "$item_json" | jq -r '.pr')
+
+            # Draft status lives on the pulls endpoint, not the issues endpoint.
+            # Draft PRs are still being worked on; they belong in Factory, not
+            # in Your turn where they'd falsely signal "human needs to review".
+            is_draft=false
+            if [ "$is_pr" = "true" ]; then
+              is_draft=$(gh api "repos/$REPO/pulls/$num" --jq '.draft' 2>/dev/null || echo false)
+            fi
 
             local L=",$labels,"
             local state_name
@@ -86,6 +94,8 @@ jobs:
                  || "$L" == *",ai-reviewed,"* \
                  || "$L" == *",plan-file,"* ]]; then
               state_name=YourTurn
+            elif [ "$is_pr" = "true" ] && [ "$item_state" = "open" ] && [ "$is_draft" = "true" ]; then
+              state_name=Factory
             elif [ "$is_pr" = "true" ] && [ "$item_state" = "open" ]; then
               state_name=YourTurn
             elif [[ "$L" == *",ready-for-implementation,"* \
@@ -96,7 +106,7 @@ jobs:
               state_name=Waiting
             fi
             local opt_id="${OPT[$state_name]}"
-            echo "  #$num state=$item_state pr=$is_pr labels=[$labels] -> $state_name"
+            echo "  #$num state=$item_state pr=$is_pr draft=$is_draft labels=[$labels] -> $state_name"
 
             local item_id
             item_id=$(gh api graphql -f query='

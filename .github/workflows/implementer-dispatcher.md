@@ -22,6 +22,9 @@ safe-outputs:
   add-labels:
     allowed: [assigned-to-agent]
     max: 1
+  remove-labels:
+    allowed: [ready-for-implementation]
+    max: 1
 ---
 
 # Implementer Dispatcher
@@ -46,7 +49,7 @@ When GitHub exposes proper API-based assignment for Partner Agents, re-introduce
 
 ### Step 2: Assign the issue (Copilot path only)
 
-Use `assign-to-agent` to assign this issue to the Copilot cloud agent. Add the `assigned-to-agent` label. Post a brief comment: "Assigned to Copilot cloud agent based on label `impl:copilot`."
+Use `assign-to-agent` to assign this issue to the Copilot cloud agent. Add the `assigned-to-agent` label and remove the `ready-for-implementation` label — stage labels are mutually exclusive so the board reflects the current stage only. Post a brief comment: "Assigned to Copilot cloud agent based on label `impl:copilot`."
 
 ## Noop conditions
 
