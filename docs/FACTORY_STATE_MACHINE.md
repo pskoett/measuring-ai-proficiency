@@ -10,28 +10,44 @@ For the layered architecture and the design rationale, see [`chain.md`](chain.md
 
 ## Label-to-Lane Mapping
 
-Six board lanes, derived from label semantics. An issue or PR belongs to the lane whose highest-priority matching label fires.
+Four board lanes, derived from label semantics by [`sync-factory-state.yml`](../.github/workflows/sync-factory-state.yml). Rules are evaluated top-down — the first matching rule wins. Source of truth for the mapping is the workflow; this table mirrors it.
 
-| Label | Board lane | Meaning | Set by |
-|-------|------------|---------|--------|
-| _(no factory label)_ | **Inbox** | Opened, not yet triaged | — |
-| `needs-spec` | **Planning** | Needs a structured plan file | Human |
-| `needs-plan` | **Planning** | Spec done; plan PR in flight | `spec-refiner` |
-| `blocked-on-human` | **Needs Attention** | Agent cannot proceed without human input | `spec-refiner`, `conflict-resolver` |
-| `spec-refined` | **Planning** | Spec refinement complete (informational) | `spec-refiner` |
-| `impl:copilot` | **Planning** | Implementer chosen (Copilot, auto-dispatch) | `spec-refiner` (or human) |
-| `impl:claude-opus` | **Planning** | Implementer chosen (Claude Opus, manual only) | human |
-| `impl:claude-sonnet` | **Planning** | Implementer chosen (Claude Sonnet, manual only) | human |
-| `impl:codex` | **Planning** | Implementer chosen (Codex, manual only) | human |
-| `ready-for-implementation` | **In flight** | Source issue ready; awaiting agent PR | `plan-merged-dispatcher` |
-| `assigned-to-agent` | **In flight** | Issue dispatched to Copilot cloud agent | `implementer-dispatcher` |
-| `ai-reviewed` | **Review** | Reviewer passed; ready for human review | `reviewer` |
-| `fast-track` | **Review** | Small, well-tested, zero findings | `reviewer` |
-| `spec-drift` | **Review** | PR does things the plan did not ask for | `reviewer` |
-| `needs-changes` | **Needs Attention** | Critical findings or missed criteria | `reviewer` |
-| `needs-rebase` | **Needs Attention** | PR branch is behind main | `reviewer` or human |
-| `human-review` | **Needs Attention** | Emergency stop; all agents call noop | human or `reviewer` (self-tamper guard) |
-| _(PR merged / issue closed)_ | **Done** | Implementation shipped | — |
+| Priority | Condition | Board lane |
+|----------|-----------|------------|
+| 1 | Item is `closed` | ✅ **Done** |
+| 2 | Has any of: `needs-changes`, `needs-rebase`, `human-review`, `blocked-on-human`, `ai-reviewed`, `plan-file` | 👉 **Your turn** |
+| 3 | Is an open PR (no signal above) | 👉 **Your turn** |
+| 4 | Has any of: `ready-for-implementation`, `assigned-to-agent`, `needs-plan` | 🤖 **Factory building** |
+| 5 | Everything else | 📥 **Waiting for spec** |
+
+### What each label means and who sets it
+
+| Label | Meaning | Set by |
+|-------|---------|--------|
+| `needs-spec` | Needs a structured plan file | Human |
+| `needs-plan` | Spec done; plan PR in flight | `spec-refiner` |
+| `blocked-on-human` | Agent cannot proceed without human input | `spec-refiner`, `conflict-resolver` |
+| `spec-refined` | Spec refinement complete (informational) | `spec-refiner` |
+| `impl:copilot` | Implementer chosen (Copilot, auto-dispatch) | `spec-refiner` (or human) |
+| `impl:claude-opus` | Implementer chosen (Claude Opus, manual only) | human |
+| `impl:claude-sonnet` | Implementer chosen (Claude Sonnet, manual only) | human |
+| `impl:codex` | Implementer chosen (Codex, manual only) | human |
+| `ready-for-implementation` | Source issue ready; awaiting agent PR | `plan-merged-dispatcher` |
+| `assigned-to-agent` | Issue dispatched to Copilot cloud agent | `implementer-dispatcher` |
+| `ai-reviewed` | Reviewer passed; ready for human review | `reviewer` |
+| `fast-track` | Small, well-tested, zero findings | `reviewer` |
+| `spec-drift` | PR does things the plan did not ask for | `reviewer` |
+| `needs-changes` | Critical findings or missed criteria | `reviewer` |
+| `needs-rebase` | PR branch is behind main | `reviewer` or human |
+| `human-review` | Emergency stop; all agents call noop | human or `reviewer` (self-tamper guard) |
+
+### Derived labels (set by the board-sync side)
+
+| Label | Meaning | Set by |
+|-------|---------|--------|
+| `your-turn` | Item is in the 👉 Your turn lane; human action required | `sync-factory-state` |
+| `agent-working` | At least one factory workflow is currently running on this item | `agent-activity-tracker` |
+| `model:<name>` | The `engine.model` of a currently-running workflow (e.g. `model:gpt-5.4`) | `agent-activity-tracker` |
 
 **Provenance labels** (on factory-generated PRs, not on source issues):
 
@@ -67,6 +83,8 @@ All factory workflows. Plain GitHub Actions workflows are marked **[Actions]**; 
 | `learning-aggregator-ci` | `schedule` (weekly, Monday) | — | Aggregates `.learnings/` + session transcript artifacts; opens gap-report issue |
 | `ai-proficiency-pr-review` | `issue_comment: [created]` | Comment contains `/assess-proficiency` | Posts AI proficiency assessment comment on the PR |
 | `ai-proficiency-weekly-report` | `schedule` (Monday 9am UTC) | — | Creates weekly proficiency tracking issue |
+| `sync-factory-state` **[Actions]** | `issues` / `pull_request` label or state change, `schedule` every 10 min, `workflow_dispatch` | — | Mirrors the label set onto the Projects v2 `Status` field; applies/removes the `your-turn` label |
+| `agent-activity-tracker` **[Actions]** | `schedule` every 5 min, `workflow_dispatch` | — | Applies/removes `agent-working` and `model:<name>` based on in-progress factory workflow runs |
 
 ---
 
@@ -172,3 +190,6 @@ Weekly (independent of main chain)
 | "How do I pause the chain?" | Add `human-review` to the issue or PR; all agents call noop |
 | "How do I skip spec-refinement?" | Label the issue `needs-plan` directly |
 | "What auto-routes vs. requires manual assignment?" | Only `impl:copilot` auto-routes; all other `impl:*` labels require UI assignment |
+| "Where is the board?" | [AI Agent Factory project](https://github.com/users/pskoett/projects/3). Labels are authoritative; the board is a read-only view. Setup details in [`AGENT_FACTORY.md#github-projects-board`](AGENT_FACTORY.md#github-projects-board). |
+| "Which lane means 'I need to do something'?" | 👉 Your turn. Filter the issue/PR list by `label:your-turn` for the same view. |
+| "How do I know if an agent is actively running on an issue?" | The `agent-working` label is applied while any factory workflow is in progress; `model:<name>` tells you which model. |

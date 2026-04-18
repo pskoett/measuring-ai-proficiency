@@ -34,41 +34,33 @@ Snapshot analysis of the factory after the #138 refactor that removed the sub-is
 
 ## GitHub Projects analysis
 
-**Yes, it fits — as a visualization layer, not a control plane.**
+**Status: built (2026-04-17).** The board is live at [AI Agent Factory](https://github.com/users/pskoett/projects/3) and mirrored from labels by [`sync-factory-state.yml`](../.github/workflows/sync-factory-state.yml). Setup and operating details live in `AGENT_FACTORY.md#github-projects-board`; this section is the "why" and what actually shipped vs. the original proposal.
 
-### What Projects can do here
+### What shipped
 
-- **Board view with columns = factory states.** Triage → Spec → Planning → Ready → Assigned → Review → Needs-changes → Merged → Learning. Label-based automations move cards between columns. Gives you a single-glance view of the whole factory.
-- **Custom fields** for implementer, estimated effort, blocked-since date, plan file link.
-- **Views** for daily operation: *Needs human* (filter on `blocked-on-human`, `needs-changes`, `human-review`), *Stalled* (filter on `ready-for-implementation` with no `assigned-to-agent` for 48h — catches dispatcher failures), *Learning queue* (filter on `self-improvement` PRs).
-- **Cross-repo aggregation** if the factory ever runs in more than one repo. Today it's local, but the model scales.
+- **4 lanes, not 9.** The original 9-column proposal (Triage / Spec / Planning / Ready / Assigned / Review / Needs-changes / Merged / Learning) collapsed to **📥 Waiting for spec / 🤖 Factory building / 👉 Your turn / ✅ Done**. The finer-grained states already live in labels; on the board they added noise without adding answers. Four lanes map directly to the only question the board needs to answer: *is it on me, or on the factory?*
+- **Zero custom fields.** The original proposal called for an Implementer / Plan PR / Blocked-since set; all four were created, then deleted. Labels already carry that data, and duplicating it on the board created a second source of truth for no operational gain.
+- **One-way sync via a plain GitHub Actions workflow**, not the built-in label automation. The built-in automation couldn't express the priority ordering (closed > human-blocking > PR-open > agent-blocking > default), and it couldn't flip the `your-turn` label as a side effect. The workflow runs on every label/state change plus a 10-minute reconcile cron to catch events missed during outages.
+- **Separate activity tracker.** `agent-activity-tracker.yml` adds `agent-working` and `model:<name>` labels while a factory workflow is mid-run, so the board can show "something is chewing on this" without polluting the Status field. Not in the original proposal; added after the first day of use because "Factory building" didn't distinguish waiting from running.
 
-### What Projects can't do here
+### What Projects still can't do
 
-- **Drive the workflows.** Projects observes state; labels carry state. If someone drags a card, the label doesn't auto-update (you can configure the reverse — label change moves card — but not the other way cleanly).
-- **Replace any part of the factory.** The decisions stay in labels and workflow code. Projects is read-only for the automation.
-- **Run conditional logic** richer than "label X means column Y." Anything smarter stays in workflow code.
+- **Drive the workflows.** Labels remain authoritative. Dragging a card does not change labels; the 10-minute reconcile snaps it back.
+- **Replace any part of the factory.** All decisions stay in labels and workflow code.
+- **Richer conditional logic** than the priority table in the sync workflow. Anything smarter stays in code.
 
-### Risk
+### Residual risk
 
-Adding Projects introduces a *potential* second source of truth. Mitigation: strict convention that labels are authoritative, Projects is derived. Don't use the Projects board as a place to make decisions — use it to see what's happening.
-
-### Recommendation on Projects
-
-Small, additive, high-leverage. ~1-day task:
-
-1. Create one Project v2 at the org/user level.
-2. Single-select field "Factory state" with options matching columns above.
-3. Built-in automation: label added → state set. Label removed → state cleared.
-4. Three saved views: *All active*, *Needs human*, *Stalled >48h*.
-5. No workflow changes. No label changes. Zero risk to the existing chain.
+- **Second source of truth is still a potential risk.** Mitigated by the one-way sync and by making the board deliberately minimal (4 lanes, no custom fields). Do not add custom fields casually; they will drift.
+- **Tracker misses short issue-triggered runs.** GitHub doesn't expose the issue number on `workflow_runs` for `issues` events, and the tracker polls every 5 minutes. Acceptable for visualization; would matter if used for SLAs.
+- **Project IDs are hard-coded** in `sync-factory-state.yml`. Replicating the board in another repo requires updating `PROJECT_ID`, `FIELD_ID`, and four option IDs. Documented in the setup steps.
 
 ## Priority order going forward
 
-1. **Add the Projects board.** One day. Immediate leverage on observability of the factory itself (meta-observability — before you even tackle #97).
+1. ~~**Add the Projects board.**~~ Done 2026-04-17 — see GitHub Projects analysis above.
 2. **Decide multi-implementer.** Either simplify to two labels or wire Claude/Codex. Current half-built state costs clarity for no benefit.
 3. **Ship #97 (transcripts).** Unlocks the learning loop that's currently running on 20% of its signal.
-4. **Write one-page factory state-machine doc.** Label transition table + trigger table. Cuts onboarding and debugging time.
+4. **Write one-page factory state-machine doc.** Label transition table + trigger table. Cuts onboarding and debugging time. (`FACTORY_STATE_MACHINE.md` exists — audit whether it matches the shipped board lanes.)
 5. **Audit plan-PR → impl-PR → issue-closing chain.** Make sure issues reliably close via Copilot's PR, or add a post-merge step that handles it.
 
 ## Bottom line

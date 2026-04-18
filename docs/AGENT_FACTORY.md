@@ -89,6 +89,7 @@ Add these under **Settings > Secrets and variables > Actions**. `GITHUB_TOKEN` i
 |--------|-------------|---------------|
 | `COPILOT_GITHUB_TOKEN` | Every custom gh-aw workflow (agent runtime auth) | Personal access token with `copilot` scope, or a fine-grained token with Copilot access |
 | `GH_AW_AGENT_TOKEN` | `implementer-dispatcher` (assigning Copilot) and `plan-merged-dispatcher` (label cascades into `implementer-dispatcher`) | PAT with `issues: write`, `contents: write`, and cascade-capable (i.e. a user/installation PAT, not `GITHUB_TOKEN`) |
+| `PROJECTS_PAT` | `sync-factory-state` (writes issue/PR state onto the AI Agent Factory Projects v2 board) | Classic PAT with `repo` + `project` scopes. `GITHUB_TOKEN` cannot be used — Projects v2 only accepts a user PAT. Fine-grained PATs are unreliable for user-owned Projects. |
 | `ANTHROPIC_API_KEY` | **Optional** — only if you enable `ai-proficiency-claude.yml` | Get from console.anthropic.com; skip if you stick to the Copilot-powered `ai-proficiency-pr-review` |
 
 You can reuse the same PAT across these if it has the union of scopes. Keep them separate if you want to rotate or revoke them independently.
@@ -112,6 +113,9 @@ The factory is choreographed through labels. Create these once in **Issues > Lab
 | `workflow-health` | Tracking issues for data-layer failures |
 | `automation`, `low-risk` | Applied to routine factory PRs |
 | `pr-fix` | Applied to commits pushed by `/pr-fix` |
+| `your-turn` | Derived by `sync-factory-state`: item is in the 👉 Your turn lane on the Projects board (human action required) |
+| `agent-working` | Derived by `agent-activity-tracker`: at least one factory workflow is currently running on this item |
+| `model:<name>` | Derived by `agent-activity-tracker` from the running workflow's `engine.model` (e.g. `model:gpt-5.4`, `model:claude-sonnet-4-6`); auto-created on demand |
 
 Without these labels, workflows that try to `add-labels: allowed: [...]` will fail their safe-output validation.
 
@@ -282,6 +286,8 @@ Do not disable the guard to let the PR through. The guard is one line of `case` 
 | [`simplify-and-harden-ci.md`](../.github/workflows/simplify-and-harden-ci.md) | PR opened / updated | Scan changed files for simplicity and security issues |
 | [`learning-aggregator-ci.md`](../.github/workflows/learning-aggregator-ci.md) | Weekly (Monday) | Aggregate learnings, rank promotion candidates, create gap report |
 | [`eval-creator-ci.md`](../.github/workflows/eval-creator-ci.md) | PR opened / updated | Run regression checks against promoted learnings |
+| [`sync-factory-state.yml`](../.github/workflows/sync-factory-state.yml) | Issue/PR label/state change, cron every 10 min, `workflow_dispatch` | One-way mirror of factory labels onto the "AI Agent Factory" Projects v2 Status field; applies/removes the `your-turn` label as a side effect. Plain GitHub Actions, not gh-aw. |
+| [`agent-activity-tracker.yml`](../.github/workflows/agent-activity-tracker.yml) | Cron every 5 min, `workflow_dispatch` | Applies `agent-working` and `model:<name>` labels to items with at least one in-progress factory workflow; sweeps labels off when runs finish. Plain GitHub Actions, not gh-aw. |
 
 These are thin adapter shells. The actual agent logic lives in skills in `.claude/skills/`.
 
@@ -424,6 +430,91 @@ bash scripts/check-workflow-lock-sync.sh
 See [`chain.md`](chain.md) for the full layered architecture diagram and the design rationale for choreography over orchestration.
 
 See [`FACTORY_STATE_MACHINE.md`](FACTORY_STATE_MACHINE.md) for the one-page operator reference: label-to-lane mapping, workflow trigger table, and the happy-path sequence diagram.
+
+## GitHub Projects Board
+
+The factory has a companion **GitHub Projects v2** board that gives you a single-glance view of every issue and PR in flight. Labels remain authoritative; the board is a derived, read-only visualization. Never make decisions on the board — move labels, let the board follow.
+
+**Board**: [AI Agent Factory](https://github.com/users/pskoett/projects/3) (private, user-scope).
+
+### Status lanes (the 4-column overview)
+
+The board's built-in `Status` field is renamed into these four lanes. No other custom fields are used — the goal is one signal at a glance, not a data model.
+
+| Status | Meaning |
+|--------|---------|
+| 📥 **Waiting for spec** | Fresh issue, or something not yet picked up by the factory. Human needs to add `needs-spec` or triage it. |
+| 🤖 **Factory building** | Spec/plan done or dispatched; an agent will pick it up or is already running. Humans can ignore this lane. |
+| 👉 **Your turn** | Agents are done for now; a human needs to act (review, resolve conflict, unblock, merge). |
+| ✅ **Done** | Issue/PR closed. |
+
+### Label → Status mapping
+
+Evaluated top-down in [`sync-factory-state.yml`](../.github/workflows/sync-factory-state.yml) — the first matching rule wins.
+
+| Priority | Condition | Lane |
+|----------|-----------|------|
+| 1 | Item is `closed` | ✅ Done |
+| 2 | Has any of: `needs-changes`, `needs-rebase`, `human-review`, `blocked-on-human`, `ai-reviewed`, `plan-file` | 👉 Your turn |
+| 3 | Is an open PR (no other signal) | 👉 Your turn |
+| 4 | Has any of: `ready-for-implementation`, `assigned-to-agent`, `needs-plan` | 🤖 Factory building |
+| 5 | Everything else | 📥 Waiting for spec |
+
+Items in the 👉 Your turn lane also receive a `your-turn` label; it is stripped when they move out. That lets you filter the issue/PR lists the same way the board does.
+
+### Activity labels (what's running right now)
+
+`agent-activity-tracker.yml` polls in-progress workflow runs every 5 minutes and applies:
+
+- `agent-working` — at least one factory workflow is currently running on this item.
+- `model:<name>` — the `engine.model` of the running workflow (`model:gpt-5.4`, `model:claude-sonnet-4-6`, etc.). Auto-created on first use.
+
+Labels are swept off when the run completes. Issue-triggered workflows (under ~3 min) may be missed between polls by design — the tracker only covers PR-triggered runs where GitHub exposes the triggering number on the run object.
+
+### Setup steps (for replicating this in another repo or org)
+
+1. **Create the project.**
+   ```bash
+   gh project create --owner <user-or-org> --title "AI Agent Factory" --format json
+   ```
+   Note the project number (shown in the URL, e.g. `/projects/3`) and the `id` field from the JSON output (the `PVT_...` node ID).
+
+2. **Rename the built-in `Status` field options** to match the four lanes above (📥 Waiting for spec, 🤖 Factory building, 👉 Your turn, ✅ Done). Do this in the web UI — `gh project` cannot edit built-in field option names. Skip creating custom fields; the board is intentionally minimal.
+
+3. **Grab the Status field ID and the four option IDs.**
+   ```bash
+   gh project field-list <number> --owner <user-or-org> --format json \
+     | jq '.fields[] | select(.name=="Status") | {id, options}'
+   ```
+   Copy the field's `id` (the `PVTSSF_...` value) and each option's `id` into `sync-factory-state.yml` (`PROJECT_ID`, `FIELD_ID`, and the `OPT` array). The values currently committed point at this repo's board — update them before using the workflow elsewhere.
+
+4. **Create the `PROJECTS_PAT` secret.** Generate a classic PAT with `repo` + `project` scopes (fine-grained PATs are unreliable against user-scope Projects). Add it under Settings > Secrets and variables > Actions as `PROJECTS_PAT`.
+
+5. **Enable the built-in "Auto-add to project" workflow** on the project with a filter like `is:issue,pr repo:<owner>/<name>`. This makes every new issue and PR show up on the board automatically; `sync-factory-state` does not add new items, it only moves existing ones.
+
+6. **Create the supporting labels.** `your-turn`, `agent-working`, and the `model:*` pattern are in the labels table above. The sync workflow and activity tracker will auto-create `model:<name>` labels on demand; the other two must exist up front.
+
+7. **Commit both workflows.** `.github/workflows/sync-factory-state.yml` (label → Status mirror) and `.github/workflows/agent-activity-tracker.yml` (agent-working / model:* labels). Neither compiles through gh-aw — they are plain GitHub Actions.
+
+8. **Dispatch a full reconcile once** to backfill the board:
+   ```bash
+   gh workflow run sync-factory-state.yml
+   ```
+   Leave the `issue_number` input blank to sweep all open items plus the 30 most recent closed ones.
+
+### Recommended saved views
+
+Two views cover ~all daily operation; resist adding more.
+
+- **Board grouped by Status** — the default. One glance, full picture.
+- **Table filtered `label:your-turn`** — just the items you need to act on, sortable by update time.
+
+### Guard rails and known limits
+
+- **Labels stay authoritative.** `sync-factory-state` is one-way (labels → board). Dragging a card does not change labels; the 10-minute reconcile cron will snap it back. This is deliberate — the board is a view, not a control plane.
+- **Activity tracker misses short issue-triggered runs.** GitHub doesn't expose the issue number on `workflow_runs` for `issues` events, and the tracker polls every 5 min. Acceptable trade-off for a visualization layer.
+- **One board per repo today.** Cross-repo aggregation is possible by pointing multiple repos' `sync-factory-state.yml` at the same project ID, but this repo has not exercised that path.
+- **Stale lock on the sync workflow.** `sync-factory-state.yml` is plain Actions, not gh-aw, so the lock-file-sync guard does not apply. Edits land as-is.
 
 ## Observability
 
