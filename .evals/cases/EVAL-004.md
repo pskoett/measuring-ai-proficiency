@@ -4,7 +4,7 @@ source-learning: spec-refiner wrote `Fixes #NN` in plan PR body (.learnings/ERRO
 target: .github/workflows/spec-refiner.md
 method: grep-check
 expect: found
-pattern: "NEVER** write `Closes"
+pattern: "Before finalizing the body, grep your own draft"
 created: 2026-04-18
 last-run: 2026-04-18
 last-result: pass
@@ -24,15 +24,17 @@ The fix is an explicit prohibition in the spec-refiner instruction: a bullet tha
 
 ## Check
 
-`.github/workflows/spec-refiner.md` must contain the literal string ``NEVER** write `Closes``. This confirms the prohibition bullet is still in place.
+`.github/workflows/spec-refiner.md` must contain the literal string `Before finalizing the body, grep your own draft`. That phrase uniquely identifies the self-grep instruction on line 103 of the prompt, which in turn only exists as the tail of the prohibition bullet on line 101. If line 103 is still there, so is the prohibition.
+
+Pattern chosen to avoid backtick and asterisk characters that trip frontmatter / shell quoting in the `eval-creator-ci` pipeline.
 
 ## Pass condition
 
-`grep -qF 'NEVER** write \`Closes' .github/workflows/spec-refiner.md` exits with code 0.
+`grep -qF 'Before finalizing the body, grep your own draft' .github/workflows/spec-refiner.md` exits with code 0.
 
 ## Fail condition
 
-The prohibition has been removed or weakened. Plan PRs can once again include closing keywords and auto-close their source issues on merge.
+The self-grep instruction has been removed, which almost certainly means the prohibition bullet was deleted or rewritten. Plan PRs could once again include closing keywords and auto-close their source issues on merge.
 
 ## Adjacent rules worth testing (future evals)
 
