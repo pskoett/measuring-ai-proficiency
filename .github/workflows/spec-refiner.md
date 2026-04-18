@@ -27,11 +27,11 @@ safe-outputs:
   assign-to-agent:
     target-repo: ${{ github.repository }}
   add-labels:
-    allowed: [needs-plan, blocked-on-human, spec-refined, "impl:copilot", ready-for-implementation, assigned-to-agent]
+    allowed: [needs-plan, blocked-on-human, blocked-on-serialization, spec-refined, "impl:copilot", ready-for-implementation, assigned-to-agent]
     max: 4
   remove-labels:
-    allowed: [needs-spec]
-    max: 1
+    allowed: [needs-spec, ready-for-implementation, assigned-to-agent]
+    max: 3
 ---
 
 # Spec Refiner
@@ -71,6 +71,98 @@ An issue is terminal or blocked when:
 For Path 1 issues: read `.claude/skills/plan-interview/SKILL.md` in full and follow its process. That file is your source of truth for how to run the interview, explore the codebase, and structure the plan file output.
 
 This is a single-shot gh-aw run, not a live session. Follow the skill's process, but when it expects to ask the user questions, apply rule 1 from the "Adapting skills for single-shot gh-aw runs" section of `AGENTS.md`: simulate the interview by answering from issue context, and mark anything you cannot answer with confidence using `**NEEDS HUMAN INPUT**` plus a specific question.
+
+## target-files in plan files (Path 1 only)
+
+Every plan file you create must include a `target-files` field in its YAML frontmatter listing the concrete file paths the implementation is expected to change. This field is required — it powers the serialization overlap check below.
+
+Rules for `target-files`:
+- List paths relative to the repository root (e.g., `AGENTS.md`, `.github/workflows/spec-refiner.md`).
+- Include every shared-harness file the implementation will edit. When in doubt, include it.
+- Do not use glob patterns. List concrete paths only.
+- Exclude `docs/plans/*`, `.evals/`, `.learnings/`, and test files. These are low-conflict areas excluded from the overlap check.
+- Keep the list honest and minimal. Drift (listing files that won't change, or omitting files that will) degrades the overlap check.
+
+Example frontmatter:
+
+```yaml
+---
+plan-id: plan-233
+status: active
+target-files:
+  - AGENTS.md
+  - .github/workflows/spec-refiner.md
+  - .github/workflows/spec-refiner.lock.yml
+  - docs/AGENT_FACTORY.md
+---
+```
+
+## Pre-dispatch overlap check (Path 1 only)
+
+Before opening the plan PR, run a serialization check: compare the new plan's `target-files` against the current file surfaces of every open factory PR, bounded to the shared-harness allowlist below.
+
+### Shared-harness allowlist
+
+Only these paths are checked. All other paths are ignored to avoid false blocks.
+
+```
+AGENTS.md
+CLAUDE.md
+docs/AGENT_FACTORY.md
+docs/FACTORY_STATE_MACHINE.md
+docs/chain.md
+.github/workflows/*.md
+.github/workflows/*.yml
+.claude/skills/**/SKILL.md
+```
+
+### How to collect in-flight file surfaces
+
+For each open PR that has any of the labels `plan-file` or `impl:copilot` or `assigned-to-agent`:
+
+```bash
+gh pr diff <PR_NUMBER> --name-only
+```
+
+Filter the output through the allowlist: keep only paths that match one of the allowlist patterns above.
+
+Call this `in-flight-target-files(PR_N)` for PR number N.
+
+### Overlap detection
+
+1. Filter the new plan's `target-files` through the allowlist (keep only paths matching the allowlist patterns).
+2. For each open factory PR, intersect its `in-flight-target-files` with the filtered new plan targets.
+3. The intersection is the set of overlapping files.
+
+### If the intersection is non-empty
+
+1. Open the plan PR as normal — the plan is a valid artifact regardless of the queue state.
+2. Add `blocked-on-serialization` to the source issue.
+3. Remove `ready-for-implementation` and `assigned-to-agent` from the source issue if either is present.
+4. Post a comment on the source issue in this format:
+
+```
+Dispatch blocked: overlapping files with open PR(s).
+
+This issue's plan touches files that are already in flight on another open factory PR. To prevent structural conflicts on shared harness files, this issue is queued until the blocking PR(s) merge.
+
+Blocking PRs and overlapping files:
+- PR #<N>: `<file1>`, `<file2>`
+- PR #<M>: `<file3>`
+
+When all blocking PRs merge, `serialization-resolver` will re-evaluate this issue automatically. If no overlap remains, `ready-for-implementation` will be restored and implementation will proceed.
+
+To unblock manually: merge or close the blocking PR(s), then remove `blocked-on-serialization` and re-add `ready-for-implementation`.
+```
+
+5. Do not add `needs-plan` (the issue is queued, not awaiting a plan review — the plan PR is still valid and open).
+6. Label swap: remove `needs-spec`, add `impl:copilot`, add `blocked-on-serialization`.
+
+**Note**: `blocked-on-serialization` is distinct from `blocked-on-human`. It means "queued behind overlapping work" — no human decision is required unless the human wants to override the queue. The `serialization-resolver` workflow handles unblocking automatically.
+
+### If the intersection is empty
+
+Proceed normally with the Path 1 handoff. The overlap check passed.
 
 ## Plan file lifecycle (read before consulting any plan)
 

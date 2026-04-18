@@ -1,0 +1,253 @@
+name: Serialization Resolver
+
+# Re-evaluates all issues labeled `blocked-on-serialization` whenever the
+# in-flight factory PR set changes (PR merged or closed) or on a periodic
+# schedule as a safety net for missed events.
+#
+# For each blocked issue, the workflow:
+#   1. Reads the plan file's `target-files` frontmatter.
+#   2. Collects the file surfaces of every still-open factory PR (plan-file,
+#      impl:copilot, or assigned-to-agent label) via `gh pr diff --name-only`.
+#   3. Filters both surfaces through the shared-harness allowlist.
+#   4. If the intersection is empty: removes `blocked-on-serialization`,
+#      re-adds `ready-for-implementation`, and posts a release comment.
+#   5. If the intersection is still non-empty: posts an updated blocking
+#      comment and leaves the label in place.
+#
+# Shared-harness allowlist (same as spec-refiner):
+#   AGENTS.md
+#   CLAUDE.md
+#   docs/AGENT_FACTORY.md
+#   docs/FACTORY_STATE_MACHINE.md
+#   docs/chain.md
+#   .github/workflows/*.md   (prefix: .github/workflows/)
+#   .github/workflows/*.yml  (prefix: .github/workflows/)
+#   .claude/skills/**/SKILL.md (prefix: .claude/skills/)
+#
+# Note: The allowlist uses prefix matching for the wildcard entries above.
+# Paths under .github/workflows/ and .claude/skills/ match regardless of
+# depth or file extension — this is intentionally broad to catch all workflow
+# and skill file conflicts without requiring full glob evaluation in bash.
+
+on:
+  pull_request:
+    types: [closed]
+  issues:
+    types: [labeled, unlabeled, closed]
+  schedule:
+    - cron: '0 * * * *'  # safety net: re-check every hour
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+  pull-requests: read
+
+concurrency:
+  group: serialization-resolver
+  cancel-in-progress: true
+
+jobs:
+  resolve:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Re-evaluate blocked-on-serialization issues
+        env:
+          GH_TOKEN: ${{ secrets.GH_AW_AGENT_TOKEN || secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+
+          # ---------------------------------------------------------------------------
+          # Shared-harness allowlist.
+          # Exact matches are checked first; then prefix matches for wildcard entries.
+          # Only paths matching this allowlist are considered for overlap detection.
+          # ---------------------------------------------------------------------------
+          HARNESS_EXACT=(
+            "AGENTS.md"
+            "CLAUDE.md"
+            "docs/AGENT_FACTORY.md"
+            "docs/FACTORY_STATE_MACHINE.md"
+            "docs/chain.md"
+          )
+          # Prefix-matched entries (covers *.md, *.yml under workflows; any file under skills/)
+          HARNESS_PREFIXES=(
+            ".github/workflows/"
+            ".claude/skills/"
+          )
+
+          # Returns true if a path matches the allowlist
+          is_harness_path() {
+            local path="$1"
+            for p in "${HARNESS_EXACT[@]}"; do
+              [ "$path" = "$p" ] && return 0
+            done
+            for prefix in "${HARNESS_PREFIXES[@]}"; do
+              [[ "$path" == ${prefix}* ]] && return 0
+            done
+            return 1
+          }
+
+          # Collect file surfaces for all open factory PRs, returns newline-separated paths
+          get_open_factory_pr_numbers() {
+            # Find open PRs with any of the in-flight factory labels; deduplicate
+            {
+              gh pr list --state open --label "plan-file"        --json number --jq '.[].number' --repo "$REPO" 2>/dev/null || true
+              gh pr list --state open --label "impl:copilot"     --json number --jq '.[].number' --repo "$REPO" 2>/dev/null || true
+              gh pr list --state open --label "assigned-to-agent" --json number --jq '.[].number' --repo "$REPO" 2>/dev/null || true
+            } | sort -u | grep -E '^[0-9]+$' || true
+          }
+
+          # Get harness-filtered file surface for a single PR
+          get_pr_harness_files() {
+            local pr_num="$1"
+            gh pr diff "$pr_num" --name-only --repo "$REPO" 2>/dev/null \
+              | while IFS= read -r path; do
+                  is_harness_path "$path" && echo "$path"
+                done || true
+          }
+
+          # Ensure a label exists (idempotent)
+          ensure_label() {
+            local name="$1" color="$2" desc="$3"
+            gh label create "$name" --color "$color" --description "$desc" \
+              --repo "$REPO" 2>/dev/null || true
+          }
+
+          # Ensure required labels exist
+          ensure_label "blocked-on-serialization" "e4b400" \
+            "Queued behind an overlapping in-flight PR; serialization-resolver will unblock automatically"
+
+          # ---------------------------------------------------------------------------
+          # Build an associative array: PR_NUMBER -> space-separated harness paths
+          # Collected once and reused for all blocked-issue checks.
+          # ---------------------------------------------------------------------------
+          echo "Collecting open factory PR surfaces..."
+          declare -A PR_SURFACES  # pr_num -> newline-separated harness paths
+          while IFS= read -r pr_num; do
+            [ -z "$pr_num" ] && continue
+            surfaces=$(get_pr_harness_files "$pr_num")
+            if [ -n "$surfaces" ]; then
+              PR_SURFACES["$pr_num"]="$surfaces"
+              echo "  PR #$pr_num harness files: $(echo "$surfaces" | tr '\n' ' ')"
+            fi
+          done < <(get_open_factory_pr_numbers)
+
+          # ---------------------------------------------------------------------------
+          # Find all open issues with blocked-on-serialization label
+          # ---------------------------------------------------------------------------
+          echo "Finding blocked-on-serialization issues..."
+          BLOCKED_ISSUES=$(gh issue list \
+            --state open \
+            --label "blocked-on-serialization" \
+            --json number \
+            --jq '.[].number' \
+            --repo "$REPO" 2>/dev/null || true)
+
+          if [ -z "$BLOCKED_ISSUES" ]; then
+            echo "No issues with blocked-on-serialization. Nothing to do."
+            exit 0
+          fi
+
+          echo "Found blocked issues: $(echo "$BLOCKED_ISSUES" | tr '\n' ' ')"
+
+          # ---------------------------------------------------------------------------
+          # For each blocked issue, find its plan file and check for remaining overlaps
+          # ---------------------------------------------------------------------------
+          for issue_num in $BLOCKED_ISSUES; do
+            echo "Evaluating issue #$issue_num..."
+
+            # Locate plan file for this issue via the GitHub contents API
+            plan_path=$(gh api "repos/$REPO/contents/docs/plans" \
+              --jq "[.[] | select(.name | test(\"^plan-0*${issue_num}-\"))] | .[0].path" \
+              2>/dev/null || echo "")
+
+            if [ -z "$plan_path" ]; then
+              echo "  #$issue_num: No plan file found. Skipping."
+              continue
+            fi
+
+            # Download and extract target-files from frontmatter
+            plan_content=$(gh api "repos/$REPO/contents/$plan_path" \
+              --jq '.content' 2>/dev/null | base64 -d 2>/dev/null || true)
+
+            if [ -z "$plan_content" ]; then
+              echo "  #$issue_num: Could not read plan file $plan_path. Skipping."
+              continue
+            fi
+
+            # Extract target-files YAML list from frontmatter (between first and second ---)
+            target_files=$(echo "$plan_content" | awk '
+              /^---$/ { if (fm==0) { fm=1; next } else { exit } }
+              fm && /^target-files:/ { grab=1; next }
+              fm && grab && /^  - / { gsub(/^  - /, ""); print }
+              fm && grab && !/^  - / { grab=0 }
+            ')
+
+            if [ -z "$target_files" ]; then
+              echo "  #$issue_num: No target-files in plan frontmatter. Skipping overlap check."
+              continue
+            fi
+
+            echo "  #$issue_num plan target-files: $(echo "$target_files" | tr '\n' ' ')"
+
+            # Filter target-files through harness allowlist
+            filtered_targets=$(echo "$target_files" | while IFS= read -r path; do
+              is_harness_path "$path" && echo "$path"
+            done || true)
+
+            if [ -z "$filtered_targets" ]; then
+              echo "  #$issue_num: No harness-path targets. No overlap possible. Unblocking."
+              gh issue edit "$issue_num" --remove-label "blocked-on-serialization" --repo "$REPO" 2>/dev/null || true
+              gh issue edit "$issue_num" --add-label    "ready-for-implementation"  --repo "$REPO" 2>/dev/null || true
+              gh issue comment "$issue_num" --repo "$REPO" \
+                --body "Serialization check cleared: this issue has no shared-harness targets. Restoring \`ready-for-implementation\`." \
+                2>/dev/null || true
+              continue
+            fi
+
+            # Build a lookup set from filtered_targets for O(1) membership checks
+            declare -A TARGET_SET
+            while IFS= read -r t; do TARGET_SET["$t"]=1; done <<< "$filtered_targets"
+
+            # Find remaining overlaps with open factory PRs
+            overlap_found=false
+            overlap_details=""
+
+            for pr_num in "${!PR_SURFACES[@]}"; do
+              pr_surface="${PR_SURFACES[$pr_num]}"
+              overlap_files=""
+              while IFS= read -r pr_file; do
+                [ -n "${TARGET_SET[$pr_file]+x}" ] && \
+                  overlap_files="${overlap_files:+$overlap_files, }\`$pr_file\`"
+              done <<< "$pr_surface"
+
+              if [ -n "$overlap_files" ]; then
+                overlap_found=true
+                overlap_details="${overlap_details}- PR #${pr_num}: ${overlap_files}
+"
+              fi
+            done
+
+            unset TARGET_SET
+
+            if [ "$overlap_found" = "false" ]; then
+              echo "  #$issue_num: No remaining overlaps. Unblocking."
+              gh issue edit "$issue_num" --remove-label "blocked-on-serialization" --repo "$REPO" 2>/dev/null || true
+              gh issue edit "$issue_num" --add-label    "ready-for-implementation"  --repo "$REPO" 2>/dev/null || true
+              gh issue comment "$issue_num" --repo "$REPO" \
+                --body "Serialization check cleared: all blocking PRs have merged or closed. Restoring \`ready-for-implementation\`. Implementation dispatch will proceed automatically." \
+                2>/dev/null || true
+              echo "  #$issue_num: Unblocked."
+            else
+              echo "  #$issue_num: Still overlapping. Leaving blocked."
+              gh issue comment "$issue_num" --repo "$REPO" \
+                --body "Serialization check: still blocked. The following open factory PRs still overlap with this issue's harness targets:
+
+${overlap_details}
+This issue will be re-evaluated automatically when those PRs merge or close." \
+                2>/dev/null || true
+            fi
+          done
+
+          echo "Serialization resolver complete."

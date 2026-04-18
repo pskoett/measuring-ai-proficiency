@@ -115,7 +115,18 @@ jobs:
             gh issue edit "$issue_num" --body-file /tmp/issue_body.md
             gh issue edit "$issue_num" --remove-label needs-plan 2>/dev/null || true
             gh issue edit "$issue_num" --remove-label needs-spec 2>/dev/null || true
-            gh issue edit "$issue_num" --add-label ready-for-implementation
+
+            # Respect the serialization queue: if the issue is blocked-on-serialization,
+            # do NOT add ready-for-implementation. The serialization-resolver workflow
+            # will add it automatically when the blocking PR(s) merge and no overlap remains.
+            issue_labels=$(gh issue view "$issue_num" --json labels --jq '[.labels[].name] | join(",")' 2>/dev/null || echo "")
+            if echo ",$issue_labels," | grep -q ",blocked-on-serialization,"; then
+              echo "Issue #$issue_num has blocked-on-serialization — skipping ready-for-implementation. serialization-resolver will unblock when blocking PRs merge."
+              gh issue comment "$issue_num" --body \
+                "Plan merged. Implementation checklist written to issue body. This issue remains queued (\`blocked-on-serialization\`) until its overlapping PRs merge. \`serialization-resolver\` will restore \`ready-for-implementation\` automatically." 2>/dev/null || true
+            else
+              gh issue edit "$issue_num" --add-label ready-for-implementation
+            fi
 
             echo "Activated issue #$issue_num from $filename."
             activated=$((activated + 1))

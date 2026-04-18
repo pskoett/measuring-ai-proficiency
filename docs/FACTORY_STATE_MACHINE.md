@@ -15,7 +15,7 @@ Four board lanes, derived from label semantics by [`sync-factory-state.yml`](../
 | Priority | Condition | Board lane |
 |----------|-----------|------------|
 | 1 | Item is `closed` | ✅ **Done** |
-| 2 | Has any of: `needs-changes`, `needs-rebase`, `human-review`, `blocked-on-human`, `ai-reviewed`, `plan-file`, `eval-regression` | 👉 **Your turn** |
+| 2 | Has any of: `needs-changes`, `needs-rebase`, `human-review`, `blocked-on-human`, `blocked-on-serialization`, `ai-reviewed`, `plan-file`, `eval-regression` | 👉 **Your turn** |
 | 3 | Is an open PR (no signal above) | 👉 **Your turn** |
 | 4 | Has any of: `ready-for-implementation`, `assigned-to-agent`, `needs-plan` | 🤖 **Factory building** |
 | 5 | Everything else | 📥 **Waiting for spec** |
@@ -27,6 +27,7 @@ Four board lanes, derived from label semantics by [`sync-factory-state.yml`](../
 | `needs-spec` | Needs a structured plan file | Human |
 | `needs-plan` | Spec done; plan PR in flight | `spec-refiner` |
 | `blocked-on-human` | Agent cannot proceed without human input | `spec-refiner`, `conflict-resolver` |
+| `blocked-on-serialization` | Queued behind an overlapping open factory PR on shared harness files; `serialization-resolver` unblocks automatically | `spec-refiner` |
 | `spec-refined` | Spec refinement complete (informational) | `spec-refiner` |
 | `impl:copilot` | Implementer chosen (Copilot, auto-dispatch) | `spec-refiner` (or human) |
 | `ready-for-implementation` | Source issue ready; awaiting agent PR | `plan-merged-dispatcher` |

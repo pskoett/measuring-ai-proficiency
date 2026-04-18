@@ -56,6 +56,8 @@ nightly ---> self-improvement-meta (extract learnings, commit guardrails)
 
 **Blocked path**: if spec-refiner classifies the issue as terminal or blocked (spam, duplicate, missing context), it removes `needs-spec`, adds `blocked-on-human`, and posts a comment. No plan PR, no dispatch. A human resolves.
 
+**Serialization path**: if spec-refiner detects that the new plan's declared `target-files` overlap with files already in flight on another open factory PR (on the shared-harness allowlist), it removes `needs-spec`, adds `blocked-on-serialization`, and posts a comment listing the blocking PRs and overlapping files. The plan PR is still created and remains valid. `serialization-resolver` automatically re-evaluates all `blocked-on-serialization` issues when a blocking PR merges and restores `ready-for-implementation` when no overlap remains. See **Serialization Policy** below.
+
 State lives in GitHub, not in memory. Each agent starts cold. Every handoff is mediated by a file, a label, or a PR. This makes the chain debuggable: you can inspect the state at any point by looking at the repo.
 
 ## Prerequisites
@@ -103,6 +105,7 @@ The factory is choreographed through labels. Create these once in **Issues > Lab
 |-------|---------|
 | `needs-spec`, `needs-plan`, `spec-refined` | Spec refinement flow |
 | `blocked-on-human` | Agent needs human input before proceeding |
+| `blocked-on-serialization` | Issue queued behind an overlapping open factory PR; `serialization-resolver` unblocks automatically when the blocking PR merges |
 | `ready-for-implementation`, `assigned-to-agent` | Implementation dispatch flow |
 | `impl:copilot` | Implementer routing (factory auto-routes to Copilot only) |
 | `ai-reviewed`, `needs-changes`, `fast-track`, `spec-drift` | Reviewer verdicts |
@@ -218,6 +221,59 @@ If CI fails on `main` after a merge, the `ci-cleaner` workflow triggers automati
 5. Opens a PR that adds prevention rules to `AGENTS.md` or the relevant workflow file, and includes any new eval artifacts in the same commit
 
 When you merge that PR, the next run of the affected agent reads the updated instructions and `eval-creator-ci` can immediately verify the new rule. Promotion and regression-test creation are atomic: one PR, one review gate. If there are no failures, it calls noop. Silence is the correct signal when the factory is healthy.
+
+## Serialization Policy
+
+The factory prevents structural conflicts on shared harness files by queueing issues whose implementation surface overlaps with an already-open factory PR.
+
+### Why serialization exists
+
+Shared harness files (`AGENTS.md`, `CLAUDE.md`, workflow prompts, factory docs) are structural prose. Two agents editing the same file in parallel produce incompatible content even if both start from the same base. Standard rebase and merge tooling cannot resolve these conflicts — a human has to pick. The cost is dead PRs and manual cleanup under time pressure.
+
+Serialization prevents this by blocking dispatch before the second agent starts, not after the conflict has already happened.
+
+### How it works
+
+1. Every plan file now includes a `target-files` frontmatter field listing the concrete paths the implementation is expected to change (see `docs/plans/README.md` for the contract).
+
+2. When `spec-refiner` runs for a plan-worthy issue, before opening the plan PR it checks the new plan's `target-files` against the file surfaces of every currently-open factory PR. Only paths on the shared-harness allowlist are checked:
+
+   ```
+   AGENTS.md
+   CLAUDE.md
+   docs/AGENT_FACTORY.md
+   docs/FACTORY_STATE_MACHINE.md
+   docs/chain.md
+   .github/workflows/*.md
+   .github/workflows/*.yml
+   .claude/skills/**/SKILL.md
+   ```
+
+3. If any overlap exists:
+   - The plan PR is still opened (the plan is valid).
+   - `blocked-on-serialization` is added to the source issue.
+   - `ready-for-implementation` and `assigned-to-agent` are removed if present.
+   - A comment is posted naming the blocking PRs and the specific overlapping files.
+
+4. `serialization-resolver` re-evaluates every `blocked-on-serialization` issue whenever a factory PR closes or merges (and on a 30-minute safety-net schedule). When no overlap remains, it removes `blocked-on-serialization` and restores `ready-for-implementation` automatically.
+
+### What you see on the board
+
+Issues with `blocked-on-serialization` appear in the 👉 **Your turn** lane. This is different from `blocked-on-human`: no human decision is required unless you want to override the queue. The label means "queued behind overlapping work — will be unblocked automatically."
+
+The issue comment tells you exactly which PRs are blocking and which files overlap. To unblock manually: merge or close the blocking PR(s), then remove `blocked-on-serialization` and re-add `ready-for-implementation`.
+
+### Scope of the check
+
+The overlap check is intentionally narrow. Only the shared-harness allowlist above is checked. Paths outside this list (tests, `docs/plans/*`, `.evals/`, `.learnings/`) are excluded to avoid false blocks on low-conflict areas.
+
+### Serialization resolver
+
+`serialization-resolver.yml` is a plain GitHub Actions workflow (not gh-aw). It triggers on:
+- `pull_request: closed` (covers both merged and closed PRs)
+- `issues: labeled / unlabeled / closed` (catches manual label changes)
+- `schedule: */30 * * * *` (safety net for missed events)
+- `workflow_dispatch` (manual re-check)
 
 ## Controlling the Chain
 
@@ -444,7 +500,7 @@ Evaluated top-down in [`sync-factory-state.yml`](../.github/workflows/sync-facto
 | Priority | Condition | Lane |
 |----------|-----------|------|
 | 1 | Item is `closed` | ✅ Done |
-| 2 | Has any of: `needs-changes`, `needs-rebase`, `human-review`, `blocked-on-human`, `ai-reviewed`, `plan-file`, `eval-regression` | 👉 Your turn |
+| 2 | Has any of: `needs-changes`, `needs-rebase`, `human-review`, `blocked-on-human`, `blocked-on-serialization`, `ai-reviewed`, `plan-file`, `eval-regression` | 👉 Your turn |
 | 3 | Is an open PR (no other signal) | 👉 Your turn |
 | 4 | Has any of: `ready-for-implementation`, `assigned-to-agent`, `needs-plan` | 🤖 Factory building |
 | 5 | Everything else | 📥 Waiting for spec |
