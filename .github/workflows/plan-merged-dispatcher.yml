@@ -104,6 +104,24 @@ jobs:
             gh issue edit "$issue_num" --remove-label needs-spec 2>/dev/null || true
             gh issue edit "$issue_num" --add-label ready-for-implementation
 
+            # Defensive recovery: if the plan PR body contained a closing keyword
+            # (Closes/Fixes/Resolves), GitHub may have auto-closed the source issue
+            # when the plan PR merged. Detect and reopen it.
+            issue_state=$(gh issue view "$issue_num" --json state --jq .state)
+            if [ "$issue_state" = "CLOSED" ]; then
+              gh issue reopen "$issue_num"
+              warning_body=$(cat <<END_WARNING
+:warning: **Auto-reopen by plan-merged-dispatcher**
+
+This issue was closed automatically when plan PR #${PR_NUMBER} merged. Plan PRs must reference the source issue with \`Refs #${issue_num}\` only — never with \`Closes\`, \`Fixes\`, or \`Resolves\`. One of those closing keywords appeared in the plan PR body and triggered GitHub's auto-close behavior.
+
+The issue has been reopened so the factory handoff can continue. Please audit the plan PR body and correct the spec-refiner instructions to prevent recurrence.
+END_WARNING
+)
+              gh issue comment "$issue_num" --body "$warning_body"
+              echo "WARNING: Issue #$issue_num was auto-closed by plan PR #$PR_NUMBER. Reopened and left warning comment."
+            fi
+
             echo "Activated issue #$issue_num from $filename."
             activated=$((activated + 1))
           done <<< "$PLAN_FILES"

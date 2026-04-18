@@ -63,7 +63,9 @@ After writing the recommendation in the plan file, add the `impl:copilot` label 
 
 After the skill completes, the plan file is written, and the implementer is recommended:
 
-1. **Open a PR** with the new plan file at `docs/plans/plan-NNN-<slug>.md` where NNN is the source issue number, zero-padded to at least three digits (e.g., issue #7 → `007`, issue #42 → `042`, issue #1234 → `1234`). Do not scan `docs/plans/` for the next sequential number. Title: `[plan] Plan NNN: <title>` using the same padded issue number. Body references the source issue with `Refs #NN` (not a closing keyword such as `Closes` or `Fixes`). The plan PR must not close the source issue on merge. The body also summarizes the key decisions and restates the implementer recommendation.
+1. **Open a PR** with the new plan file at `docs/plans/plan-NNN-<slug>.md` where NNN is the source issue number, zero-padded to at least three digits (e.g., issue #7 → `007`, issue #42 → `042`, issue #1234 → `1234`). Do not scan `docs/plans/` for the next sequential number. Title: `[plan] Plan NNN: <title>` using the same padded issue number. Body references the source issue with `Refs #NN`. The body also summarizes the key decisions and restates the implementer recommendation.
+
+   **NEVER include `Closes`, `Fixes`, or `Resolves` anywhere in the plan PR body** — not in the footer, not in bullet points, not in any sentence. Those are GitHub closing keywords: if any appear in the body targeting the source issue, GitHub will auto-close the source issue on merge. Although `plan-merged-dispatcher` will detect and reopen an auto-closed issue, prevention is strongly preferred. Use only `Refs #NN` to reference the source issue.
 2. **Comment on the source issue** with a one-line summary, a link to the plan PR, and the recommended implementer.
 3. **Swap labels**:
    - Remove `needs-spec`

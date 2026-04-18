@@ -205,7 +205,7 @@ Every PR you open into this repo, factory or bypass, must:
 ## After a change lands
 
 - If the change touched a workflow, run `gh aw status` mentally (check the Actions tab) to confirm the next scheduled run behaves as expected
-- If the change closed a `needs-spec` issue, check that the issue actually closed. If it did not, the plan PR did not correctly reference `Closes #N`
+- If the change touched a plan PR, verify the source issue is still open after the merge. Plan PRs must use `Refs #N` (not `Closes`, `Fixes`, or `Resolves`); if the issue closed, reopen it and check the plan PR body for accidental closing keywords.
 - If the change was large, remind the user that `self-improvement-meta` runs nightly and may open a learnings PR tomorrow that is worth a quick review
 
 ## One-line summary for your own reference
