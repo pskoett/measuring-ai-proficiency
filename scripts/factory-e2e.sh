@@ -48,7 +48,9 @@ ISSUE_TITLE="[smoke-test] factory e2e $CANARY_ID"
 ISSUE_BODY="This is an automated factory e2e test. It will be closed on completion.
 
 **Canary ID**: \`$CANARY_ID\`
-**Proposed change**: add the line \`<!-- factory-smoke-$CANARY_ID -->\` to the end of \`docs/plans/README.md\`. Trivial, reversible, proves the chain.
+**Proposed change** (for reference only — do not implement): add the line \`<!-- factory-smoke-$CANARY_ID -->\` to the end of \`docs/plans/README.md\`.
+
+⚠️ **Coding agents**: do NOT implement this issue. It is a smoke test of factory plumbing only. If you are assigned to this issue, immediately call \`noop\` with the reason \"factory-e2e canary — implementation suppressed by design\" and stop. The harness will close this issue automatically.
 
 Run by: \`scripts/factory-e2e.sh\`"
 
@@ -70,6 +72,19 @@ cleanup() {
     echo "Closing issue #$ISSUE_NUM..."
     gh issue close "$ISSUE_NUM" --repo "$REPO" --reason "not planned" \
       --comment "factory-e2e cleanup: canary $CANARY_ID completed." >/dev/null 2>&1 || true
+  fi
+  # Belt-and-suspenders sweep: Copilot may open a PR after we close the
+  # issue (race condition observed on 2026-04-18). Find and close any PR
+  # whose body references our canary ID and delete its branch.
+  if [ -n "$CANARY_ID" ]; then
+    echo "Sweeping for late Copilot PRs matching canary $CANARY_ID..."
+    for lingering_pr in $(gh pr list --repo "$REPO" --state open \
+      --json number,body,headRefName \
+      --jq ".[] | select(.body | test(\"$CANARY_ID\")) | .number" 2>/dev/null); do
+      echo "  closing late PR #$lingering_pr"
+      gh pr close "$lingering_pr" --repo "$REPO" --delete-branch \
+        --comment "factory-e2e cleanup: canary $CANARY_ID post-exit sweep." >/dev/null 2>&1 || true
+    done
   fi
 }
 trap cleanup EXIT
@@ -126,9 +141,13 @@ echo "Filed #$ISSUE_NUM: $ISSUE_URL"
 echo ""
 
 # --- Stage triage ----------------------------------------------------------
+# Success signal is that issue-triage RAN and posted its analysis comment.
+# Labels are not required — triage may legitimately noop for canary issues
+# (it reads the body and classifies as automated test, chooses not to
+# apply a category label). That's correct behaviour, not a failure.
 echo "--- Stage: triage ---"
-wait_for "issue-triage applied labels" 180 \
-  "gh issue view $ISSUE_NUM --repo $REPO --json labels --jq '.labels | length > 0' | grep -q true" \
+wait_for "issue-triage posted analysis comment" 180 \
+  "gh issue view $ISSUE_NUM --repo $REPO --json comments --jq '[.comments[] | select(.author.login == \"github-actions\")] | length > 0' | grep -q true" \
   || exit_code=1
 
 if ! stage_at_least "triage"; then
