@@ -308,6 +308,7 @@ Installed via `gh aw add githubnext/agentics/<name>`. These are general-purpose 
 |----------|---------|---------|
 | [`ai-proficiency-pr-review.md`](../.github/workflows/ai-proficiency-pr-review.md) | `/assess-proficiency` comment or manual dispatch | AI proficiency score (on-demand only, no auto-trigger) |
 | [`ai-proficiency-weekly-report.md`](../.github/workflows/ai-proficiency-weekly-report.md) | Weekly (Monday 9am UTC) | Track proficiency trends over time |
+| [`factory-health.md`](../.github/workflows/factory-health.md) | Weekly (Sunday) | Factory-wide health report: workflow run outcomes, failure categorization, handoff latency, unresolved signals, and human override rate |
 
 ## Skills Used by the Factory
 
@@ -612,3 +613,17 @@ Transcript-derived patterns labeled `**TRANSCRIPT CANDIDATE**` in the weekly iss
 `self-improvement-meta` (nightly) reads workflow-level telemetry from `gh aw audit` and `gh run list` as its primary signal source. This covers conclusion outcomes (success, failure, noop), token usage summaries, and error categories surfaced by gh-aw's detection steps.
 
 For the MVP, `self-improvement-meta` does not download individual `agent` artifacts. It relies on the weekly `learning-aggregator-ci` run to surface transcript-derived patterns. This avoids running expensive transcript downloads nightly when weekly cadence is sufficient.
+
+### Weekly factory health report
+
+The `factory-health` workflow runs every Sunday and produces one `[health]` issue covering the previous 7 days of factory activity. It answers five questions:
+
+1. **Workflow run outcomes** — success / failure / skipped / cancelled counts per workflow, overall success rate, and noop-heavy workflows (skip% > 50).
+2. **Failure categorization** — each failure in the window classified as infra, workflow-bug, agent-error, or unknown with a one-line evidence snippet.
+3. **Handoff latency** — median time from `needs-spec` label applied to plan PR opened (spec-to-plan path).
+4. **Unresolved signals** — open `workflow-health` issues, open `[aw] ... failed` issues, and plan PRs older than 48 hours.
+5. **Human override rate** — merged PRs that still carried `needs-changes` at merge time.
+
+The report uses `close-older-issues: true` so only the current week's issue is open at any time. Consecutive weekly issues have stable headers and table shapes, making week-to-week diffs meaningful.
+
+Source data is `gh run list`, `gh issue list`, and `gh pr list`. No external telemetry is required.

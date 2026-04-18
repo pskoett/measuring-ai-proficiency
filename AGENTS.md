@@ -292,6 +292,7 @@ The routing rules above are about the **implementer step** (who writes the code 
 | `plan-merged-dispatcher` | Plan PR merged (path filter `docs/plans/plan-*.md`) | (plain Actions: edits source issue body, moves labels) | (none) |
 | `implementer-dispatcher` | Source issue labeled `ready-for-implementation` | assign-to-agent, add-comment, add-labels | (none, reads `impl:*` label on the same issue) |
 | `reviewer` | PR opened / updated | add-comment, add-labels | intent-framed-agent |
+| `conflict-resolver` | PR labeled `needs-rebase` | push-to-pull-request-branch, add-labels | (none) |
 | `self-improvement-meta` | Nightly (~2am) | create-pull-request, create-issue | self-improvement |
 | `ci-cleaner` | CI failure on main | create-pull-request | (none, uses bash/edit directly) |
 | `contribution-checker` | PR opened / updated | add-comment | (none, reads CONTRIBUTING.md) |
@@ -302,6 +303,7 @@ The routing rules above are about the **implementer step** (who writes the code 
 | `eval-creator-ci` | PR opened / updated | add-comment | eval-creator |
 | `ai-proficiency-pr-review` | PR opened / `/assess-proficiency` | add-comment | measure-ai-proficiency |
 | `ai-proficiency-weekly-report` | Weekly (Monday 9am) | create-issue | measure-ai-proficiency |
+| `factory-health` | Weekly (Sunday) | create-issue | (none) |
 
 ### Human circuit breaker
 

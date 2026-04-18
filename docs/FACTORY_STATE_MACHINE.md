@@ -84,6 +84,7 @@ All factory workflows. Plain GitHub Actions workflows are marked **[Actions]**; 
 | `learning-aggregator-ci` | `schedule` (weekly, Monday) | — | Aggregates `.learnings/` + session transcript artifacts; opens gap-report issue |
 | `ai-proficiency-pr-review` | `issue_comment: [created]` | Comment contains `/assess-proficiency` | Posts AI proficiency assessment comment on the PR |
 | `ai-proficiency-weekly-report` | `schedule` (Monday 9am UTC) | — | Creates weekly proficiency tracking issue |
+| `factory-health` | `schedule` (weekly, Sunday) | — | Creates `[health]` issue with workflow run outcomes, failure categorization, handoff latency, unresolved signals, and human override rate |
 | `sync-factory-state` **[Actions]** | `issues` / `pull_request` label or state change, `schedule` every 10 min, `workflow_dispatch` | — | Mirrors the label set onto the Projects v2 `Status` field; applies/removes the `your-turn` label |
 | `agent-activity-tracker` **[Actions]** | `schedule` every 5 min, `workflow_dispatch` | — | Applies/removes `agent-working` and `model:<name>` based on in-progress factory workflow runs |
 
