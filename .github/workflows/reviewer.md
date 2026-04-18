@@ -83,6 +83,20 @@ For each success criterion in the plan, classify as:
 
 Significant drift (more than one or two Drifted items) gets the `spec-drift` label. If the PR is from a Claude cloud agent, apply the scope-adherence calibration from Step 2 and be stricter on Drifted items.
 
+### Step 3a: Check for closing keyword (bot-authored impl PRs only)
+
+**Skip this step** if the PR is labeled `plan-file`.
+
+If the PR author is a bot (e.g., `copilot-swe-agent[bot]`, `github-actions[bot]`, `claude[bot]`, `codex[bot]`) or the branch name matches `copilot/*`:
+
+1. Read the PR body.
+2. Check whether the body contains a closing keyword matching `(Closes|Fixes|Resolves)\s+#\d+` (case-insensitive).
+3. If no match is found, add the following as a **Critical finding** and set the verdict to `needs-changes`:
+
+   > impl PR must close its source issue. Add `Closes #NN` to the body.
+
+If the closing keyword is present, proceed normally without a finding for this check.
+
 ### Step 4: Review the code
 
 Categorize findings as **Critical** (bugs, security, data loss), **Warning** (perf, missing tests on risky paths, unclear public interfaces), or **Suggestion** (style, docs gaps). Do not comment on cosmetic issues unless they harm readability. Apply the calibration from Step 2 to weight which categories you emphasize.

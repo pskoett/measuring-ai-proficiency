@@ -74,6 +74,12 @@ You are an AI assistant specialized in fixing pull requests with failing CI chec
 
 9. Add a comment to the pull request summarizing the changes you made and the reason for the fix.
 
+## Reviewer-directed fixes
+
+When the reviewer has flagged specific issues in the PR, address those first before checking CI. Common reviewer-directed repairs include:
+
+- **Missing closing keyword**: If the reviewer's Critical findings include "impl PR must close its source issue", add `Closes #NN` (with the correct issue number) to the PR body. Find the source issue number from the PR title, branch name, a linked issue, or a `plan-NNN` reference in the body.
+
 ## Session capture
 
 This workflow's full session is automatically captured in the `agent` artifact for this run. The artifact includes the prompt, all tool calls, tool outputs, and token usage. The `learning-aggregator-ci` workflow downloads and analyzes these artifacts weekly to extract improvement patterns for the outer learning loop.
