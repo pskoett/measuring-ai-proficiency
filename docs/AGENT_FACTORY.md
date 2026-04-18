@@ -221,9 +221,10 @@ If CI fails on `main` after a merge, the `ci-cleaner` workflow triggers automati
 1. Reads the last 24 hours of workflow run logs
 2. Extracts failure patterns and categorizes them (prompt, tool, context, data)
 3. Deduplicates against existing entries in `.learnings/LEARNINGS.md`
-4. Opens a PR that adds prevention rules to `AGENTS.md` or the relevant workflow file
+4. For each promoted learning with a testable prevention rule, generates a matching `.evals/cases/EVAL-NNN.md` file and updates `.evals/EVAL_INDEX.md`
+5. Opens a PR that adds prevention rules to `AGENTS.md` or the relevant workflow file, and includes any new eval artifacts in the same commit
 
-When you merge that PR, the next run of the affected agent reads the updated instructions. The factory gets smarter every day. If there are no failures, it calls noop. Silence is the correct signal when the factory is healthy.
+When you merge that PR, the next run of the affected agent reads the updated instructions and `eval-creator-ci` can immediately verify the new rule. Promotion and regression-test creation are atomic: one PR, one review gate. If there are no failures, it calls noop. Silence is the correct signal when the factory is healthy.
 
 ## Controlling the Chain
 
@@ -281,11 +282,11 @@ Do not disable the guard to let the PR through. The guard is one line of `case` 
 | [`reviewer.md`](../.github/workflows/reviewer.md) | PR opened / updated | Plan-aware code review with implementer calibration. Refuses to review PRs that modify its own instructions (`.github/workflows/reviewer.md`, `.github/workflows/self-improvement-meta.md`, `.github/copilot-instructions.md`); applies `human-review` and noops instead. |
 | [`conflict-resolver.md`](../.github/workflows/conflict-resolver.md) | PR labeled `needs-rebase` | Merge `origin/main` into PR branch; push on clean merge (including workflow file changes), hand off on conflict |
 | [`ci-cleaner.md`](../.github/workflows/ci-cleaner.md) | CI failure on `main` | Run `ruff`, `pytest`, `gh aw compile` fix loop; open a PR with repairs; mandatory noop if no changes |
-| [`self-improvement-meta.md`](../.github/workflows/self-improvement-meta.md) | Nightly (~2am) | Extract learnings from failures, commit prevention rules |
+| [`self-improvement-meta.md`](../.github/workflows/self-improvement-meta.md) | Nightly (~2am) | Extract learnings from failures, commit prevention rules, and create eval artifacts for promoted learnings with testable patterns |
 | [`contribution-checker.md`](../.github/workflows/contribution-checker.md) | PR opened / updated | Evaluate PR against CONTRIBUTING.md guidelines |
 | [`simplify-and-harden-ci.md`](../.github/workflows/simplify-and-harden-ci.md) | PR opened / updated | Scan changed files for simplicity and security issues |
 | [`learning-aggregator-ci.md`](../.github/workflows/learning-aggregator-ci.md) | Weekly (Monday) | Aggregate learnings, rank promotion candidates, create gap report |
-| [`eval-creator-ci.md`](../.github/workflows/eval-creator-ci.md) | PR opened / updated | Run regression checks against promoted learnings |
+| [`eval-creator-ci.md`](../.github/workflows/eval-creator-ci.md) | PR opened / updated | Run regression checks against promoted learnings (read-only verifier; eval creation happens in `self-improvement-meta`) |
 | [`sync-factory-state.yml`](../.github/workflows/sync-factory-state.yml) | Issue/PR label/state change, cron every 10 min, `workflow_dispatch` | One-way mirror of factory labels onto the "AI Agent Factory" Projects v2 Status field; applies/removes the `your-turn` label as a side effect. Plain GitHub Actions, not gh-aw. |
 | [`agent-activity-tracker.yml`](../.github/workflows/agent-activity-tracker.yml) | Cron every 5 min, `workflow_dispatch` | Applies `agent-working` and `model:<name>` labels to items with at least one in-progress factory workflow; sweeps labels off when runs finish. Plain GitHub Actions, not gh-aw. |
 
@@ -316,7 +317,7 @@ Installed via `gh aw add githubnext/agentics/<name>`. These are general-purpose 
 | [`intent-framed-agent`](../.claude/skills/intent-framed-agent/SKILL.md) | reviewer | Scope drift detection against plan intent |
 | [`simplify-and-harden`](../.claude/skills/simplify-and-harden/SKILL.md) | simplify-and-harden-ci | Post-completion quality and security sweep |
 | [`learning-aggregator`](../.claude/skills/learning-aggregator/SKILL.md) | learning-aggregator-ci | Cross-session pattern detection and promotion ranking |
-| [`eval-creator`](../.claude/skills/eval-creator/SKILL.md) | eval-creator-ci | Create regression test cases from promoted learnings |
+| [`eval-creator`](../.claude/skills/eval-creator/SKILL.md) | eval-creator-ci | Verify regression test cases from promoted learnings (creation happens in `self-improvement-meta`) |
 | [`measure-ai-proficiency`](../.claude/skills/measure-ai-proficiency/SKILL.md) | ai-proficiency-pr-review, ai-proficiency-weekly-report | Run AI proficiency assessments |
 | [`context-surfing`](../.claude/skills/context-surfing/SKILL.md) | (available) | Context window health monitoring |
 | [`verify-gate`](../.claude/skills/verify-gate/SKILL.md) | (available) | Machine verification gate before quality review |

@@ -2,7 +2,7 @@
 
 Eval cases created from promoted learnings. Each case is a regression test that verifies a promoted rule still holds.
 
-Managed by `eval-creator-ci`. Do not edit manually unless adding a hand-crafted eval.
+Managed by `self-improvement-meta` (creates eval cases for promoted learnings) and verified by `eval-creator-ci` on every PR. Do not edit manually unless adding a hand-crafted eval.
 
 ## Cases
 
