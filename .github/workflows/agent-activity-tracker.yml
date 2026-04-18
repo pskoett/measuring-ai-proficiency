@@ -11,10 +11,12 @@ name: Agent Activity Tracker
 # sync rule simple and idempotent.
 
 on:
-  # No schedule. Tracker's only job is applying cosmetic `agent-working` /
-  # `model:*` labels for board decoration. The board's Status lane works
-  # without them. Operators can `gh workflow run agent-activity-tracker.yml`
-  # if they want fresh labels on demand.
+  schedule:
+    # Once a day at 03:15 UTC. Tracker's `agent-working` / `model:*` labels
+    # are cosmetic and the board's Status lane works without them, so a
+    # daily refresh is enough to keep them from going stale. Operators can
+    # also `gh workflow run agent-activity-tracker.yml` on demand.
+    - cron: '15 3 * * *'
   workflow_dispatch:
 
 permissions:
