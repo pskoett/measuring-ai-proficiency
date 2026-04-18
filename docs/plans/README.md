@@ -119,3 +119,4 @@ target-files:
 ```
 
 The `target-files` frontmatter field is required for all new plan-worthy issues. It enables `spec-refiner` to detect overlapping work before dispatch and allows `serialization-resolver` to re-evaluate blocked issues automatically when in-flight PRs merge. See the **Lifecycle Metadata** section above for the full contract.
+<!-- factory-smoke-smoke-20260418T214707Z -->
