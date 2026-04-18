@@ -109,6 +109,7 @@ The factory is choreographed through labels. Create these once in **Issues > Lab
 | `ai-reviewed`, `needs-changes`, `fast-track`, `spec-drift` | Reviewer verdicts |
 | `human-review` | Emergency stop: all agents call noop |
 | `needs-rebase` | PR branch needs a merge from main; triggers conflict-resolver |
+| `eval-regression` | One or more eval cases failed on this PR; set by `eval-creator-ci`, cleared on next green run |
 | `self-improvement`, `ci-fix`, `plan-file` | Provenance on factory-generated PRs |
 | `workflow-health` | Tracking issues for data-layer failures |
 | `automation`, `low-risk` | Applied to routine factory PRs |
@@ -456,7 +457,7 @@ Evaluated top-down in [`sync-factory-state.yml`](../.github/workflows/sync-facto
 | Priority | Condition | Lane |
 |----------|-----------|------|
 | 1 | Item is `closed` | ✅ Done |
-| 2 | Has any of: `needs-changes`, `needs-rebase`, `human-review`, `blocked-on-human`, `ai-reviewed`, `plan-file` | 👉 Your turn |
+| 2 | Has any of: `needs-changes`, `needs-rebase`, `human-review`, `blocked-on-human`, `ai-reviewed`, `plan-file`, `eval-regression` | 👉 Your turn |
 | 3 | Is an open PR (no other signal) | 👉 Your turn |
 | 4 | Has any of: `ready-for-implementation`, `assigned-to-agent`, `needs-plan` | 🤖 Factory building |
 | 5 | Everything else | 📥 Waiting for spec |
