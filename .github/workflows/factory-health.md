@@ -130,10 +130,12 @@ The spec-to-plan handoff measures how long it takes from `needs-spec` label appl
 Fetch recently updated issues and look for plan PRs opened in the reporting window:
 
 ```bash
-gh pr list --state all --label "needs-plan" --limit 20 \
+gh pr list --state all --label "plan-file" --limit 20 \
   --json number,title,createdAt,closedAt,mergedAt \
   --jq '[.[] | select(.createdAt >= "<window-start>")]'
 ```
+
+Note: `plan-file` is the label `spec-refiner` applies to the plan PR itself. `needs-plan` is applied to the source issue, not the PR, so filtering PRs by `needs-plan` returns nothing. Reviewer caught this on #215.
 
 For each plan PR found, find the source issue it references (from the PR title or body, which uses `Refs #NNN`), then check when the `needs-spec` label was applied to that issue. The label event is in the issue timeline:
 
