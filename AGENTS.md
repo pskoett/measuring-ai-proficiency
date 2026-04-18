@@ -302,6 +302,7 @@ The routing rules above are about the **implementer step** (who writes the code 
 | `eval-creator-ci` | PR opened / updated | add-comment | eval-creator |
 | `ai-proficiency-pr-review` | PR opened / `/assess-proficiency` | add-comment | measure-ai-proficiency |
 | `ai-proficiency-weekly-report` | Weekly (Monday 9am) | create-issue | measure-ai-proficiency |
+| `factory-health` | Weekly (Sunday) | create-issue | (none) |
 
 ### Human circuit breaker
 
