@@ -12,7 +12,11 @@ name: Agent Activity Tracker
 
 on:
   schedule:
-    - cron: '*/5 * * * *'
+    # Every 30 min. Tracker only has useful work when a factory workflow is
+    # mid-run (< 5% of the time); 5-min polling was 288 noop runs/day.
+    # 30 min resolution on `agent-working` / `model:*` labels is fine for
+    # board-level signal.
+    - cron: '*/30 * * * *'
   workflow_dispatch:
 
 permissions:
