@@ -1,0 +1,27 @@
+{
+  "cli_version": "0.5.4",
+  "checkpoint_id": "d18e630b89c1",
+  "strategy": "manual-commit",
+  "branch": "main",
+  "checkpoints_count": 2,
+  "files_touched": [
+    ".github/workflows/implementer-dispatcher.md",
+    ".github/workflows/spec-refiner.md",
+    "docs/AGENT_FACTORY.md"
+  ],
+  "sessions": [
+    {
+      "metadata": "/d1/8e630b89c1/0/metadata.json",
+      "transcript": "/d1/8e630b89c1/0/full.jsonl",
+      "content_hash": "/d1/8e630b89c1/0/content_hash.txt",
+      "prompt": "/d1/8e630b89c1/0/prompt.txt"
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 1554,
+    "cache_creation_tokens": 6526192,
+    "cache_read_tokens": 129357533,
+    "output_tokens": 132166,
+    "api_call_count": 463
+  }
+}

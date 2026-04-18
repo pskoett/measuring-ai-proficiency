@@ -1,0 +1,77 @@
+{
+  "cli_version": "0.5.4",
+  "checkpoint_id": "d18e630b89c1",
+  "session_id": "573e479b-9c6e-4352-b100-7ad59f96b07d",
+  "strategy": "manual-commit",
+  "created_at": "2026-04-18T22:58:22.436093Z",
+  "branch": "main",
+  "checkpoints_count": 2,
+  "files_touched": [
+    ".github/workflows/implementer-dispatcher.md",
+    ".github/workflows/spec-refiner.md",
+    "docs/AGENT_FACTORY.md"
+  ],
+  "agent": "Claude Code",
+  "model": "",
+  "turn_id": "f832e3f3c762",
+  "token_usage": {
+    "input_tokens": 1554,
+    "cache_creation_tokens": 6526192,
+    "cache_read_tokens": 129357533,
+    "output_tokens": 132166,
+    "api_call_count": 463
+  },
+  "session_metrics": {
+    "turn_count": 57
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-04-18T22:58:20.082298Z",
+    "agent_lines": 997,
+    "agent_removed": 0,
+    "human_added": 0,
+    "human_modified": 0,
+    "human_removed": 0,
+    "total_committed": 997,
+    "total_lines_changed": 997,
+    "agent_percentage": 100,
+    "metric_version": 2
+  },
+  "prompt_attributions": [
+    {
+      "checkpoint_number": 1,
+      "user_lines_added": 0,
+      "user_lines_removed": 0,
+      "agent_lines_added": 0,
+      "agent_lines_removed": 0
+    },
+    {
+      "checkpoint_number": 2,
+      "user_lines_added": 1742,
+      "user_lines_removed": 0,
+      "agent_lines_added": 4703,
+      "agent_lines_removed": 1,
+      "user_added_per_file": {
+        ".claude/settings.local.json": 34,
+        ".claude/skills/context-surfing/SKILL.md": 375,
+        ".claude/skills/dx-data-navigator/SKILL.md": 473,
+        ".claude/skills/intent-framed-agent/SKILL.md": 207,
+        ".claude/skills/self-improvement/SKILL.md": 368,
+        ".claude/skills/self-improvement/assets/LEARNINGS.md": 9,
+        ".claude/skills/self-improvement/references/examples.md": 276
+      }
+    },
+    {
+      "checkpoint_number": 3,
+      "user_lines_added": 696,
+      "user_lines_removed": 0,
+      "agent_lines_added": 0,
+      "agent_lines_removed": 0,
+      "user_added_per_file": {
+        ".claude/settings.local.json": 43,
+        ".claude/skills/self-improvement/SKILL.md": 368,
+        ".claude/skills/self-improvement/assets/LEARNINGS.md": 9,
+        ".claude/skills/self-improvement/references/examples.md": 276
+      }
+    }
+  ]
+}
