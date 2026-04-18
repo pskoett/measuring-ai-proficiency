@@ -106,6 +106,20 @@ If the PR author is a bot (e.g., `copilot-swe-agent[bot]`, `github-actions[bot]`
 
 If the closing keyword is present, proceed normally without a finding for this check.
 
+### Step 3b: Check for forbidden closing keyword (plan PRs only)
+
+**Run this step only** if the PR is labeled `plan-file`.
+
+Plan PRs must use non-closing references (`Refs #NN`, `Tracks #NN`, `Part of #NN`) so the source issue stays open through implementation. The spec-refiner prompt forbids closing keywords, but the model has slipped and emitted `Closes #NN` / `Fixes #NN` / `Resolves #NN` in past plan PR bodies, causing GitHub to auto-close the source issue on merge. `plan-merged-dispatcher` reopens the issue as defense-in-depth, but catching it here prevents the merge-and-reopen churn entirely.
+
+1. Read the PR body.
+2. Check whether the body contains any closing keyword matching `(close[sd]?|fix(es|ed)?|resolve[sd]?)\s+#\d+` (case-insensitive). This pattern covers `Closes`, `Close`, `Closed`, `Fixes`, `Fix`, `Fixed`, `Resolves`, `Resolve`, `Resolved`.
+3. If a match is found, add the following as a **Critical finding** and set the verdict to `needs-changes`:
+
+   > plan PR must not contain closing keywords — GitHub will auto-close the source issue on merge. Replace `<matched phrase>` with `Refs #NN` (or `Tracks #NN`, `Part of #NN`, `See #NN`).
+
+4. If no match is found, proceed normally without a finding for this check.
+
 ### Step 4: Review the code
 
 Categorize findings as **Critical** (bugs, security, data loss), **Warning** (perf, missing tests on risky paths, unclear public interfaces), or **Suggestion** (style, docs gaps). Do not comment on cosmetic issues unless they harm readability. Apply the calibration from Step 2 to weight which categories you emphasize.
