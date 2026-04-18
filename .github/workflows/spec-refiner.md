@@ -113,6 +113,7 @@ After writing the recommendation in the plan file, add the `impl:copilot` label 
    - Do not include a `- Fixes #NN` bullet in any "Summary" or "Changes" section.
    - Before finalizing the body, grep your own draft for `/\\b(close[sd]?|fix(es|ed)?|resolve[sd]?) #\\d/i` — if anything matches, rewrite it to `Refs #NN` or remove the line.
    - Safe synonyms: `Refs #NN`, `For #NN`, `Part of #NN`, `Tracks #NN`, `See #NN`. Use these instead of closing keywords.
+   - The source issue must remain open after this plan PR merges. It closes only when the implementation PR ships the fix.
 
    The body also summarizes the key decisions and restates the implementer recommendation.
 2. **Comment on the source issue** with a one-line summary, a link to the plan PR, and the recommended implementer.
