@@ -129,9 +129,9 @@ jobs:
           }
 
           if [ -z "${ISSUE_NUMBER}" ]; then
-            echo "No item number — full reconcile of open items + 15 most recent closed."
-            ITEMS=$({ gh issue list --state all --limit 30 --json number --jq '.[].number'; \
-                      gh pr list    --state all --limit 30 --json number --jq '.[].number'; } \
+            echo "No item number — full reconcile of open items + 30 most recent closed."
+            ITEMS=$({ gh issue list --repo "$REPO" --state all --limit 30 --json number --jq '.[].number'; \
+                      gh pr list    --repo "$REPO" --state all --limit 30 --json number --jq '.[].number'; } \
                       | sort -un)
             for n in $ITEMS; do
               sync_one "$n" || true
