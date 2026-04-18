@@ -45,6 +45,7 @@ safe-outputs:
       - ".claude/**"
       - ".evals/**"
       - ".learnings/**"
+    protected-files: fallback-to-issue
   create-issue:
     title-prefix: "${{ github.workflow }}"
     labels: [automation, pr-fix]
