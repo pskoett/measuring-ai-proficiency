@@ -123,7 +123,7 @@ If there are no failures, write "No failures in this reporting window."
 
 ## Section 3: Handoff latency (spec-to-plan path)
 
-The spec-to-plan handoff measures how long it takes from `needs-spec` label applied to a plan PR being opened by `spec-refiner`.
+The spec-to-plan handoff measures how long it takes from `needs-spec` label applied to a plan PR being opened. The `spec-refiner` workflow creates the plan PR when triggered by the `needs-spec` label.
 
 ### Primary method
 
