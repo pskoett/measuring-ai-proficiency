@@ -3,9 +3,11 @@
   "checkpoint_id": "d18e630b89c1",
   "strategy": "manual-commit",
   "branch": "main",
-  "checkpoints_count": 2,
+  "checkpoints_count": 74,
   "files_touched": [
     ".github/workflows/implementer-dispatcher.md",
+    ".github/workflows/plan-merged-dispatcher.yml",
+    ".github/workflows/pr-fix.md",
     ".github/workflows/spec-refiner.md",
     "docs/AGENT_FACTORY.md"
   ],
@@ -15,13 +17,19 @@
       "transcript": "/d1/8e630b89c1/0/full.jsonl",
       "content_hash": "/d1/8e630b89c1/0/content_hash.txt",
       "prompt": "/d1/8e630b89c1/0/prompt.txt"
+    },
+    {
+      "metadata": "/d1/8e630b89c1/1/metadata.json",
+      "transcript": "/d1/8e630b89c1/1/full.jsonl",
+      "content_hash": "/d1/8e630b89c1/1/content_hash.txt",
+      "prompt": "/d1/8e630b89c1/1/prompt.txt"
     }
   ],
   "token_usage": {
-    "input_tokens": 1554,
-    "cache_creation_tokens": 6526192,
-    "cache_read_tokens": 129357533,
-    "output_tokens": 132166,
-    "api_call_count": 463
+    "input_tokens": 3120,
+    "cache_creation_tokens": 8359622,
+    "cache_read_tokens": 389371725,
+    "output_tokens": 606884,
+    "api_call_count": 1319
   }
 }

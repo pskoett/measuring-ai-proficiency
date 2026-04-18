@@ -1,0 +1,764 @@
+Close #133. Main already has a working version of the docs; the improvement is marginal and not worth another cycle. I'll close it.
+
+
+Used 2 tools
+#133 closed. Plan-095 is complete via #131 alone — the CI gate, checker script, and docs all landed there.
+
+Today's final picture:
+
+#95 shipped: lock-file-sync CI guard will now catch this whole class of drift at PR time
+#131, #134, #127 merged; #132, #133 closed as redundant
+#97 (transcripts) still has sub-issues waiting for Copilot
+Net: the factory has a structural fix against the drift pattern that's bitten us all day.
+
+#133 closed. Session state: structural fixes in place, just #97's transcript work still in flight. We've burned through a lot today — the merge-conflict avalanche issue from sub-issue splits is the one remaining systemic pain point (option A: consolidated PRs from /plan). Worth filing before wrapping?
+
+do option a make the pr from here so we get the change in from here
+
+On it — body-only edit to plan.md (no frontmatter change, so no hash risk). The max: 5 safe-output stays; the agent just chooses to create one consolidated sub-issue.
+
+
+Ran 2 commands, read a file, edited 3 files, searched code, used a tool
+PR #135 opened (draft). Subscribed.
+
+
+Used 2 tools
+Clean. No required checks, no review threads. Once this lands, the next /plan invocation produces a single sub-issue per plan — conflict tax eliminated for future plans.
+
+
+Browsed the web, ran 3 commands
+Hit the guardrail I just added. The new lock-file-sync CI check from #131 fails on this PR because gh aw compile detects the .md body changed, even though the body is fetched at runtime (line 260: {{#runtime-import .github/workflows/plan.md}}) and shouldn't strictly require a recompile.
+
+Without gh aw in the sandbox I can't regenerate the .lock.yml cleanly. Two paths:
+
+You run gh aw compile plan locally on my branch, commit the regenerated .lock.yml, push — that passes the gate. ~30 seconds.
+Close this PR and open the same change from a machine with gh aw CLI.
+My own guard caught a PR I couldn't complete — this is actually #95 working exactly as intended. The alternative (merging without gh aw compile) is exactly the drift pattern that bit us all day. The CI gate is doing its job.
+
+Which path do you want — local recompile, or close and re-open later?
+
+Eval on #135: 3/3 passing. No action. Still blocked on the lock-file-sync check — awaiting your call between local recompile or close/reopen.
+
+ok we are now on my laptop you should have the gh-aw cli here
+
+
+Ran 3 commands
+The sandbox shell doesn't have gh on its PATH — looks like my Claude Code session is still running in the sandbox environment, not on your laptop directly.
+
+For you to run on your laptop, in the repo root:
+
+# Make sure you're on my branch
+git fetch origin
+git checkout claude/consolidate-plan-subissues
+git pull
+
+# Recompile
+gh aw compile plan
+
+# If the lock.yml changed, commit + push
+git add .github/workflows/plan.lock.yml
+git commit -m "chore: recompile plan.lock.yml after body update (#135)"
+git push
+Once you push, the lock-file-sync gate on #135 will re-run and pass. Let me know when it's up and I'll pick up from there.
+
+---
+
+135 closed
+
+---
+
+get going
+
+---
+
+I do not see 136 anywhere
+
+---
+
+Make the PR from here you make the PR because otherwise we will have the same merge conflict issues that this is trying to fix
+
+---
+
+Check on spec-refiner progress for issue #136 (remove sub-issue layer). Run `gh run list --workflow=spec-refiner.lock.yml --limit 2 --json conclusion,status,displayTitle` and `gh pr list --search 'issue 136' --json number,title,state,headRefName --limit 5`. If plan PR is open, report it with the PR number and a link. If spec-refiner failed, surface the error. If still in progress, schedule another wake-up in 270s.
+
+---
+
+NO not the plan make the final PR from here
+
+---
+
+ok, great when this is we are going to run a new issue through the factory that is a simple issue of checking that the docs and skill related to the agent factory is up to date I know you just did that but this is just to test the flow
+
+---
+
+reviewer agent failed but i am merging
+
+---
+
+merged
+
+---
+
+issue 97 and subissues are now irrelevant i think remove them after checking of they are
+
+---
+
+keep it we will see how the test issue goes
+
+---
+
+consolidate and rewrite the issue to fit in the main issuefor 97
+
+---
+
+but 97 still has all its sub issues?
+
+---
+
+ok now that we have most things cleaned up and you have an overview of the agent factory so far please do a comprehensive analysis of the flow and and if it makes sense as it is, also do an analysis if we can use github projects to steer the process and see progress
+
+---
+
+───────────────────────────────────────────────────────────────────────────────────────────────────────
+❯ ok now that we have most things cleaned up and you have an overview of the agent factory so far
+  please do a comprehensive analysis of the flow and and if it makes sense as it is, also do an
+  analysis if we can use github projects to steer the process and see progressx
+
+---
+
+please save this analysis in the docs folder, we will get back to it the pr for our test issue is ready https://github.com/pskoett/measuring-ai-proficiency/pull/141
+
+---
+
+i will merge
+
+---
+
+plan is merged
+
+---
+
+2
+
+---
+
+143 merged i just approved the workflows on 144 why do I still need to do that?
+
+---
+
+I changed the settings already
+
+---
+
+it is this setting in the middle? [Image #2]
+
+---
+
+i will keep it on for now
+
+---
+
+it is  now getting reviewed now pleaase analyse that test issue run all actions etc and see what besides what we already fixed needs fixing
+
+---
+
+for the copilot fix can we do B? will that work [Image #3] also i found out why the claude and codex agents have not been working they will work now so that functionality can work again fix the rest of the findings as well do it in a PR directly from here do not go trough the whole flow we will test that again later with a new test issue
+
+---
+
+<task-notification>
+<task-id>bb6366bff</task-id>
+<tool-use-id>REDACTED</tool-use-id>
+<output-file>/private/tmp/claude-502/REDACTED/fe94d82a-cffb-4ce0-b9c0-cc50e527c442/tasks/bb6366bff.output</output-file>
+<status>completed</status>
+<summary>Background command "Check branch/log" completed (exit code 0)</summary>
+</task-notification>
+
+---
+
+merged now should we test the flow again with issue 97?
+
+---
+
+you do it then keep on eye omn things
+
+---
+
+Check the #97 Claude-routing smoke test. Run:
+
+1. `gh run view 24571268948 --json status,conclusion,jobs --jq '{status, conclusion, jobs: [.jobs[] | {name, conclusion}]}'` — dispatcher final state
+2. `gh issue view 97 --json assignees,labels --jq '{assignees: [.assignees[].login], labels: [.labels[].name]}'` — did Claude get assigned?
+3. `gh api /repos/pskoett/measuring-ai-proficiency/issues/97/comments --jq '[.[-3:][] | {author: .user.login, head: (.body | split("\n") | .[0:2] | join(" | ") | .[:200])}]'` — dispatcher comment
+
+Report: (a) did `assign-to-user claude[bot]` succeed or fail, (b) was the `claude[bot]` handle correct, (c) if failure, what the noop comment says, (d) if success, did Claude open a PR yet (check `gh pr list --state open --json number,author,title,headRefName --limit 5`).
+
+If Claude did open a PR, also check whether reviewer + contribution-checker + simplify-and-harden-ci + eval-creator-ci actually activated this time (the `bots:` gate fix). Look at the PR checks and see if `activation` is `SUCCESS` rather than `SKIPPED` on all four.
+
+If still in_progress, schedule another wake-up in 180s. If done, report findings and wait for user direction.
+
+---
+
+[Image #4] here is the assigne list and yes assign to copilot
+
+---
+
+the work is done here https://github.com/pskoett/measuring-ai-proficiency/pull/146
+
+---
+
+it finished check things over
+
+---
+
+do i just comment /pr-fix?
+
+---
+
+or is it a label
+
+---
+
+pr-fix is running
+
+---
+
+pr fix failed
+
+---
+
+yes
+
+---
+
+how do i do that put the label on it?
+
+---
+
+done check if it works I think it would be best if that was part of one of the check automatically
+
+---
+
+opion B you can make a new issue with this
+
+---
+
+reviewer and conflict resolver failed
+
+---
+
+what do you think is best
+
+---
+
+ok, do that
+
+---
+
+why did the plan file for 149 end up in an issue? https://github.com/pskoett/measuring-ai-proficiency/issues/153
+
+---
+
+ok did you start a new plan for 149'?
+
+---
+
+if not do it and see if the issue persists or we get a pr
+
+---
+
+sorry ok, then start 152 and see if it succeeds
+
+---
+
+ok, keep an eye on the prs and see if everything is working as intended
+
+---
+
+the token we have are [Image #5]
+
+---
+
+1
+
+---
+
+Check whether the implementer-dispatcher succeeded in assigning the Claude Partner Agent to #149. This is the first real test of `assign-to-user Claude` (the correct handle per #147, after the earlier `claude[bot]` silent-drop bug).
+
+Run:
+1. `gh issue view 149 --json assignees,labels --jq '{assignees: [.assignees[].login], labels: [.labels[].name]}'` — is Claude actually on the assignees list?
+2. `gh run list --workflow=implementer-dispatcher.lock.yml --limit 2 --json status,conclusion,createdAt` — dispatcher outcome
+3. `gh api /repos/pskoett/measuring-ai-proficiency/issues/149/timeline --jq '[.[] | select(.event == "assigned") | {assignee: .assignee.login, created: .created_at}]'` — did a real assigned event fire?
+4. `gh pr list --state open --json number,author,title,headRefName --jq '[.[] | select(.author.login == "app/claude-swe-agent" or .headRefName | test("claude|149"))]'` — any claude-authored branch or PR?
+
+Report: did the handle resolve correctly? If yes, Claude should eventually open an impl PR on #149 — note that it may take 10+ min. If the handle silently dropped again (empty assignees + no timeline event), flag it and recommend reverting to impl:copilot.
+
+Also report on three other open concerns:
+- #154 (plan PR for #152): has it been reviewed yet? Check if it has any add_comment from reviewer or contribution-checker.
+- plan-merged-dispatcher bug (gh pr diff returns empty in workflow): note if anything new has happened on that front.
+- Backlog status: open PRs via `gh pr list --state open --json number,title,author,labels`.
+
+---
+
+yes do copilot only for now
+
+---
+
+committet 154
+
+---
+
+sorry I last track what do we need to do now?
+
+---
+
+158 is ready to merge
+
+---
+
+swap 152
+
+---
+
+https://github.com/pskoett/measuring-ai-proficiency/pull/157 is running workflows
+
+---
+
+Check the review workflows' verdicts on PR #157 (Copilot implementation of #149: reviewer auto-labels behind-main PRs with needs-rebase).
+
+Run:
+1. `gh api /repos/pskoett/measuring-ai-proficiency/issues/157/comments --jq '[.[] | {author: .user.login, head: (.body | split("\n") | .[0:4] | join(" ¶ ") | .[:250])}]'` — all review comments
+2. `gh pr view 157 --json labels,mergeStateStatus --jq '{labels: [.labels[].name], mergeState: .mergeStateStatus}'` — verdict labels + merge state
+3. `gh pr checks 157 --json name,state,workflow --jq '[.[] | {workflow, name, state}] | group_by(.workflow) | [.[] | {workflow: .[0].workflow, states: [.[] | .state] | unique}]'` — CI state
+
+Report: reviewer verdict (ai-reviewed, fast-track, needs-changes?), contribution checker verdict, eval creator result, any warnings/missed criteria worth flagging. Then flag what the user needs to do next: merge, request changes, or escalate.
+
+Also check if Copilot has opened impl PRs for #97 and #152:
+- `gh pr list --state open --json number,title,author,headRefName --jq '[.[] | select(.author.login == "app/copilot-swe-agent")]'` — all open Copilot PRs
+
+Keep report concise. If still in progress, schedule another wakeup in 180s.
+
+---
+
+what do you mean   - #97 (transcripts observability) — no impl PR yet from Copilot. May still be pending. ? didnt we already do this
+
+---
+
+last two open PR's are what is left right now after that we need a new test issue to see if we finally have a full flow working how are things looking now ?
+
+---
+
+Check whether reviewer posted its verdict on PR #157 yet.
+
+Run:
+1. `gh api /repos/pskoett/measuring-ai-proficiency/issues/157/comments --jq '.[] | select(.body | contains("Reviewer") or contains("Verdict")) | .body' | head -80` — reviewer comment body
+2. `gh pr view 157 --json labels,mergeStateStatus --jq '{labels: [.labels[].name], mergeState: .mergeStateStatus}'` — verdict label
+3. `gh pr checks 157 --json name,state,workflow --jq '[.[] | select(.workflow == "Reviewer") | {name, state}]'` — reviewer state
+
+Also check if Copilot #159 (WIP for #152) is ready:
+4. `gh pr view 159 --json state,isDraft,labels,mergeStateStatus --jq '{state, isDraft, labels: [.labels[].name], mergeState: .mergeStateStatus}'`
+
+And check for #97 impl PR:
+5. `gh pr list --state open --json number,title,author,headRefName --jq '[.[] | select(.author.login == "app/copilot-swe-agent")]'`
+
+Report: reviewer's verdict on #157 (met criteria, missed, drift), what the user should comment `/pr-fix` about (merge CHANGELOG + reviewer-found issues together), and status of #159 and any new #97 PR. Concise.
+
+---
+
+157 is merged
+
+---
+
+159 has conflicts if i start the review will it resolve automatically?
+
+---
+
+cant i set the rebase label on the pr?
+
+---
+
+i have tried that now
+
+---
+
+ok thats done and merged  ok, go in and find the analysis we did earlier of the workflow and redo the analysis from where we are now it
+  is in the docs folder
+
+---
+
+can you make the project board via the cli access you have?
+
+---
+
+done i have run the command check your access again and then make a plan based on the analysis on the next iteratin of the factory
+
+---
+
+sorry what do I need to do now there is no project atm
+
+---
+
+[Image #6] [Image #7] this is what i see and i set the standard project as this repo [Image #8]
+
+---
+
+[Image #9]
+
+---
+
+[Image #10]
+
+---
+
+[Image #11]
+
+---
+
+this one  - (b) Add a tiny GitHub Action that listens to issues.labeled/unlabeled + pull_request.labeled/unlabeled and
+  updates Factory state via the Projects API. ~50 lines YAML, one new secret needed (PAT with project scope). I
+  can write it as part of this iteration if you want the pretty grouped-by-state board view.
+
+---
+
+[Image #12] done is on the far right in the picture our of view what about the states? [Image #13]
+
+---
+
+i dont understand this The original 9-column Factory state field I created is now vestigial. Want me to delete it + the unused
+  Implementer, Plan PR, Blocked since fields so the Configure-fields panel stays clean? Or keep them for manual
+  annotation on individual items?
+
+---
+
+arent they still good for the other view ? the project has both views [Image #14]
+
+---
+
+Ah i see you changed it so they are not used anymore so yes then we should remove them
+
+---
+
+this does not exist in the fine grained token Account permissions: Projects — Read and write ← this is the key one
+
+---
+
+[Image #15]
+
+---
+
+done v
+
+---
+
+yes
+
+---
+
+I do not see the labels on my board how do i get them visable
+
+---
+
+any way to shows which have active workflows on the board?
+
+---
+
+Quick win: add an agent-working label view do this and also which model is running under copilot
+
+---
+
+right now on the board i cant see when [Image #17] I need to do something
+
+---
+
+sorry cant it be in the view i already have? I do not want another view I just want the one board
+
+---
+
+option 2
+
+---
+
+165 already merged
+
+---
+
+https://github.com/pskoett/measuring-ai-proficiency/issues/162 ended up with comments saying it does not need a plan?
+
+---
+
+yes
+
+---
+
+i merged 164 but then it disappeared from the board [Image #19]
+
+---
+
+yes
+
+---
+
+[Image #20] it is now back and i can see the agent working great! but it is not in the in flight coloumn
+
+---
+
+i merged 166-167-168
+
+---
+
+gone with B [Image #22] looks like this
+
+---
+
+it is merged
+
+---
+
+starting with 172
+
+---
+
+ok, keep an eye on everything and check if we are closer to a factory working everytime now
+
+---
+
+you add it yourself
+
+---
+
+<task-notification>
+<task-id>bh6hhkvvv</task-id>
+<summary>Monitor event: "factory state transitions"</summary>
+<event>[23:47:27Z] prs=[170:draft=False:state=UNSTABLE|173:draft=False:state=UNSTABLE] merged_tail=[168,172,174] needs_spec=0 needs_plan=2 failing_10m=0</event>
+</task-notification>
+
+---
+
+i have two contribution actions one waiting one failed it looks like?
+
+---
+
+to the other is waiting? why was it waiting?
+
+---
+
+ah ok, that not very efficient
+
+---
+
+lets change that in a new issue
+
+---
+
+if it is gh-aw native then leave it
+
+---
+
+<task-notification>
+<task-id>bh6hhkvvv</task-id>
+<summary>Monitor event: "factory state transitions"</summary>
+<event>[23:53:37Z] prs=[170:draft=False:state=UNSTABLE|173:draft=False:state=UNSTABLE] merged_tail=[168,172,174] needs_spec=1 needs_plan=2 failing_10m=0</event>
+</task-notification>
+
+---
+
+i added the needs-spec a minute ago
+
+---
+
+it is still running the contribution check on 169
+
+---
+
+1
+
+---
+
+<task-notification>
+<task-id>bh6hhkvvv</task-id>
+<summary>Monitor event: "factory state transitions"</summary>
+<event>[00:12:08Z] prs=[170:draft=False:state=CLEAN|173:draft=False:state=UNSTABLE] merged_tail=[168,172,174] needs_spec=1 needs_plan=2 failing_10m=0</event>
+</task-notification>
+
+---
+
+<task-notification>
+<task-id>bh6hhkvvv</task-id>
+<summary>Monitor event: "factory state transitions"</summary>
+<event>[00:34:44Z] prs=[173:draft=False:state=UNKNOWN] merged_tail=[170,172,174] needs_spec=1 needs_plan=1 failing_10m=0</event>
+</task-notification>
+
+---
+
+<task-notification>
+<task-id>bh6hhkvvv</task-id>
+<summary>Monitor event: "factory state transitions"</summary>
+<event>[00:36:47Z] prs=[173:draft=False:state=UNSTABLE] merged_tail=[170,172,174] needs_spec=1 needs_plan=1 failing_10m=0</event>
+</task-notification>
+
+---
+
+things arent really moving not the issue not the pr
+
+---
+
+<task-notification>
+<task-id>bh6hhkvvv</task-id>
+<summary>Monitor event: "factory state transitions"</summary>
+<event>[00:55:17Z] prs=[175:draft=True:state=UNSTABLE|176:draft=True:state=UNSTABLE|177:draft=False:state=UNSTABLE] merged_tail=[172,173,174] needs_spec=1 needs_plan=0 failing_10m=0</event>
+</task-notification>
+
+---
+
+<task-notification>
+<task-id>bh6hhkvvv</task-id>
+<summary>Monitor event: "factory state transitions"</summary>
+<event>[00:59:24Z] prs=[175:draft=True:state=UNKNOWN|176:draft=True:state=UNKNOWN] merged_tail=[173,174,177] needs_spec=1 needs_plan=0 failing_10m=1</event>
+</task-notification>
+
+---
+
+<task-notification>
+<task-id>bh6hhkvvv</task-id>
+<summary>Monitor event: "factory state transitions"</summary>
+<event>[01:01:28Z] prs=[175:draft=True:state=UNSTABLE|176:draft=True:state=DIRTY] merged_tail=[173,174,177] needs_spec=1 needs_plan=0 failing_10m=1</event>
+</task-notification>
+
+---
+
+<task-notification>
+<task-id>bh6hhkvvv</task-id>
+<summary>Monitor event: "factory state transitions"</summary>
+<event>[01:03:31Z] prs=[175:draft=False:state=UNSTABLE] merged_tail=[173,174,177] needs_spec=1 needs_plan=0 failing_10m=1</event>
+</task-notification>
+
+---
+
+[Image #24] the board is confusing and it seems like the factory is not really working
+
+---
+
+<task-notification>
+<task-id>bh6hhkvvv</task-id>
+<summary>Monitor event: "factory state transitions"</summary>
+<event>[01:09:41Z] prs=[178:draft=False:state=UNKNOWN] merged_tail=[174,175,177] needs_spec=1 needs_plan=0 failing_10m=0</event>
+</task-notification>
+
+---
+
+it is merged
+
+---
+
+<task-notification>
+<task-id>bh6hhkvvv</task-id>
+<summary>Monitor event: "factory state transitions"</summary>
+<event>[01:17:56Z] prs=[179:draft=False:state=CLEAN] merged_tail=[175,177,178] needs_spec=1 needs_plan=0 failing_10m=2</event>
+</task-notification>
+
+---
+
+ok now issue 163 can be used to test again?
+
+---
+
+ci-cleaner failed we got an issue saying
+
+---
+
+<task-notification>
+<task-id>bh6hhkvvv</task-id>
+<summary>Monitor event: "factory state transitions"</summary>
+<event>[01:24:06Z] prs=[] merged_tail=[177,178,179] needs_spec=0 needs_plan=0 failing_10m=0</event>
+</task-notification>
+
+---
+
+i dont thinkt copilot is opening anything
+
+---
+
+<task-notification>
+<task-id>bh6hhkvvv</task-id>
+<summary>Monitor event: "factory state transitions"</summary>
+<event>[01:32:20Z] prs=[] merged_tail=[177,178,179] needs_spec=1 needs_plan=0 failing_10m=0</event>
+</task-notification>
+
+---
+
+<task-notification>
+<task-id>bh6hhkvvv</task-id>
+<summary>Monitor event: "factory state transitions"</summary>
+<event>[01:34:23Z] prs=[182:draft=True:state=UNSTABLE] merged_tail=[177,178,179] needs_spec=1 needs_plan=0 failing_10m=0</event>
+</task-notification>
+
+---
+
+<task-notification>
+<task-id>bh6hhkvvv</task-id>
+<summary>Monitor event: "factory state transitions"</summary>
+<event>[01:38:30Z] prs=[182:draft=False:state=UNSTABLE] merged_tail=[177,178,179] needs_spec=1 needs_plan=0 failing_10m=0</event>
+</task-notification>
+
+---
+
+<task-notification>
+<task-id>bh6hhkvvv</task-id>
+<summary>Monitor event: "factory state transitions"</summary>
+<event>[01:40:33Z] prs=[182:draft=False:state=UNSTABLE|183:draft=False:state=CLEAN] merged_tail=[177,178,179] needs_spec=0 needs_plan=1 failing_10m=0</event>
+</task-notification>
+
+---
+
+<task-notification>
+<task-id>bh6hhkvvv</task-id>
+<summary>Monitor event: "factory state transitions"</summary>
+<event>[01:42:36Z] prs=[182:draft=False:state=UNSTABLE|183:draft=False:state=UNSTABLE] merged_tail=[177,178,179] needs_spec=0 needs_plan=1 failing_10m=0</event>
+</task-notification>
+
+---
+
+<task-notification>
+<task-id>bh6hhkvvv</task-id>
+<summary>Monitor event: "factory state transitions"</summary>
+<event>[01:44:40Z] prs=[183:draft=False:state=CLEAN] merged_tail=[179,182,183] needs_spec=0 needs_plan=1 failing_10m=0</event>
+</task-notification>
+
+---
+
+<task-notification>
+<task-id>bh6hhkvvv</task-id>
+<summary>Monitor event: "factory state transitions"</summary>
+<event>[01:46:43Z] prs=[] merged_tail=[179,182,183] needs_spec=0 needs_plan=0 failing_10m=0</event>
+</task-notification>
+
+---
+
+<task-notification>
+<task-id>bh6hhkvvv</task-id>
+<summary>Monitor event: "factory state transitions"</summary>
+<event>[01:48:46Z] prs=[184:draft=True:state=UNSTABLE] merged_tail=[179,182,183] needs_spec=0 needs_plan=0 failing_10m=0</event>
+</task-notification>
+
+---
+
+<task-notification>
+<task-id>bh6hhkvvv</task-id>
+<summary>Monitor event: "factory state transitions"</summary>
+<event>[02:03:09Z] prs=[184:draft=False:state=UNSTABLE] merged_tail=[179,182,183] needs_spec=0 needs_plan=0 failing_10m=0</event>
+</task-notification>
+
+---
+
+<task-notification>
+<task-id>bh6hhkvvv</task-id>
+<summary>Monitor event: "factory state transitions"</summary>
+<event>[02:07:15Z] prs=[184:draft=False:state=CLEAN] merged_tail=[179,182,183] needs_spec=0 needs_plan=0 failing_10m=0</event>
+</task-notification>
+
+---
+
+<task-notification>
+<task-id>bh6hhkvvv</task-id>
+<summary>Monitor event: "factory state transitions"</summary>
+<event>[02:13:25Z] prs=[] merged_tail=[182,183,184] needs_spec=0 needs_plan=0 failing_10m=0</event>
+</task-notification>
