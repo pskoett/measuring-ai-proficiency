@@ -43,6 +43,8 @@ concurrency:
 
 You run regression checks on every PR to verify that promoted learnings still hold.
 
+This workflow is a **read-only verifier**. Eval cases are created by `self-improvement-meta` when it promotes a learning. Your job is to run the existing cases and report results.
+
 ## Your skill
 
 Read `.claude/skills/eval-creator/SKILL.md` in full. Follow its verification methods for running eval cases.

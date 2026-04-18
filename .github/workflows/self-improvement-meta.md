@@ -28,6 +28,11 @@ tools:
     - "head"
     - "tail"
     - "cat"
+    - "mkdir"
+    - "tee"
+    - "date"
+    - "printf"
+    - "ls"
 safe-outputs:
   create-pull-request:
     max: 1
@@ -40,6 +45,8 @@ safe-outputs:
       - .learnings/**
       - .github/workflows/*.md
       - .claude/skills/**/SKILL.md
+      - .evals/cases/**
+      - .evals/EVAL_INDEX.md
   create-issue:
     title-prefix: "[meta] "
     labels: [self-improvement, workflow-health]
@@ -116,9 +123,56 @@ Follow the skill's process for:
 
 Skip transient infrastructure failures, rate limit hits, and failures already captured under a matching Pattern-Key.
 
+### Step 3b: Create eval artifacts for promoted learnings
+
+For each learning being promoted to the harness files in Step 3, check whether its prevention rule can be expressed as a mechanical assertion. A rule is testable if it requires a specific string to be present or absent in a specific file (grep-check or rule-check), a specific file to exist (file-check), or a command to exit with a specific code (command-check). Skip if the rule is behavioral or holistic and cannot be expressed as any of these methods.
+
+For each testable promoted learning:
+
+1. Ensure the eval cases directory exists:
+   ```bash
+   mkdir -p .evals/cases
+   ```
+
+2. Determine the next EVAL ID:
+   ```bash
+   grep -oE 'EVAL-[0-9]+' .evals/EVAL_INDEX.md | sort -t- -k2 -n | tail -1 || echo 'EVAL-004'
+   ```
+   Increment the trailing number by 1. If no active cases exist yet (command returns `EVAL-004` or nothing), start at EVAL-005.
+
+3. Write the eval case file at `.evals/cases/EVAL-NNN.md`:
+   ```yaml
+   ---
+   eval-id: EVAL-NNN
+   source-learning: LRN-NNN
+   target: path/to/target/file
+   method: grep-check | file-check | command-check | rule-check
+   expect: found | not_found | exit_0 | contains
+   pattern: "literal string to check for"
+   created: YYYY-MM-DD
+   last-run: YYYY-MM-DD
+   last-result: skip
+   ---
+   ```
+   Set `last-run` to today's date and `last-result` to `skip` — the eval has not run yet.
+
+4. Append a row to the `## Cases` table in `.evals/EVAL_INDEX.md`:
+   ```
+   | [EVAL-NNN](.evals/cases/EVAL-NNN.md) | source description | target file | method | pattern |
+   ```
+
+Skip a learning for eval creation if:
+- An eval already exists with a matching `source-learning` LRN-ID.
+- The prevention rule cannot be reduced to a single file/string/command check.
+
 ### Step 4: Open the PR
 
-One PR per nightly run. Title: `[learnings] <count> new learnings from <date>`. Body: a table summarizing each new learning with LRN ID, priority, area, and one-line prevention rule. Label: `self-improvement`, `automation`, `low-risk`.
+One PR per nightly run with:
+- **Title**: `[learnings] <count> new learnings from <date>`
+- **Body**:
+  - A table listing each new learning: LRN ID, priority, area, one-line prevention rule
+  - If eval cases were created in Step 3b, a second table listing each new EVAL ID, its source LRN, and the assertion being tested
+- **Labels**: `self-improvement`, `automation`, `low-risk`
 
 The PR is the regression test. When it merges, the learnings become permanent. If a reviewer rejects a learning, that is signal: the pattern was not real.
 
@@ -141,6 +195,7 @@ Silence is the correct signal when the factory is healthy.
 - Each prevention rule is specific enough to be checked in a future run
 - No learning contains secrets, tokens, or raw logs beyond what is needed for context
 - A human reviewer can approve or reject the PR in under two minutes
+- Each new eval case references a valid `source-learning` LRN-ID and uses the exact frontmatter schema from `.evals/EVAL_INDEX.md`
 
 ## Style
 
