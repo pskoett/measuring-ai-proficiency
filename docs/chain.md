@@ -71,20 +71,31 @@ issues.opened [needs-spec]
        v
 +----------------------+
 |   spec-refiner       |   reads .claude/skills/plan-interview/SKILL.md
-|                      |   recommends implementer in plan file
+|                      |   classifies issue: plan-worthy, direct-route, or blocked
 +----------+-----------+
-           | writes docs/plans/plan-NNN-<slug>.md with implementer recommendation
-           | labels needs-plan
-           v
-(human reviews + merges plan PR)
            |
-           v
-+----------------------+
-| plan-merged-         |   plain GitHub Actions workflow
-| dispatcher           |   writes plan checklist into source issue body
-+----------+-----------+   labels source issue ready-for-implementation
+           +--[plan-worthy]------------------------------------------+
+           |   writes docs/plans/plan-NNN-<slug>.md with implementer  |
+           |   recommendation                                          |
+           |   labels needs-plan                                       |
+           |   v                                                       |
+           |   (human reviews + merges plan PR)                       |
+           |   |                                                       |
+           |   v                                                       |
+           | +----------------------+                                  |
+           | | plan-merged-         |   plain GitHub Actions workflow  |
+           | | dispatcher           |   writes plan checklist onto     |
+           | +----------+-----------+   source issue body              |
+           |            |               labels ready-for-implementation|
+           |            v               <-----------------------------+
            |
-           v
+           +--[direct route]---> labels impl:copilot + ready-for-implementation
+           |                     posts comment explaining fast-track
+           |
+           +--[blocked/terminal]-> labels blocked-on-human
+                                   posts comment; human takes next action
+           |
+           v (ready-for-implementation)
 +----------------------+
 |  implementer-        |   reads impl:* label on source issue
 |  dispatcher          |   auto-assigns source issue to chosen agent
@@ -163,9 +174,11 @@ As of April 2026, the implementer step in the chain has four choices, all bundle
 | **Copilot cloud agent** | Trivial changes, dependency bumps, mechanical edits | Fast, cheap, bundled |
 | **Codex GPT-5.4** | Opportunistic, A/B data, different reasoning style | Strong on common patterns |
 
-`spec-refiner` assesses the plan and writes a recommendation into the plan file itself. A human reviewing the plan PR sees the recommendation. When the plan PR merges, `plan-merged-dispatcher` labels the source issue `ready-for-implementation`; `implementer-dispatcher` then auto-assigns that issue to the chosen agent based on its `impl:*` label. One plan, one source issue, one PR.
+`spec-refiner` classifies each issue and routes it. For plan-worthy issues, it writes a recommendation into the plan file itself. A human reviewing the plan PR sees the recommendation. When the plan PR merges, `plan-merged-dispatcher` labels the source issue `ready-for-implementation`; `implementer-dispatcher` then auto-assigns that issue to the chosen agent based on its `impl:*` label. One plan, one source issue, one PR.
 
-This is a deliberate human-in-the-loop decision point. The routing rule is "complexity warrants Opus" and only a human can decide, for a given repo on a given day, whether the cost or latency difference is worth it. The spec-refiner recommends, the human chooses, and `reviewer` calibrates the review based on who actually produced the code.
+For direct-route issues, `spec-refiner` skips the plan file and applies `ready-for-implementation` and `impl:copilot` directly. `implementer-dispatcher` picks the issue up without a plan PR or human merge gate.
+
+This is a deliberate human-in-the-loop decision point for plan-worthy work. The routing rule is "complexity warrants Opus" and only a human can decide, for a given repo on a given day, whether the cost or latency difference is worth it. The spec-refiner recommends, the human chooses, and `reviewer` calibrates the review based on who actually produced the code.
 
 See `AGENTS.md` for the full routing guidelines.
 
@@ -199,11 +212,13 @@ This is the two-loop model shipped as GitHub Actions. Inner loops run per-task. 
 
 ## The human's job
 
-Three decisions:
+Three decisions (for plan-worthy issues):
 
 1. **At spec**: is this plan file correct? If yes, merge. If no, edit and re-run.
 2. **At review**: should this PR ship? The reviewer did the first pass. You do the final one.
 3. **At learning**: is this prevention rule worth keeping? The meta-agent proposes. You approve.
+
+For direct-route issues, decision 1 is skipped. The agent goes straight to implementation after spec-refiner classifies the issue.
 
 Everything else is automated. That is the point.
 
