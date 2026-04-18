@@ -91,6 +91,7 @@ jobs:
                  || "$L" == *",needs-rebase,"* \
                  || "$L" == *",human-review,"* \
                  || "$L" == *",blocked-on-human,"* \
+                 || "$L" == *",blocked-on-serialization,"* \
                  || "$L" == *",ai-reviewed,"* \
                  || "$L" == *",plan-file,"* \
                  || "$L" == *",eval-regression,"* ]]; then
@@ -151,7 +152,7 @@ jobs:
               local stale_present=""
               for stale_label in needs-spec needs-plan ready-for-implementation \
                                  assigned-to-agent ai-reviewed needs-changes fast-track \
-                                 needs-rebase blocked-on-human human-review spec-refined; do
+                                 needs-rebase blocked-on-human blocked-on-serialization human-review spec-refined; do
                 if [[ "$L" == *",$stale_label,"* ]]; then
                   stale_present="${stale_present:+$stale_present,}$stale_label"
                 fi
