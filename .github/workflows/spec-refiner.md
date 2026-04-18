@@ -24,9 +24,11 @@ safe-outputs:
     max: 1
     title-prefix: "[plan] "
     labels: [plan-file, automation]
+  assign-to-agent:
+    target-repo: ${{ github.repository }}
   add-labels:
-    allowed: [needs-plan, blocked-on-human, spec-refined, "impl:copilot", ready-for-implementation]
-    max: 3
+    allowed: [needs-plan, blocked-on-human, spec-refined, "impl:copilot", ready-for-implementation, assigned-to-agent]
+    max: 4
   remove-labels:
     allowed: [needs-spec]
     max: 1
@@ -111,13 +113,15 @@ After writing the recommendation in the plan file, add the `impl:copilot` label 
 
 ### Path 2: Direct route
 
-No plan file. No plan PR. `implementer-dispatcher` picks up the source issue directly from `ready-for-implementation`.
+No plan file. No plan PR. `spec-refiner` assigns Copilot directly in the same run, bypassing the label-triggered cascade that would otherwise block on GitHub's anti-loop rule for `GITHUB_TOKEN`.
 
-1. **Comment on the source issue** with a short explanation: why this issue was fast-tracked without a plan, and what the implementer should do. Keep it to two or three sentences.
+1. **Comment on the source issue** with a short explanation: why this issue was fast-tracked without a plan, what the implementer should do, and that Copilot has been assigned directly. Keep it to two or three sentences.
 2. **Swap labels**:
    - Remove `needs-spec`
    - Add `impl:copilot`
    - Add `ready-for-implementation`
+   - Add `assigned-to-agent`
+3. **Assign the issue**: call `assign-to-agent` to assign this issue to the Copilot cloud agent in the same run.
 
 ### Path 3: Terminal or blocked
 
