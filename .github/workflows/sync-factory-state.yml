@@ -166,10 +166,15 @@ jobs:
           }
 
           if [ -z "${ISSUE_NUMBER}" ]; then
-            echo "No item number — full reconcile of open items + 30 most recent closed."
-            ITEMS=$({ gh issue list --repo "$REPO" --state all --limit 30 --json number --jq '.[].number'; \
-                      gh pr list    --repo "$REPO" --state all --limit 30 --json number --jq '.[].number'; } \
-                      | sort -un)
+            # Reconcile every item currently on the project board. The earlier
+            # `gh issue/pr list --limit 30` approach missed items older than the
+            # 30 most recent, so closed issues with pre-sync Status values drifted
+            # into 📥 Waiting for spec and stayed there forever. Pulling from the
+            # Projects v2 item list directly bounds the sweep to what's actually on
+            # the board (~100-200 items) regardless of repo age.
+            echo "No item number — full reconcile across every board item."
+            ITEMS=$(gh project item-list 3 --owner pskoett --limit 500 --format json \
+              --jq '[.items[] | select(.content.number) | .content.number] | unique | .[]')
             for n in $ITEMS; do
               sync_one "$n" || true
             done
