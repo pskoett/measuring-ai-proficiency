@@ -1,6 +1,53 @@
 # Scripts
 
-Utility scripts for measuring AI proficiency across organizations.
+Utility scripts for measuring AI proficiency across organizations, plus
+factory test harnesses.
+
+## factory-smoke.sh
+
+Dispatches each safely-dispatchable factory workflow via `gh workflow run`,
+waits for completion, and reports pass/fail per workflow. Proves each
+workflow can activate, run, and complete without schema or environment
+errors. Does **not** prove business-logic correctness.
+
+```bash
+# Run with default 8-min per-workflow timeout
+scripts/factory-smoke.sh
+
+# Customize timeout (e.g. 15 min per workflow)
+scripts/factory-smoke.sh --wait-secs 900
+```
+
+Exit 0 if every dispatched workflow reached `completed|success`. Exit 1
+otherwise. Covers: `factory-health`, `self-improvement-meta`,
+`learning-aggregator-ci`, `ai-proficiency-weekly-report`. Event-driven
+workflows (spec-refiner, reviewer, pr-fix, etc.) are covered by the e2e
+harness.
+
+## factory-e2e.sh
+
+Files a canary issue (`[smoke-test] factory e2e <timestamp>`) and watches
+it through triage → spec → plan → impl stages. Reports which stages
+completed within the time budget. Cleans up by closing the issue + any
+spawned PRs at the end unless `--keep` is passed.
+
+```bash
+# Default: stop after plan-merge stage (safe, no Copilot dispatch)
+scripts/factory-e2e.sh
+
+# Go further through to implementer-dispatcher
+scripts/factory-e2e.sh --stage impl
+
+# Full chain including Copilot opening impl PR (20+ min, may time out)
+scripts/factory-e2e.sh --stage full
+
+# Leave canary issue + PRs open for inspection
+scripts/factory-e2e.sh --keep
+```
+
+Default stop is `plan` because that's the last stage the harness can
+drive without involving a real Copilot coding run. Use before landing
+factory changes to verify the chain still works end-to-end.
 
 ## find-org-repos.sh
 
