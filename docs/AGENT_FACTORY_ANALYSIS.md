@@ -40,12 +40,12 @@ Snapshot analysis of the factory after the #138 refactor that removed the sub-is
 
 - **4 lanes, not 9.** The original 9-column proposal (Triage / Spec / Planning / Ready / Assigned / Review / Needs-changes / Merged / Learning) collapsed to **📥 Waiting for spec / 🤖 Factory building / 👉 Your turn / ✅ Done**. The finer-grained states already live in labels; on the board they added noise without adding answers. Four lanes map directly to the only question the board needs to answer: *is it on me, or on the factory?*
 - **Zero custom fields.** The original proposal called for an Implementer / Plan PR / Blocked-since set; all four were created, then deleted. Labels already carry that data, and duplicating it on the board created a second source of truth for no operational gain.
-- **One-way sync via a plain GitHub Actions workflow**, not the built-in label automation. The built-in automation couldn't express the priority ordering (closed > human-blocking > PR-open > agent-blocking > default), and it couldn't flip the `your-turn` label as a side effect. The workflow runs on every label/state change plus a 10-minute reconcile cron to catch events missed during outages.
+- **One-way sync via a plain GitHub Actions workflow**, not the built-in label automation. The built-in automation couldn't express the priority ordering (closed > human-blocking > PR-open > agent-blocking > default), and it couldn't flip the `your-turn` label as a side effect. The workflow runs on every label/state change plus a 5-minute reconcile cron to catch events missed during outages or via webhook-unreliable producer paths (gh CLI, gh api, Copilot draft PRs).
 - **Separate activity tracker.** `agent-activity-tracker.yml` adds `agent-working` and `model:<name>` labels while a factory workflow is mid-run, so the board can show "something is chewing on this" without polluting the Status field. Not in the original proposal; added after the first day of use because "Factory building" didn't distinguish waiting from running.
 
 ### What Projects still can't do
 
-- **Drive the workflows.** Labels remain authoritative. Dragging a card does not change labels; the 10-minute reconcile snaps it back.
+- **Drive the workflows.** Labels remain authoritative. Dragging a card does not change labels; the 5-minute reconcile snaps it back.
 - **Replace any part of the factory.** All decisions stay in labels and workflow code.
 - **Richer conditional logic** than the priority table in the sync workflow. Anything smarter stays in code.
 

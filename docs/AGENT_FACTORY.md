@@ -337,7 +337,7 @@ Do not disable the guard to let the PR through. The guard is one line of `case` 
 | [`simplify-and-harden-ci.md`](../.github/workflows/simplify-and-harden-ci.md) | PR opened / updated | Scan changed files for simplicity and security issues |
 | [`learning-aggregator-ci.md`](../.github/workflows/learning-aggregator-ci.md) | Weekly (Monday) | Aggregate learnings, rank promotion candidates, create gap report |
 | [`eval-creator-ci.md`](../.github/workflows/eval-creator-ci.md) | PR opened / updated | Run regression checks against promoted learnings (read-only verifier; eval creation happens in `self-improvement-meta`) |
-| [`sync-factory-state.yml`](../.github/workflows/sync-factory-state.yml) | Issue/PR label/state change, cron every 10 min, `workflow_dispatch` | One-way mirror of factory labels onto the "AI Agent Factory" Projects v2 Status field; applies/removes the `your-turn` label as a side effect. Plain GitHub Actions, not gh-aw. |
+| [`sync-factory-state.yml`](../.github/workflows/sync-factory-state.yml) | Issue/PR label/state change, cron every 5 min, `workflow_dispatch` | One-way mirror of factory labels onto the "AI Agent Factory" Projects v2 Status field; applies/removes the `your-turn` label as a side effect. Plain GitHub Actions, not gh-aw. |
 | [`agent-activity-tracker.yml`](../.github/workflows/agent-activity-tracker.yml) | Cron every 5 min, `workflow_dispatch` | Applies `agent-working` and `model:<name>` labels to items with at least one in-progress factory workflow; sweeps labels off when runs finish. Plain GitHub Actions, not gh-aw. |
 
 These are thin adapter shells. The actual agent logic lives in skills in `.claude/skills/`.
@@ -557,12 +557,28 @@ Two views cover ~all daily operation; resist adding more.
 
 ### Guard rails and known limits
 
-- **Labels stay authoritative.** `sync-factory-state` is one-way (labels → board). Dragging a card does not change labels; the 10-minute reconcile cron will snap it back. This is deliberate — the board is a view, not a control plane.
+- **Labels stay authoritative.** `sync-factory-state` is one-way (labels → board). Dragging a card does not change labels; the 5-minute reconcile cron will snap it back. This is deliberate — the board is a view, not a control plane.
 - **Activity tracker misses short issue-triggered runs.** GitHub doesn't expose the issue number on `workflow_runs` for `issues` events, and the tracker polls every 5 min. Acceptable trade-off for a visualization layer.
 - **One board per repo today.** Cross-repo aggregation is possible by pointing multiple repos' `sync-factory-state.yml` at the same project ID, but this repo has not exercised that path.
 - **Stale lock on the sync workflow.** `sync-factory-state.yml` is plain Actions, not gh-aw, so the lock-file-sync guard does not apply. Edits land as-is.
 
 ## Observability
+
+### Board freshness and expected lag
+
+The Projects v2 board is derived from labels by `sync-factory-state.yml`. The board is a view, not a control plane — labels remain authoritative.
+
+**Expected maximum lag**: ~5 minutes. The scheduled reconcile cron runs every 5 minutes as a safety net. When a `pull_request` webhook fires correctly, the board updates immediately. When it is missed (see [sync-factory-state-webhook-missed in LEARNINGS.md](../.learnings/LEARNINGS.md)), the reconcile cron corrects the drift within 5 minutes.
+
+**Webhook delivery is not guaranteed.** Events produced via `gh` CLI, `gh api`, and Copilot-created draft PRs have been observed to miss the `pull_request` trigger in `sync-factory-state.yml`. The 5-minute reconcile is the primary reliability mechanism for these paths, not a fallback.
+
+**If the board looks stale**, force a manual resync:
+
+```bash
+gh workflow run sync-factory-state.yml -f issue_number=<NN>
+# or full reconcile (no argument):
+gh workflow run sync-factory-state.yml
+```
 
 Every factory workflow captures its full session as a GitHub Actions artifact. This section explains where to find transcripts, what they contain, how long they live, and how they feed the outer learning loop.
 

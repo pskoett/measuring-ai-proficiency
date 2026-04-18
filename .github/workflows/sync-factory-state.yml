@@ -6,7 +6,9 @@ name: Sync Factory State
 #
 # Runs on:
 #  - issue/PR state or label changes (per-item sync)
-#  - scheduled cron every 10 min (reconcile all open items, catches missed events)
+#  - scheduled cron every 5 min (reconcile all open items; safety net for missed
+#    pull_request webhooks — events from gh CLI, gh api, and Copilot-created PRs
+#    are not reliably delivered to workflow triggers)
 #  - workflow_dispatch (manual resync of a specific item)
 #
 # Requires a repo secret PROJECTS_PAT with `project` scope (fine-grained PAT,
@@ -19,7 +21,7 @@ on:
   pull_request:
     types: [opened, edited, labeled, unlabeled, closed, reopened, ready_for_review, converted_to_draft]
   schedule:
-    - cron: '*/10 * * * *'  # reconcile all open items every 10 min as a safety net
+    - cron: '*/5 * * * *'   # reconcile all open items every 5 min as a safety net for missed webhooks
   workflow_dispatch:
     inputs:
       issue_number:
