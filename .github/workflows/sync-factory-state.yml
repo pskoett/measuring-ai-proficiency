@@ -166,15 +166,32 @@ jobs:
           }
 
           if [ -z "${ISSUE_NUMBER}" ]; then
-            # Reconcile every item currently on the project board. The earlier
-            # `gh issue/pr list --limit 30` approach missed items older than the
-            # 30 most recent, so closed issues with pre-sync Status values drifted
-            # into 📥 Waiting for spec and stayed there forever. Pulling from the
-            # Projects v2 item list directly bounds the sweep to what's actually on
-            # the board (~100-200 items) regardless of repo age.
-            echo "No item number — full reconcile across every board item."
-            ITEMS=$(gh project item-list 3 --owner pskoett --limit 500 --format json \
-              --jq '[.items[] | select(.content.number) | .content.number] | unique | .[]')
+            # Reconcile every item currently on the project board via GraphQL.
+            # The earlier `gh project item-list` approach broke in CI with
+            # `unknown owner type` because the PAT-auth context inside the
+            # workflow cannot infer user-vs-org from `--owner`. The earlier
+            # `gh issue/pr list --limit 30` approach missed items older than
+            # the 30 most recent, so closed issues drifted into 📥 Waiting
+            # for spec and stayed there forever. GraphQL-by-project-ID is
+            # the only shape that works here — it uses the same token and
+            # PROJECT_ID the rest of this script already relies on.
+            echo "No item number — full reconcile across every board item via GraphQL."
+            ITEMS=$(gh api graphql -f query='
+              query($projectId: ID!) {
+                node(id: $projectId) {
+                  ... on ProjectV2 {
+                    items(first: 250) {
+                      nodes {
+                        content {
+                          ... on Issue { number }
+                          ... on PullRequest { number }
+                        }
+                      }
+                    }
+                  }
+                }
+              }' -f projectId="$PROJECT_ID" \
+              --jq '[.data.node.items.nodes[].content.number // empty] | unique | .[]')
             for n in $ITEMS; do
               sync_one "$n" || true
             done
