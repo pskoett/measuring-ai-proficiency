@@ -132,6 +132,8 @@ Create one issue with this structure:
 
 ### Promotion-Ready (3+ recurrences)
 
+To promote: add the `promote` label to this issue to trigger `self-improvement-promoter`.
+
 | Pattern-Key | Recurrences | Gap type | Source | Prevention rule |
 |------------|-------------|----------|--------|-----------------|
 | ... | ... | ... | learnings/transcript | ... |
@@ -144,14 +146,27 @@ Create one issue with this structure:
 
 ### Transcript-Only Findings (not yet in .learnings/)
 
-[Patterns found only in transcripts that have not been logged manually. These
-are candidates for adding to .learnings/LEARNINGS.md in the next
-self-improvement-meta PR.]
+Patterns found only in transcripts that have not been logged in `.learnings/` yet. The next
+`self-improvement-meta` run will capture these as `Status: pending` entries if the same pattern
+recurs in log failures or is still present in aggregator transcripts.
+
+For each finding below, label it with `**TRANSCRIPT CANDIDATE**` so `self-improvement-meta`
+can ingest it as a pending capture entry on its next nightly run.
 
 ### Ungrouped Entries
 
 [List entries without Pattern-Key that need manual categorization]
 ```
+
+## Promotion signaling contract
+
+Entries in the "Promotion-Ready" table are the handoff to `self-improvement-promoter`. A human
+applies the `promote` label to the gap-report issue to trigger the promoter. The promoter reads
+the issue body, extracts Promotion-Ready rows, and opens a `[promote]` PR that writes prevention
+rules to the harness files.
+
+Do not promote entries to harness files from this workflow. Do not write to `.learnings/` from
+this workflow.
 
 ## Noop
 
@@ -162,7 +177,9 @@ Call `noop` if:
 
 ## Self-improvement feedback path
 
-Transcript-derived patterns that cross the promotion threshold should be noted in the issue body with the prefix `**TRANSCRIPT CANDIDATE**`. These are routed to the next `self-improvement-meta` run, which adds them to `.learnings/LEARNINGS.md` via the standard PR path.
+Transcript-derived patterns that are not yet in `.learnings/` should be flagged in the issue body
+with the prefix `**TRANSCRIPT CANDIDATE**`. The next `self-improvement-meta` nightly run ingests
+these and writes them as `Status: pending` entries to `.learnings/LEARNINGS.md`.
 
 Do not write directly to `.learnings/LEARNINGS.md` from this workflow.
 

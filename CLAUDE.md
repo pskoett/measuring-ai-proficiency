@@ -139,7 +139,7 @@ This repo runs an agent factory via [GitHub Agentic Workflows (gh-aw)](https://g
 - Add a skill for workflows: create `.claude/skills/<name>/SKILL.md`, reference it from the workflow body
 - Debug a run: `gh aw logs <workflow>` or `gh aw audit <run-id>`
 
-**Factory chain:** issue-triage > spec-refiner (classifies: plan-worthy, direct-route, or blocked) > [plan-worthy: plan PR merged > plan-merged-dispatcher >] implementer-dispatcher > reviewer + contribution-checker > /pr-fix > ci-cleaner > self-improvement-meta (nightly)
+**Factory chain:** issue-triage > spec-refiner (classifies: plan-worthy, direct-route, or blocked) > [plan-worthy: plan PR merged > plan-merged-dispatcher >] implementer-dispatcher > reviewer + contribution-checker > /pr-fix > ci-cleaner > self-improvement-meta (nightly capture) > learning-aggregator-ci (weekly aggregate) > self-improvement-promoter (human-gated promote)
 
 **Human decisions:** (1) for plan-worthy issues: review and merge the plan PR (optionally swap the implementer label), (2) merge the final PR, (3) approve learnings. Direct-route issues skip step 1. Everything else is automated.
 
@@ -163,7 +163,8 @@ scripts/
 .github/workflows/     # Agentic workflows (gh-aw)
 ├── spec-refiner.md              # Plan file from issue context
 ├── reviewer.md                  # Plan-aware PR review
-├── self-improvement-meta.md     # Nightly learnings extraction
+├── self-improvement-meta.md     # Nightly capture: write pending entries to .learnings/
+├── self-improvement-promoter.md # Human-gated: promote approved entries to harness files
 ├── ci-cleaner.md                # Auto-fix CI on main
 ├── contribution-checker.md      # CONTRIBUTING.md compliance
 ├── issue-triage.md              # Auto-label issues (githubnext/agentics)

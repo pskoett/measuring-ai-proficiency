@@ -34,12 +34,7 @@ safe-outputs:
     title-prefix: "[learnings] "
     labels: [self-improvement, automation, low-risk]
     allowed-files:
-      - AGENTS.md
-      - .github/copilot-instructions.md
-      - CLAUDE.md
       - .learnings/**
-      - .github/workflows/*.md
-      - .claude/skills/**/SKILL.md
   create-issue:
     title-prefix: "[meta] "
     labels: [self-improvement, workflow-health]
@@ -49,20 +44,21 @@ safe-outputs:
 
 # Self-Improvement Meta-Agent
 
-You are the outer loop of a two-loop agent improvement architecture. Your job is to turn yesterday's agent failures into tomorrow's guardrails.
+You are the **capture** step of the outer improvement loop. Your job is to turn yesterday's agent failures into structured pending entries in `.learnings/`. You do not promote learnings to harness files — promotion is a separate, human-gated step.
+
+## The three-step outer loop
+
+- **Capture** (this workflow, nightly): read failure signals, write `Status: pending` entries to `.learnings/LEARNINGS.md` and `.learnings/ERRORS.md`.
+- **Aggregate** (`learning-aggregator-ci`, weekly): group `.learnings/` entries by `Pattern-Key`, rank promotion candidates, create a gap-report issue.
+- **Promote** (`self-improvement-promoter`, human-gated): on human approval, write prevention rules to harness files in a `[promote]` PR.
+
+Never write to `AGENTS.md`, `.github/copilot-instructions.md`, `CLAUDE.md`, or any workflow `.md` file from this workflow. The `allowed-files` list enforces this.
 
 ## Your skill
 
-Read `.claude/skills/self-improvement/SKILL.md` in full and follow its process. That file defines the learnings format, the Pattern-Key dedupe logic, the categorization taxonomy (prompt, tool, context, data), and the promotion rules from pending learning to durable skill.
+Read `.claude/skills/self-improvement/SKILL.md` in full and follow its process. That file defines the learnings format, the Pattern-Key dedupe logic, and the categorization taxonomy (prompt, tool, context, data).
 
-The original skill was designed to run via PostToolUse hooks during live sessions. gh-aw has no hooks, so you are running it as a scheduled batch job. Apply rule 2 from the "Adapting skills for single-shot gh-aw runs" section of `AGENTS.md`: instead of hook-based activation, you read the last 24 hours of workflow runs once per night and extract patterns from the batch.
-
-## The two-loop model
-
-- **Inner loop**: within a single agent run, detect, verify, recover. Every other workflow in this repo is an inner loop.
-- **Outer loop**: read across runs, encode fixes as permanent instructions, regress-test as evals. This workflow, right here.
-
-A learning only counts when it becomes a permanent, checkable rule in a committed file. Everything else is a nice story.
+The original skill was designed to run via PostToolUse hooks during live sessions. gh-aw has no hooks, so you are running it as a scheduled batch job. Apply rule 2 from the "Adapting skills for single-shot gh-aw runs" section of `AGENTS.md`: instead of hook-based activation, read the last 24 hours of workflow runs once per night and extract patterns from the batch.
 
 ## Process
 
@@ -86,41 +82,36 @@ For each failed, cancelled, or reviewer-flagged run (`needs-changes`, `spec-drif
 
 ### Step 2b: Ingest transcript candidates from learning-aggregator-ci
 
-`learning-aggregator-ci` runs weekly. When it finds patterns in transcript artifacts that merit promotion, it flags them in its output issue/PR body with the `**TRANSCRIPT CANDIDATE**` prefix and explicitly does not write them to `.learnings/LEARNINGS.md` itself — it routes them here.
+`learning-aggregator-ci` runs weekly. When it finds patterns in transcript artifacts that are not yet in `.learnings/`, it flags them in its gap-report issue with the `**TRANSCRIPT CANDIDATE**` prefix.
 
-1. Find the most recent `learning-aggregator-ci` output from the last 7 days:
+1. Find the most recent `learning-aggregator-ci` gap-report issue from the last 7 days:
    ```bash
    gh issue list --label automation --label learning-aggregator --limit 5 \
      --json number,body,createdAt
-   gh pr list --label automation --label learning-aggregator --limit 5 \
-     --state all --json number,body,createdAt
    ```
-2. Extract every line or block starting with `**TRANSCRIPT CANDIDATE**`. Each is a pattern description, a supporting transcript excerpt, and an intended Pattern-Key.
-3. Treat each candidate as an additional input to Step 3 alongside the log-derived patterns. The skill's categorization (prompt / tool / context / data), Pattern-Key dedupe, and promotion logic apply identically.
+   This is a read-only operation. No files are written in this step.
+2. Extract every block starting with `**TRANSCRIPT CANDIDATE**`. Each contains a pattern description, a supporting transcript excerpt, and an intended Pattern-Key.
+3. Treat each candidate as an additional input to Step 3 alongside the log-derived patterns. The skill's categorization (prompt / tool / context / data) and Pattern-Key dedupe apply identically.
 4. If no `learning-aggregator-ci` output exists in the last 7 days, skip this step silently.
 
-This closes the handoff contract that `learning-aggregator-ci` documents: aggregator discovers, meta promotes.
+### Step 3: Write pending entries to .learnings/
 
-### Step 3: Apply the self-improvement skill
+For each new pattern:
+1. Categorize the failure (prompt, tool, context, data).
+2. Compute a stable Pattern-Key.
+3. Deduplicate against existing entries in `.learnings/LEARNINGS.md` and `.learnings/ERRORS.md`. Skip any pattern already captured under a matching Pattern-Key.
+4. Write new entries using the skill's template. Set `Status: pending` on every entry. Do not set `Status: promoted_to_skill`.
+5. Append entries to `.learnings/LEARNINGS.md` (for prompt/context/tool patterns) or `.learnings/ERRORS.md` (for command failures and unexpected behaviors).
 
-Follow the skill's process for:
-1. Categorizing each failure (prompt, tool, context, data)
-2. Computing a stable Pattern-Key
-3. Deduplicating against existing entries in `.learnings/LEARNINGS.md`
-4. Writing new learnings using the skill's template
-5. Promoting high-priority prevention rules to all three harness files:
-   - `CLAUDE.md` (read by Claude Code at session start)
-   - `AGENTS.md` (read by gh-aw workflows and GitHub Copilot agents)
-   - `.github/copilot-instructions.md` (read by GitHub Copilot in IDE and cloud)
-   - The relevant workflow `.md` file (if the rule is workflow-specific)
+Do not write to any harness file (AGENTS.md, `.github/copilot-instructions.md`, CLAUDE.md, or workflow `.md` files). Harness updates happen only through the `self-improvement-promoter` workflow after human approval.
 
 Skip transient infrastructure failures, rate limit hits, and failures already captured under a matching Pattern-Key.
 
 ### Step 4: Open the PR
 
-One PR per nightly run. Title: `[learnings] <count> new learnings from <date>`. Body: a table summarizing each new learning with LRN ID, priority, area, and one-line prevention rule. Label: `self-improvement`, `automation`, `low-risk`.
+One PR per nightly run. Title: `[learnings] <count> new pending entries from <date>`. Body: a table summarizing each new entry with LRN/ERR ID, Pattern-Key, priority, area, and one-line prevention rule preview. Label: `self-improvement`, `automation`, `low-risk`.
 
-The PR is the regression test. When it merges, the learnings become permanent. If a reviewer rejects a learning, that is signal: the pattern was not real.
+The PR writes only to `.learnings/`. No harness files are changed. When it merges, the entries are available for the weekly `learning-aggregator-ci` to group and rank.
 
 ### Step 5: File workflow-health issues for data issues
 
@@ -131,23 +122,22 @@ For **data issue** category failures (external service problems, bad API respons
 Call `noop` if:
 - No failures in the last 24 hours
 - All failures were transient infrastructure issues
-- All learnings are already captured with matching Pattern-Keys
+- All patterns are already captured with matching Pattern-Keys
 
 Silence is the correct signal when the factory is healthy.
 
 ## Self-check before committing the PR
 
-- Each new learning has a unique `LRN-NNN` ID
-- Each prevention rule is specific enough to be checked in a future run
-- No learning contains secrets, tokens, or raw logs beyond what is needed for context
+- Each new entry has a unique LRN-NNN or ERR-YYYYMMDD-NNN ID
+- Each entry has `Status: pending`
+- No entry writes to any harness file
+- No entry contains secrets, tokens, or raw logs beyond what is needed for context
 - A human reviewer can approve or reject the PR in under two minutes
 
 ## Style
 
-Follow the writing rules in `AGENTS.md`. No em-dashes. Learnings are durable. Write them like you mean it.
+Follow the writing rules in `AGENTS.md`. No em-dashes. Entries are durable. Write them like you mean it.
 
 ## Session capture
 
-This workflow's full session is automatically captured in the `agent` artifact for this run. The artifact includes the prompt, all tool calls, tool outputs, and token usage. The `learning-aggregator-ci` workflow downloads and analyzes these artifacts weekly to extract improvement patterns for the outer learning loop.
-
-This workflow combines two signal sources: workflow-level telemetry (`gh aw audit`, `gh run list`) plus `**TRANSCRIPT CANDIDATE**` markers ingested from the most recent `learning-aggregator-ci` output (Step 2b). Both paths feed the same Pattern-Key dedupe and promotion pipeline in Step 3.
+This workflow's full session is automatically captured in the `agent` artifact for this run. The artifact includes the prompt, all tool calls, tool outputs, and token usage. The `learning-aggregator-ci` workflow downloads and analyzes these artifacts weekly to extract patterns for Phase 2 of the outer learning loop.

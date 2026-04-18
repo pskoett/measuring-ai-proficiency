@@ -214,16 +214,32 @@ If the reviewer labels the PR `needs-changes`, comment `/pr-fix` to trigger the 
 
 If CI fails on `main` after a merge, the `ci-cleaner` workflow triggers automatically. It runs `ruff check --fix`, `pytest`, and `gh aw compile` in sequence, then opens a PR with the fixes. It includes a mandatory exit protocol (always produces a PR or noop) and a file-count guard (refuses to create PRs with 50+ changed files).
 
-### Step 7: The Outer Loop (Nightly)
+### Step 7: The Outer Loop (Nightly + Weekly)
 
-`self-improvement-meta` runs every night around 2am. It:
+The outer loop runs in three distinct steps:
+
+**1. Capture (nightly)**: `self-improvement-meta` runs every night around 2am. It:
 
 1. Reads the last 24 hours of workflow run logs
 2. Extracts failure patterns and categorizes them (prompt, tool, context, data)
-3. Deduplicates against existing entries in `.learnings/LEARNINGS.md`
-4. Opens a PR that adds prevention rules to `AGENTS.md` or the relevant workflow file
+3. Deduplicates against existing entries in `.learnings/LEARNINGS.md` and `.learnings/ERRORS.md`
+4. Opens a PR that appends `Status: pending` entries to `.learnings/` — no harness files are changed
 
-When you merge that PR, the next run of the affected agent reads the updated instructions. The factory gets smarter every day. If there are no failures, it calls noop. Silence is the correct signal when the factory is healthy.
+**2. Aggregate (weekly)**: `learning-aggregator-ci` runs every Monday. It:
+
+1. Reads all entries in `.learnings/` and groups them by `Pattern-Key`
+2. Downloads recent session transcript artifacts and finds patterns not yet in `.learnings/`
+3. Ranks groups by recurrence: promotion-ready (3+ recurrences) vs approaching threshold
+4. Creates a gap-report issue with a "Promotion-Ready" table
+
+**3. Promote (human-gated)**: A human reviews the gap-report issue. To promote:
+
+1. Add the `promote` label to the gap-report issue
+2. `self-improvement-promoter` triggers and opens a `[promote]` PR
+3. The PR writes prevention rules to `AGENTS.md`, `.github/copilot-instructions.md`, and `CLAUDE.md`
+4. When the PR merges, the next run of the affected agent reads the updated instructions
+
+The factory gets smarter after each weekly cycle. If there are no failures, `self-improvement-meta` calls noop. Silence is the correct signal when the factory is healthy.
 
 ## Controlling the Chain
 
@@ -281,10 +297,11 @@ Do not disable the guard to let the PR through. The guard is one line of `case` 
 | [`reviewer.md`](../.github/workflows/reviewer.md) | PR opened / updated | Plan-aware code review with implementer calibration. Refuses to review PRs that modify its own instructions (`.github/workflows/reviewer.md`, `.github/workflows/self-improvement-meta.md`, `.github/copilot-instructions.md`); applies `human-review` and noops instead. |
 | [`conflict-resolver.md`](../.github/workflows/conflict-resolver.md) | PR labeled `needs-rebase` | Merge `origin/main` into PR branch; push on clean merge (including workflow file changes), hand off on conflict |
 | [`ci-cleaner.md`](../.github/workflows/ci-cleaner.md) | CI failure on `main` | Run `ruff`, `pytest`, `gh aw compile` fix loop; open a PR with repairs; mandatory noop if no changes |
-| [`self-improvement-meta.md`](../.github/workflows/self-improvement-meta.md) | Nightly (~2am) | Extract learnings from failures, commit prevention rules |
+| [`self-improvement-meta.md`](../.github/workflows/self-improvement-meta.md) | Nightly (~2am) | Capture learnings from failures as pending entries in `.learnings/` |
 | [`contribution-checker.md`](../.github/workflows/contribution-checker.md) | PR opened / updated | Evaluate PR against CONTRIBUTING.md guidelines |
 | [`simplify-and-harden-ci.md`](../.github/workflows/simplify-and-harden-ci.md) | PR opened / updated | Scan changed files for simplicity and security issues |
 | [`learning-aggregator-ci.md`](../.github/workflows/learning-aggregator-ci.md) | Weekly (Monday) | Aggregate learnings, rank promotion candidates, create gap report |
+| [`self-improvement-promoter.md`](../.github/workflows/self-improvement-promoter.md) | Gap-report issue labeled `promote` | Human-gated: promote approved candidates from gap report into harness files |
 | [`eval-creator-ci.md`](../.github/workflows/eval-creator-ci.md) | PR opened / updated | Run regression checks against promoted learnings |
 | [`sync-factory-state.yml`](../.github/workflows/sync-factory-state.yml) | Issue/PR label/state change, cron every 10 min, `workflow_dispatch` | One-way mirror of factory labels onto the "AI Agent Factory" Projects v2 Status field; applies/removes the `your-turn` label as a side effect. Plain GitHub Actions, not gh-aw. |
 | [`agent-activity-tracker.yml`](../.github/workflows/agent-activity-tracker.yml) | Cron every 5 min, `workflow_dispatch` | Applies `agent-working` and `model:<name>` labels to items with at least one in-progress factory workflow; sweeps labels off when runs finish. Plain GitHub Actions, not gh-aw. |

@@ -299,6 +299,7 @@ The routing rules above are about the **implementer step** (who writes the code 
 | `pr-fix` | `/pr-fix` slash command | push-to-pull-request-branch, add-comment, create-issue | (none, githubnext/agentics) |
 | `simplify-and-harden-ci` | PR opened / updated | add-comment | simplify-and-harden |
 | `learning-aggregator-ci` | Weekly (Monday) | create-issue | learning-aggregator |
+| `self-improvement-promoter` | Gap-report issue labeled `promote` | create-pull-request, add-comment, add-labels | (none, reads gap-report issue body) |
 | `eval-creator-ci` | PR opened / updated | add-comment | eval-creator |
 | `ai-proficiency-pr-review` | PR opened / `/assess-proficiency` | add-comment | measure-ai-proficiency |
 | `ai-proficiency-weekly-report` | Weekly (Monday 9am) | create-issue | measure-ai-proficiency |
