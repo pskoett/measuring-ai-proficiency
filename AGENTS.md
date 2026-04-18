@@ -290,6 +290,7 @@ The routing rules above are about the **implementer step** (who writes the code 
 |----------|---------|-------------|-------|
 | `spec-refiner` | Issue labeled `needs-spec` | update-issue, add-comment, create-pull-request, add-labels, remove-labels | plan-interview |
 | `plan-merged-dispatcher` | Plan PR merged (path filter `docs/plans/plan-*.md`) | (plain Actions: edits source issue body, moves labels) | (none) |
+| `trigger-plan` | Issue labeled `needs-plan` | (plain Actions: edits source issue body, moves labels, adds comment) | (none) |
 | `implementer-dispatcher` | Source issue labeled `ready-for-implementation` | assign-to-agent, add-comment, add-labels | (none, reads `impl:*` label on the same issue) |
 | `reviewer` | PR opened / updated | add-comment, add-labels | intent-framed-agent |
 | `self-improvement-meta` | Nightly (~2am) | create-pull-request, create-issue | self-improvement |

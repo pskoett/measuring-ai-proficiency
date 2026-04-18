@@ -102,7 +102,7 @@ The factory is choreographed through labels. Create these once in **Issues > Lab
 
 | Label | Purpose |
 |-------|---------|
-| `needs-spec`, `needs-plan`, `spec-refined` | Spec refinement flow |
+| `needs-spec`, `needs-plan`, `spec-refined` | Spec refinement flow. `needs-plan` is applied by `spec-refiner` when a plan PR is opened; it is cleared automatically by `plan-merged-dispatcher` on plan PR merge or by `trigger-plan.yml` as a fallback. |
 | `blocked-on-human` | Agent needs human input before proceeding |
 | `ready-for-implementation`, `assigned-to-agent` | Implementation dispatch flow |
 | `impl:claude-opus`, `impl:claude-sonnet`, `impl:copilot`, `impl:codex` | Implementer routing |
@@ -232,7 +232,7 @@ When you merge that PR, the next run of the affected agent reads the updated ins
 | Action | How |
 |--------|-----|
 | **Pause any step** | Add the `human-review` label. All agents check for it and call noop. |
-| **Skip spec-refinement** | Label the issue `needs-plan` directly instead of `needs-spec` |
+| **Skip spec-refinement** | Label the issue `needs-plan` directly instead of `needs-spec`. `trigger-plan.yml` detects the absence of a plan file and `spec-refined` label, then transitions to `ready-for-implementation` automatically. |
 | **Skip automated review** | Label the PR `human-review` and review it yourself |
 | **Trigger manually** | Every workflow has `workflow_dispatch` enabled. Run from the Actions tab. |
 | **Fix a failing PR** | Comment `/pr-fix` on the PR |
@@ -279,6 +279,7 @@ Do not disable the guard to let the PR through. The guard is one line of `case` 
 |----------|---------|---------|
 | [`spec-refiner.md`](../.github/workflows/spec-refiner.md) | Issue labeled `needs-spec` | Structured plan file from issue context using plan-interview skill |
 | [`plan-merged-dispatcher.yml`](../.github/workflows/plan-merged-dispatcher.yml) | Plan PR merged (path filter on `docs/plans/plan-*.md`) | Write plan checklist onto source issue body, apply `ready-for-implementation`. Plain GitHub Actions, not gh-aw. |
+| [`trigger-plan.yml`](../.github/workflows/trigger-plan.yml) | Issue labeled `needs-plan` | Safety-net activator: (1) if a plan file exists in main, write checklist and apply `ready-for-implementation` (recovers from `plan-merged-dispatcher` failures); (2) if no plan file and no `spec-refined` label, transition directly (skip-spec path); (3) if `spec-refined` but no plan file, skip — plan PR is still open and `plan-merged-dispatcher` will fire on merge. Plain GitHub Actions, not gh-aw. |
 | [`implementer-dispatcher.md`](../.github/workflows/implementer-dispatcher.md) | Issue labeled `ready-for-implementation` | Assign source issue to Copilot cloud agent based on its `impl:*` label |
 | [`reviewer.md`](../.github/workflows/reviewer.md) | PR opened / updated | Plan-aware code review with implementer calibration. Refuses to review PRs that modify its own instructions (`.github/workflows/reviewer.md`, `.github/workflows/self-improvement-meta.md`, `.github/copilot-instructions.md`); applies `human-review` and noops instead. |
 | [`conflict-resolver.md`](../.github/workflows/conflict-resolver.md) | PR labeled `needs-rebase` | Merge `origin/main` into PR branch; push on clean merge (including workflow file changes), hand off on conflict |
@@ -333,11 +334,11 @@ Skills live in `.claude/skills/` and work identically in Claude Code, Codex CLI,
 | Label | Meaning | Set by |
 |-------|---------|--------|
 | `needs-spec` | Issue needs a structured plan file | Human |
-| `needs-plan` | Spec is ready, waiting for a plan PR | spec-refiner |
+| `needs-plan` | Spec is ready, plan PR is open (or `needs-plan` was applied manually to skip spec-refinement). Cleared automatically by `plan-merged-dispatcher` on plan PR merge, or by `trigger-plan.yml` as a fallback. | spec-refiner (or human) |
 | `needs-rebase` | PR branch is behind main and needs a merge | Human or reviewer |
 | `blocked-on-human` | Agent needs human input before proceeding | spec-refiner, conflict-resolver (and other workflows) |
 | `spec-refined` | Spec refinement is complete | spec-refiner |
-| `ready-for-implementation` | Source issue ready for a coding agent | plan-merged-dispatcher (plan-worthy path), spec-refiner (direct-route path) |
+| `ready-for-implementation` | Source issue ready for a coding agent | plan-merged-dispatcher (plan-worthy path), trigger-plan.yml (fallback), spec-refiner (direct-route path) |
 | `impl:claude-opus` | Assign to Claude Opus 4.6 | spec-refiner (or human) |
 | `impl:claude-sonnet` | Assign to Claude Sonnet 4.6 | spec-refiner (or human) |
 | `impl:copilot` | Assign to Copilot cloud agent | spec-refiner (or human) |

@@ -123,7 +123,7 @@ See `docs/MCP.md` for full documentation, examples, and troubleshooting.
 
 ## Agent Factory
 
-This repo runs an agent factory via [GitHub Agentic Workflows (gh-aw)](https://github.github.com/gh-aw/) plus one plain GitHub Actions workflow (`plan-merged-dispatcher`). The chain flows: triage, spec, plan, implement, review, fix, learn. The source issue is the unit of work end-to-end; there is no sub-issue layer.
+This repo runs an agent factory via [GitHub Agentic Workflows (gh-aw)](https://github.github.com/gh-aw/) plus two plain GitHub Actions workflows (`plan-merged-dispatcher`, `trigger-plan`). The chain flows: triage, spec, plan, implement, review, fix, learn. The source issue is the unit of work end-to-end; there is no sub-issue layer.
 
 **Workflows** live in `.github/workflows/*.md` and compile to `.lock.yml` files via `gh aw compile`.
 
@@ -139,7 +139,7 @@ This repo runs an agent factory via [GitHub Agentic Workflows (gh-aw)](https://g
 - Add a skill for workflows: create `.claude/skills/<name>/SKILL.md`, reference it from the workflow body
 - Debug a run: `gh aw logs <workflow>` or `gh aw audit <run-id>`
 
-**Factory chain:** issue-triage > spec-refiner (classifies: plan-worthy, direct-route, or blocked) > [plan-worthy: plan PR merged > plan-merged-dispatcher >] implementer-dispatcher > reviewer + contribution-checker > /pr-fix > ci-cleaner > self-improvement-meta (nightly)
+**Factory chain:** issue-triage > spec-refiner (classifies: plan-worthy, direct-route, or blocked) > [plan-worthy: plan PR merged > plan-merged-dispatcher (or trigger-plan fallback) >] implementer-dispatcher > reviewer + contribution-checker > /pr-fix > ci-cleaner > self-improvement-meta (nightly)
 
 **Human decisions:** (1) for plan-worthy issues: review and merge the plan PR (optionally swap the implementer label), (2) merge the final PR, (3) approve learnings. Direct-route issues skip step 1. Everything else is automated.
 
@@ -168,6 +168,7 @@ scripts/
 ├── contribution-checker.md      # CONTRIBUTING.md compliance
 ├── issue-triage.md              # Auto-label issues (githubnext/agentics)
 ├── plan-merged-dispatcher.yml   # Activates source issue on plan PR merge (plain Actions)
+├── trigger-plan.yml             # Fallback activator on issues.labeled needs-plan (plain Actions)
 ├── pr-fix.md                    # /pr-fix slash command (githubnext/agentics)
 ├── ai-proficiency-pr-review.md  # Proficiency score per PR
 ├── ai-proficiency-weekly-report.md  # Weekly proficiency trends

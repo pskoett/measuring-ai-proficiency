@@ -21,7 +21,7 @@ How the workflows in this repo chain together into a spec, plan, implement, revi
 |  conflict-resolver.md      contribution-checker.md           |
 |  ai-proficiency-pr-review.md ai-proficiency-weekly-report.md |
 |  issue-triage.md           plan-merged-dispatcher.yml        |
-|  pr-fix.md                                                   |
+|  pr-fix.md                 trigger-plan.yml                  |
 +-----------------------------+-------------------------------+
                               | reads skills from
                               v
@@ -198,7 +198,7 @@ Add the `human-review` label to any issue or PR. All agents in this pack check f
 
 ## How to fast-forward the chain
 
-Skip phases for simple changes by manually labeling. Want to skip spec-refinement? Label the issue `needs-plan` directly. Want to skip the reviewer? Label the PR `human-review` and review it yourself.
+Skip phases for simple changes by manually labeling. Want to skip spec-refinement? Label the issue `needs-plan` directly. `trigger-plan.yml` will detect the absence of a plan file, skip the `spec-refined` guard, and transition to `ready-for-implementation` automatically. Want to skip the reviewer? Label the PR `human-review` and review it yourself.
 
 The chain is opinionated, not rigid. You control which steps run.
 

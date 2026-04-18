@@ -59,6 +59,9 @@ spec-refiner  (classifies issue: plan-worthy, direct-route, or blocked)
      |                         v
      |                 plan-merged-dispatcher  (auto: writes plan checklist onto source issue,
      |                                          moves label needs-plan -> ready-for-implementation)
+     |                     +  trigger-plan     (fallback: fires on issues.labeled needs-plan;
+     |                                          activates if plan file already in main, or
+     |                                          transitions directly on the skip-spec path)
      |
      +--[direct route]--> adds impl:copilot + ready-for-implementation + assigned-to-agent;
      |                    calls assign-to-agent in the same run
