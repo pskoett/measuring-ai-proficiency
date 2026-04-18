@@ -6,16 +6,14 @@ name: Factory Smoke Test
 # needing a real feature task to ride through the chain.
 #
 # Triggers:
-#   - Manual workflow_dispatch for spot-checks after factory changes
-#   - Daily cron at 05:00 UTC — after the nightly self-improvement-meta
-#     window (~02:00 UTC) so smoke-dispatches don't compete with real runs
+#   - Manual workflow_dispatch only — run before/after factory changes or
+#     when you want a clean baseline. No cron: smoke runs dispatch real
+#     factory workflows and we don't want that happening unattended.
 #
 # Runs: scripts/factory-smoke.sh. Results surface as a step summary plus
 # the script's non-zero exit on any failure.
 
 on:
-  schedule:
-    - cron: '0 5 * * *'  # 05:00 UTC daily
   workflow_dispatch:
 
 permissions:
