@@ -233,9 +233,7 @@ nightly: self-improvement-meta (extracts learnings)
 | `needs-spec` | Trigger spec-refiner to write a plan |
 | `needs-changes` | Flag a PR for /pr-fix |
 | `human-review` | Halt all workflows on this issue/PR |
-| `impl:claude-opus` | Assign implementation to Claude Opus 4.6 |
-| `impl:claude-sonnet` | Assign implementation to Claude Sonnet 4.6 |
-| `impl:copilot` | Assign implementation to Copilot cloud agent |
+| `impl:copilot` | Assign implementation to Copilot cloud agent (factory auto-routes) |
 
 See `docs/AGENT_FACTORY.md` for the full usage guide.
 

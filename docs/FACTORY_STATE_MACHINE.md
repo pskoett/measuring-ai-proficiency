@@ -29,9 +29,6 @@ Four board lanes, derived from label semantics by [`sync-factory-state.yml`](../
 | `blocked-on-human` | Agent cannot proceed without human input | `spec-refiner`, `conflict-resolver` |
 | `spec-refined` | Spec refinement complete (informational) | `spec-refiner` |
 | `impl:copilot` | Implementer chosen (Copilot, auto-dispatch) | `spec-refiner` (or human) |
-| `impl:claude-opus` | Implementer chosen (Claude Opus, manual only) | human |
-| `impl:claude-sonnet` | Implementer chosen (Claude Sonnet, manual only) | human |
-| `impl:codex` | Implementer chosen (Codex, manual only) | human |
 | `ready-for-implementation` | Source issue ready; awaiting agent PR | `plan-merged-dispatcher` |
 | `assigned-to-agent` | Issue dispatched to Copilot cloud agent | `implementer-dispatcher` |
 | `ai-reviewed` | Reviewer passed; ready for human review | `reviewer` |
@@ -110,7 +107,6 @@ Issue opened
         └─► removes "needs-spec" from source issue
 
 [HUMAN] Human reviews plan PR
-        ├─► (optional) swaps "impl:copilot" to another "impl:*" label for manual routing
         └─► merges plan PR
 
   └─► plan-merged-dispatcher fires (plain GitHub Actions)
@@ -191,7 +187,7 @@ Weekly (independent of main chain)
 | "What triggers when a reviewer applies `needs-rebase`?" | `conflict-resolver` fires and attempts an automatic merge |
 | "How do I pause the chain?" | Add `human-review` to the issue or PR; all agents call noop |
 | "How do I skip spec-refinement?" | Label the issue `needs-plan` directly |
-| "What auto-routes vs. requires manual assignment?" | Only `impl:copilot` auto-routes; all other `impl:*` labels require UI assignment |
+| "What auto-routes vs. requires manual assignment?" | Only `impl:copilot` auto-routes; hand-assign Partner Agents (Claude, Codex) outside the factory if needed |
 | "Where is the board?" | [AI Agent Factory project](https://github.com/users/pskoett/projects/3). Labels are authoritative; the board is a read-only view. Setup details in [`AGENT_FACTORY.md#github-projects-board`](AGENT_FACTORY.md#github-projects-board). |
 | "Which lane means 'I need to do something'?" | 👉 Your turn. Filter the issue/PR list by `label:your-turn` for the same view. |
 | "How do I know if an agent is actively running on an issue?" | The `agent-working` label is applied while any factory workflow is in progress; `model:<name>` tells you which model. |
