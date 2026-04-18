@@ -11,6 +11,7 @@ permissions:
   actions: read
   issues: read
   pull-requests: read
+network: defaults
 tools:
   github:
     toolsets: [pull_requests, actions, issues]
