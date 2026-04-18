@@ -126,7 +126,7 @@ After updating documentation, update skills:
 
 The sections below are read by every agentic workflow in the factory chain. The factory consists of 14 workflows organized in three tiers:
 
-**Factory chain** (custom, skill-backed): `spec-refiner`, `plan-merged-dispatcher`, `implementer-dispatcher`, `reviewer`, `self-improvement-meta`, `ci-cleaner`, `contribution-checker`, `simplify-and-harden-ci`, `learning-aggregator-ci`, `eval-creator-ci`
+**Factory chain** (custom, skill-backed): `spec-refiner`, `plan-merged-dispatcher`, `trigger-plan`, `implementer-dispatcher`, `reviewer`, `self-improvement-meta`, `ci-cleaner`, `contribution-checker`, `simplify-and-harden-ci`, `learning-aggregator-ci`, `eval-creator-ci`
 **Support workflows** (from githubnext/agentics): `issue-triage`, `pr-fix`
 **Project-specific**: `ai-proficiency-pr-review`, `ai-proficiency-weekly-report`
 
@@ -266,7 +266,7 @@ The skills in `.claude/skills/` were originally designed for Claude Code. Runnin
 
 #### How the recommendation gets made
 
-`spec-refiner` classifies each issue and routes it. For plan-worthy issues, it adds a `## Recommended implementer` section to the plan file and applies `impl:copilot` to the source issue. Copilot is the only implementer the factory can auto-dispatch today. On merge of the plan PR, `plan-merged-dispatcher` writes the plan checklist onto the source issue body and applies `ready-for-implementation`, which triggers `implementer-dispatcher`.
+`spec-refiner` classifies each issue and routes it. For plan-worthy issues, it adds a `## Recommended implementer` section to the plan file and applies `impl:copilot` to the source issue. Copilot is the only implementer the factory can auto-dispatch today. On merge of the plan PR, `plan-merged-dispatcher` writes the plan checklist onto the source issue body and applies `ready-for-implementation`, which triggers `implementer-dispatcher`. When a human labels an issue `needs-plan` directly (skip-spec shortcut), `trigger-plan` fires instead and activates the issue via the same label cascade.
 
 For simple, clearly bounded issues, `spec-refiner` skips the plan file, applies `ready-for-implementation` and `impl:copilot`, and calls `assign-to-agent` directly in the same run. No plan PR, no merge gate, no dependency on `implementer-dispatcher`. GitHub's anti-loop rule blocks `GITHUB_TOKEN` label events from triggering downstream workflows, so direct-route assignment happens inside `spec-refiner` rather than waiting for a cascade.
 
@@ -289,6 +289,7 @@ The routing rules above are about the **implementer step** (who writes the code 
 |----------|---------|-------------|-------|
 | `spec-refiner` | Issue labeled `needs-spec` | update-issue, add-comment, create-pull-request, add-labels, remove-labels | plan-interview |
 | `plan-merged-dispatcher` | Plan PR merged (path filter `docs/plans/plan-*.md`) | (plain Actions: edits source issue body, moves labels) | (none) |
+| `trigger-plan` | Issue labeled `needs-plan` | (plain Actions: activates skip-spec shortcut or merged-plan recovery; moves labels) | (none) |
 | `implementer-dispatcher` | Source issue labeled `ready-for-implementation` | assign-to-agent, add-comment, add-labels | (none, assigns Copilot via `impl:copilot` label) |
 | `reviewer` | PR opened / updated | add-comment, add-labels | intent-framed-agent |
 | `conflict-resolver` | PR labeled `needs-rebase` | push-to-pull-request-branch, add-labels | (none) |
