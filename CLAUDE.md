@@ -139,9 +139,9 @@ This repo runs an agent factory via [GitHub Agentic Workflows (gh-aw)](https://g
 - Add a skill for workflows: create `.claude/skills/<name>/SKILL.md`, reference it from the workflow body
 - Debug a run: `gh aw logs <workflow>` or `gh aw audit <run-id>`
 
-**Factory chain:** issue-triage > spec-refiner > plan PR merged > plan-merged-dispatcher > implementer-dispatcher > reviewer + contribution-checker > /pr-fix > ci-cleaner > self-improvement-meta (nightly)
+**Factory chain:** issue-triage > spec-refiner (classifies: plan-worthy, direct-route, or blocked) > [plan-worthy: plan PR merged > plan-merged-dispatcher >] implementer-dispatcher > reviewer + contribution-checker > /pr-fix > ci-cleaner > self-improvement-meta (nightly)
 
-**Human decisions:** (1) review and merge the plan PR (optionally swap the implementer label), (2) merge the final PR, (3) approve learnings. Everything else is automated.
+**Human decisions:** (1) for plan-worthy issues: review and merge the plan PR (optionally swap the implementer label), (2) merge the final PR, (3) approve learnings. Direct-route issues skip step 1. Everything else is automated.
 
 ## Architecture
 

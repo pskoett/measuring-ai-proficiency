@@ -50,15 +50,22 @@ issue-triage  (auto: labels, spam check)
 [human] adds `needs-spec` label
      |
      v
-spec-refiner  (produces docs/plans/plan-NNN-<slug>.md as PR + implementer label)
+spec-refiner  (classifies issue: plan-worthy, direct-route, or blocked)
      |
-[human] merges plan PR  <-- GATE 1
+     +--[plan-worthy]----> produces docs/plans/plan-NNN-<slug>.md as PR + implementer label
+     |                         |
+     |               [human] merges plan PR  <-- GATE 1 (plan-worthy only)
+     |                         |
+     |                         v
+     |                 plan-merged-dispatcher  (auto: writes plan checklist onto source issue,
+     |                                          moves label needs-plan -> ready-for-implementation)
      |
-     v
-plan-merged-dispatcher  (auto: writes plan checklist onto source issue,
-                         moves label needs-plan -> ready-for-implementation)
+     +--[direct route]--> adds impl:copilot + ready-for-implementation directly
+     |                    (no plan PR, no GATE 1)
      |
-     v
+     +--[blocked]--------> adds blocked-on-human; human resolves before anything else runs
+     |
+     v (ready-for-implementation)
 implementer-dispatcher  (auto: assigns source issue to the chosen agent)
      |
      v
@@ -78,7 +85,7 @@ self-improvement-meta  (opens learnings PR)
 [human] approves learnings PR  <-- GATE 3
 ```
 
-Three human decisions: approve plan PR, merge feature PR, approve learnings PR. Everything else is choreographed.
+Two or three human decisions depending on the path: for plan-worthy issues: approve plan PR (GATE 1), merge feature PR (GATE 2), approve learnings PR (GATE 3). For direct-route issues: GATE 1 is skipped. Everything else is choreographed.
 
 ## How to start a new piece of work
 
@@ -153,9 +160,11 @@ These are the concrete failure modes this factory has hit. When you see symptoms
 
 ### Symptom: Plan PR does not appear after labeling the issue `needs-spec`
 
-**Cause**: Usually missing secret (`COPILOT_GITHUB_TOKEN`), Copilot coding agent not enabled, or the `blocked-on-human` label already on the issue.
+**Cause**: Two possibilities. First: spec-refiner classified the issue as direct-route and fast-tracked it without a plan PR. Check the issue for a comment from spec-refiner and an `impl:copilot` + `ready-for-implementation` label. If both are present, no plan PR is expected. Second: the workflow failed. Usually a missing secret (`COPILOT_GITHUB_TOKEN`), Copilot coding agent not enabled, or the `blocked-on-human` label already on the issue.
 
-**Action**: Check `gh aw status` and the most recent run in the Actions tab. If the run shows "NEEDS HUMAN INPUT", read its comment for the missing context, answer in the issue, remove `blocked-on-human`, and re-trigger.
+**Action for direct-route**: No action needed. The issue is queued for `implementer-dispatcher`. If you want a plan PR anyway, remove `ready-for-implementation`, add `needs-spec`, and comment on the issue to ask spec-refiner to treat it as plan-worthy.
+
+**Action for workflow failure**: Check `gh aw status` and the most recent run in the Actions tab. If the run shows "NEEDS HUMAN INPUT", read its comment for the missing context, answer in the issue, remove `blocked-on-human`, and re-trigger.
 
 ### Symptom: lock-file-sync CI job fails with "stale pair" errors
 
@@ -210,4 +219,4 @@ Every PR you open into this repo, factory or bypass, must:
 
 ## One-line summary for your own reference
 
-The factory is an issue-first, label-driven choreography: write a crisp issue with `needs-spec`, let the agents produce a plan PR, merge it, let the implementer open the feature PR, let the reviewer verdict, react to the label, let the user merge, and file any gaps you see as new `needs-spec` issues so the factory improves itself.
+The factory is an issue-first, label-driven choreography: write a crisp issue with `needs-spec`, let spec-refiner classify it (plan PR for complex work, direct route for trivial work), merge the plan PR if one exists, let the implementer open the feature PR, let the reviewer verdict, react to the label, let the user merge, and file any gaps you see as new `needs-spec` issues so the factory improves itself.

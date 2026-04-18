@@ -16,17 +16,21 @@ issue-triage (auto-labels by type, detects spam)
 human adds "needs-spec" label
   |
   v
-spec-refiner (plan file + implementer label on issue)
+spec-refiner (classifies issue, chooses one of three paths)
   |
-  v
-human reviews plan PR, optionally swaps implementer label  <-- ONE decision
-  |
-  v
-human merges plan PR
-  |
-  v
-plan-merged-dispatcher (plain Actions: writes plan checklist onto source issue body,
-                        transitions needs-plan -> ready-for-implementation)
+  +---> [plan-worthy] plan file PR + impl:copilot + needs-plan
+  |       |
+  |       v
+  |     human reviews plan PR, optionally swaps implementer label  <-- ONE decision
+  |       |
+  |       v
+  |     human merges plan PR
+  |       |
+  |       v
+  |     plan-merged-dispatcher (plain Actions: writes plan checklist onto source issue body,
+  |                             transitions needs-plan -> ready-for-implementation)
+  |       |
+  +---> [direct route] no plan PR; impl:copilot + ready-for-implementation added directly
   |
   v
 implementer-dispatcher (auto-assigns the source issue based on its impl:* label)
@@ -49,6 +53,8 @@ CI failure on main? ---> ci-cleaner (lint, test, compile fix loop)
   v
 nightly ---> self-improvement-meta (extract learnings, commit guardrails)
 ```
+
+**Blocked path**: if spec-refiner classifies the issue as terminal or blocked (spam, duplicate, missing context), it removes `needs-spec`, adds `blocked-on-human`, and posts a comment. No plan PR, no dispatch. A human resolves.
 
 State lives in GitHub, not in memory. Each agent starts cold. Every handoff is mediated by a file, a label, or a PR. This makes the chain debuggable: you can inspect the state at any point by looking at the repo.
 
@@ -136,14 +142,24 @@ The `issue-triage` workflow fires automatically on new issues. It reads the cont
 
 After triage, add the `needs-spec` label to start the factory chain.
 
-The `spec-refiner` workflow triggers. It reads the issue, runs the `plan-interview` skill, and produces:
+The `spec-refiner` workflow triggers and classifies the issue into one of three paths:
+
+**Plan-worthy (most issues):** spec-refiner reads the issue, runs the `plan-interview` skill, and produces:
 - A plan file at `docs/plans/plan-NNN-<slug>.md` where **NNN is the source issue number** (for example, issue #61 produces `plan-061-*.md`). This prevents numbering races when parallel plans land and guarantees one plan per issue (opened as a PR).
 - An `impl:copilot` label on the source issue. Only Copilot is auto-assignable today; see Step 3 for the reasoning.
-- A label swap: `needs-spec` removed, `needs-plan` added
+- A label swap: `needs-spec` removed, `needs-plan` added.
+
+**Direct route (simple, clearly bounded issues):** spec-refiner skips the plan file entirely. It removes `needs-spec`, adds `impl:copilot` and `ready-for-implementation`, and posts a short comment. `implementer-dispatcher` picks up the issue immediately. No plan PR, no Step 3 merge gate. Typical examples: single-file bug fix, dependency bump, one-line config change.
+
+**Terminal or blocked:** spec-refiner removes `needs-spec`, adds `blocked-on-human`, and posts a comment explaining what a human must do. This covers spam, duplicates, issues with missing context, and issues already labeled `human-review`. No further automation runs until a human acts.
+
+After the workflow runs, every `needs-spec` issue is in exactly one of these three next states: waiting for a plan PR review, routed to implementation, or clearly labeled `blocked-on-human`. No issue stays stuck in `needs-spec` after spec-refiner has run.
 
 If the agent cannot answer something from context alone, it marks the gap with **NEEDS HUMAN INPUT** and adds the `blocked-on-human` label. Add a comment with the missing context, remove the label, and re-trigger.
 
 ### Step 3: Review the Plan and Choose an Implementer
+
+*This step applies to the plan-worthy path only. Direct-route issues skip to Step 4.*
 
 Read the plan PR. Check the success criteria, the implementation checklist, and the recommended implementer.
 
@@ -162,9 +178,9 @@ On merge, `plan-merged-dispatcher` (a plain GitHub Actions workflow) reads the m
 
 ### Step 4: Auto-Assignment (No Manual Work)
 
-The `implementer-dispatcher` workflow triggers when the **source issue** receives the `ready-for-implementation` label. It reads the `impl:*` label from that same issue and calls `assign-to-agent` when the label is `impl:copilot`.
+The `implementer-dispatcher` workflow triggers when the **source issue** receives the `ready-for-implementation` label. This label is applied by `plan-merged-dispatcher` (plan-worthy path) or directly by `spec-refiner` (direct-route path). Either way, `implementer-dispatcher` reads the `impl:*` label from the issue and calls `assign-to-agent` when the label is `impl:copilot`.
 
-You assigned once at Step 3. No sub-issue layer, no parent-issue lookup, no manual assignment.
+No sub-issue layer, no parent-issue lookup, no manual assignment.
 
 The agent opens a PR with its implementation.
 
@@ -314,7 +330,7 @@ Skills live in `.claude/skills/` and work identically in Claude Code, Codex CLI,
 | `needs-rebase` | PR branch is behind main and needs a merge | Human or reviewer |
 | `blocked-on-human` | Agent needs human input before proceeding | spec-refiner, conflict-resolver (and other workflows) |
 | `spec-refined` | Spec refinement is complete | spec-refiner |
-| `ready-for-implementation` | Source issue ready for a coding agent | plan-merged-dispatcher |
+| `ready-for-implementation` | Source issue ready for a coding agent | plan-merged-dispatcher (plan-worthy path), spec-refiner (direct-route path) |
 | `impl:claude-opus` | Assign to Claude Opus 4.6 | spec-refiner (or human) |
 | `impl:claude-sonnet` | Assign to Claude Sonnet 4.6 | spec-refiner (or human) |
 | `impl:copilot` | Assign to Copilot cloud agent | spec-refiner (or human) |

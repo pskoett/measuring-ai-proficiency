@@ -189,16 +189,21 @@ issue-triage (auto-labels by type)
 human adds "needs-spec" label
   |
   v
-spec-refiner (creates plan file, adds implementer label)
+spec-refiner (classifies issue: plan-worthy, direct-route, or blocked)
+  |
+  +---> [plan-worthy] creates plan file PR + implementer label
+  |       |
+  |       v
+  |     human approves plan PR (the one decision point)
+  |       |
+  |       v
+  |     plan-merged-dispatcher (writes checklist onto source issue,
+  |                             moves needs-plan -> ready-for-implementation)
+  |       |
+  +---> [direct route] adds impl:copilot + ready-for-implementation directly
   |
   v
-human approves plan PR (the one decision point)
-  |
-  v
-/plan (breaks plan into sub-issues)
-  |
-  v
-implementer-dispatcher (assigns sub-issues to chosen agent)
+implementer-dispatcher (assigns source issue to chosen agent)
   |
   v
 PR opened
@@ -216,9 +221,9 @@ nightly: self-improvement-meta (extracts learnings)
 ### What This Means for Human Contributors
 
 - File an issue normally. The `issue-triage` workflow will label it automatically.
-- Add `needs-spec` to trigger `spec-refiner`, which writes a plan PR for your review.
-- Review and approve (or edit) the plan PR. This is the one human decision gate.
-- After plan approval, agents handle implementation, review, and CI fixes.
+- Add `needs-spec` to trigger `spec-refiner`. For plan-worthy issues, spec-refiner writes a plan PR for your review. For simple, clearly bounded issues (dependency bumps, single-file fixes), spec-refiner fast-tracks directly to implementation with no plan PR needed.
+- For plan-worthy issues: review and approve (or edit) the plan PR. This is the one human decision gate.
+- After plan approval (or direct-route fast-track), agents handle implementation, review, and CI fixes.
 - You can still contribute code directly by opening a PR. The `reviewer` and `contribution-checker` workflows will review it.
 
 ### Labels Used by the Factory
