@@ -1,3 +1,8 @@
+---
+plan-id: plan-194
+status: shipped
+shipped-in: "#194"
+---
 # Plan 194: Raise eval-creator-ci visibility with a regression label
 
 **Source issue**: #194

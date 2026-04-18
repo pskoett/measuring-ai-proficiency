@@ -1,3 +1,8 @@
+---
+plan-id: plan-003
+status: superseded
+superseded-by: plan-136
+---
 # Plan 003: Give reviewer sibling-PR awareness for multi-PR plans
 
 **Source issue**: #62

@@ -1,3 +1,8 @@
+---
+plan-id: plan-161
+status: shipped
+shipped-in: "#161"
+---
 # Plan 161: Add one-page factory state-machine doc
 
 **Source issue**: #161

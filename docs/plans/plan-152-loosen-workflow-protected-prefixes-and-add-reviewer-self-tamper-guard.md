@@ -1,3 +1,8 @@
+---
+plan-id: plan-152
+status: shipped
+shipped-in: "#152"
+---
 # Plan 152: Loosen workflow protected prefixes and add reviewer self-tamper guard
 
 **Source issue**: #152

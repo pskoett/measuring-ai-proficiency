@@ -1,3 +1,8 @@
+---
+plan-id: plan-002
+status: shipped
+shipped-in: "#61"
+---
 # Plan 002: Add conflict-resolver workflow for parallel PR merges
 
 **Source issue**: #61

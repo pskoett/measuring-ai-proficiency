@@ -1,3 +1,8 @@
+---
+plan-id: plan-097
+status: shipped
+shipped-in: "#97"
+---
 # Plan 097: Capture cloud-agent session transcripts for the learning loop
 
 **Source issue**: #97

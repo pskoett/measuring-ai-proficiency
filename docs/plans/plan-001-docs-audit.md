@@ -1,3 +1,8 @@
+---
+plan-id: plan-001
+status: shipped
+shipped-in: "#32"
+---
 # Plan 001: Audit and update all docs/ files
 
 **Source issue**: #32

@@ -1,3 +1,8 @@
+---
+plan-id: plan-204
+status: shipped
+shipped-in: "#204"
+---
 # Plan 204: Broaden `pr-fix` allowed-files for reviewer follow-ups
 
 **Source issue**: #204

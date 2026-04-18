@@ -72,6 +72,17 @@ For Path 1 issues: read `.claude/skills/plan-interview/SKILL.md` in full and fol
 
 This is a single-shot gh-aw run, not a live session. Follow the skill's process, but when it expects to ask the user questions, apply rule 1 from the "Adapting skills for single-shot gh-aw runs" section of `AGENTS.md`: simulate the interview by answering from issue context, and mark anything you cannot answer with confidence using `**NEEDS HUMAN INPUT**` plus a specific question.
 
+## Plan file lifecycle (read before consulting any plan)
+
+Plan files in `docs/plans/` carry YAML frontmatter with a `status` field. Before treating any plan as authoritative, check its status:
+
+- `status: active` — current design. Treat as authoritative.
+- `status: shipped` — historical. The plan was implemented. Use it as background context only; verify current state against the code.
+- `status: superseded` — historical. A newer plan replaced it. Check the `superseded-by` field for the replacement.
+- `status: abandoned` — historical. Do not use as design reference.
+
+**Do not quote or implement a `shipped`, `superseded`, or `abandoned` plan as though it describes the current system.** Always confirm against the live code and any `active` plan when there is a conflict.
+
 ## Implementer recommendation (Path 1 only)
 
 Before writing the PR, append a `## Recommended implementer` section to the plan file.

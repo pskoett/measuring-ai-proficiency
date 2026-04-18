@@ -1,3 +1,8 @@
+---
+plan-id: plan-171
+status: shipped
+shipped-in: "#171"
+---
 # Plan 171: Harden spec-refiner plan PR bodies against closing keywords
 
 **Source issue**: #171
