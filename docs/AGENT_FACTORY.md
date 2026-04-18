@@ -224,7 +224,7 @@ When you merge that PR, the next run of the affected agent reads the updated ins
 | Action | How |
 |--------|-----|
 | **Pause any step** | Add the `human-review` label. All agents check for it and call noop. |
-| **Skip spec-refinement** | Label the issue `needs-plan` directly instead of `needs-spec` |
+| **Skip spec-refinement** | Label the issue `needs-plan` directly instead of `needs-spec`. `trigger-plan` fires automatically and activates the issue into `ready-for-implementation`. |
 | **Skip automated review** | Label the PR `human-review` and review it yourself |
 | **Trigger manually** | Every workflow has `workflow_dispatch` enabled. Run from the Actions tab. |
 | **Fix a failing PR** | Comment `/pr-fix` on the PR |
@@ -271,6 +271,7 @@ Do not disable the guard to let the PR through. The guard is one line of `case` 
 |----------|---------|---------|
 | [`spec-refiner.md`](../.github/workflows/spec-refiner.md) | Issue labeled `needs-spec` | Structured plan file from issue context using plan-interview skill |
 | [`plan-merged-dispatcher.yml`](../.github/workflows/plan-merged-dispatcher.yml) | Plan PR merged (path filter on `docs/plans/plan-*.md`) | Write plan checklist onto source issue body, apply `ready-for-implementation`. Plain GitHub Actions, not gh-aw. |
+| [`trigger-plan.yml`](../.github/workflows/trigger-plan.yml) | Issue labeled `needs-plan` | Activate issue when `needs-plan` is applied manually (skip-spec shortcut). Three-path: merged-plan recovery, skip-spec direct activation, or leave-alone when plan PR is still in flight. Plain GitHub Actions, not gh-aw. |
 | [`implementer-dispatcher.md`](../.github/workflows/implementer-dispatcher.md) | Issue labeled `ready-for-implementation` | Assign source issue to Copilot cloud agent based on its `impl:*` label |
 | [`reviewer.md`](../.github/workflows/reviewer.md) | PR opened / updated | Plan-aware code review with implementer calibration. Refuses to review PRs that modify its own instructions (`.github/workflows/reviewer.md`, `.github/workflows/self-improvement-meta.md`, `.github/copilot-instructions.md`); applies `human-review` and noops instead. |
 | [`conflict-resolver.md`](../.github/workflows/conflict-resolver.md) | PR labeled `needs-rebase` | Merge `origin/main` into PR branch; push on clean merge (including workflow file changes), hand off on conflict |

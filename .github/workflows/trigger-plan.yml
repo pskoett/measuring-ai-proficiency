@@ -1,0 +1,134 @@
+name: Trigger Plan
+
+on:
+  issues:
+    types: [labeled]
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  activate:
+    if: github.event.label.name == 'needs-plan'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout plan files
+        uses: actions/checkout@v5
+        with:
+          sparse-checkout: docs/plans
+          sparse-checkout-cone-mode: false
+          token: ${{ secrets.GH_AW_AGENT_TOKEN }}
+
+      - name: Activate source issue
+        env:
+          # Must be a PAT, not the default GITHUB_TOKEN. Events produced by
+          # GITHUB_TOKEN do not trigger downstream workflows (GitHub's
+          # anti-loop rule), which would leave `implementer-dispatcher`
+          # inert on the `ready-for-implementation` label added below.
+          # Uses GH_AW_AGENT_TOKEN because it already exists as a
+          # configured secret in this repo and is scoped for issue editing
+          # and label-event cascades.
+          GH_TOKEN: ${{ secrets.GH_AW_AGENT_TOKEN }}
+          ISSUE_NUMBER: ${{ github.event.issue.number }}
+        run: |
+          set -euo pipefail
+
+          # Fetch current issue state and labels in one call.
+          issue_json=$(gh issue view "$ISSUE_NUMBER" --json state,labels)
+          state=$(printf '%s' "$issue_json" | jq -r .state)
+          labels=$(printf '%s' "$issue_json" | jq -r '[.labels[].name] | join(",")')
+
+          # Guard: skip closed issues.
+          if [ "$state" = "CLOSED" ]; then
+            echo "Issue #$ISSUE_NUMBER is closed. Skipping."
+            exit 0
+          fi
+
+          # Guard: skip issues labeled human-review (emergency stop).
+          if printf '%s' "$labels" | grep -q "human-review"; then
+            echo "Issue #$ISSUE_NUMBER has human-review label. Skipping."
+            exit 0
+          fi
+
+          # Guard: skip issues already past activation.
+          if printf '%s' "$labels" | grep -qE "(^|,)(ready-for-implementation|assigned-to-agent)(,|$)"; then
+            echo "Issue #$ISSUE_NUMBER already has ready-for-implementation or assigned-to-agent. Skipping."
+            exit 0
+          fi
+
+          # Locate a plan file for this issue (format: plan-NNN-slug.md).
+          issue_padded=$(printf '%03d' "$ISSUE_NUMBER")
+          plan_file=$(find docs/plans -maxdepth 1 -name "plan-${issue_padded}-*.md" 2>/dev/null | head -1 || true)
+
+          if [ -n "$plan_file" ]; then
+            # PATH 1: A merged plan file exists. Recover the normal activation
+            # flow by copying the implementation checklist into the source
+            # issue body using the same marker contract as plan-merged-dispatcher.
+            echo "Found plan file: $plan_file — running merged-plan recovery path."
+            plan_slug=$(basename "$plan_file" .md)
+            marker_begin="<!-- plan-checklist:${plan_slug}:begin -->"
+            marker_end="<!-- plan-checklist:${plan_slug}:end -->"
+
+            checklist=$(awk '
+              /^## Implementation Checklist[[:space:]]*$/ { grab=1; next }
+              grab && /^## / { exit }
+              grab { print }
+            ' "$plan_file")
+
+            if [ -n "$(printf '%s' "$checklist" | tr -d '[:space:]')" ]; then
+              current_body=$(gh issue view "$ISSUE_NUMBER" --json body --jq .body)
+
+              cleaned_body=$(printf '%s' "$current_body" \
+                | awk -v begin="$marker_begin" -v end="$marker_end" '
+                    index($0, begin) { skip=1; next }
+                    skip && index($0, end) { skip=0; next }
+                    !skip { print }
+                  ')
+
+              cleaned_body=$(printf '%s' "$cleaned_body" | awk '
+                /^[[:space:]]*$/ { blank++; next }
+                { for (i=0;i<blank;i++) print ""; blank=0; print }
+              ')
+
+              {
+                printf '%s\n' "$cleaned_body"
+                printf '\n%s\n' "$marker_begin"
+                printf '## Implementation Checklist (from %s)\n\n' "$plan_slug"
+                printf '%s\n' "$checklist"
+                printf '%s\n' "$marker_end"
+              } > /tmp/issue_body.md
+
+              gh issue edit "$ISSUE_NUMBER" --body-file /tmp/issue_body.md
+            else
+              echo "Plan file has no Implementation Checklist section; activating without checklist."
+            fi
+
+            gh issue edit "$ISSUE_NUMBER" --remove-label needs-plan 2>/dev/null || true
+            gh issue edit "$ISSUE_NUMBER" --remove-label needs-spec 2>/dev/null || true
+            gh issue edit "$ISSUE_NUMBER" --add-label ready-for-implementation
+            echo "Activated issue #$ISSUE_NUMBER via merged-plan recovery."
+
+          elif printf '%s' "$labels" | grep -q "spec-refined"; then
+            # PATH 3: No merged plan file but spec-refiner already ran
+            # (spec-refined label is present). A plan PR is still in flight.
+            # Leave the issue alone so plan-merged-dispatcher remains the
+            # sole owner of this activation path.
+            echo "Issue #$ISSUE_NUMBER has spec-refined label; plan PR still in flight. Leaving for plan-merged-dispatcher."
+
+          else
+            # PATH 2: No merged plan file and spec-refiner has not run.
+            # This is a deliberate skip-spec shortcut: the human labeled
+            # needs-plan directly. Activate into dispatch.
+            echo "No plan file and no spec-refined label; activating as skip-spec shortcut."
+
+            # Ensure impl:copilot is present so implementer-dispatcher can route.
+            if ! printf '%s' "$labels" | grep -q "impl:copilot"; then
+              gh issue edit "$ISSUE_NUMBER" --add-label impl:copilot
+            fi
+
+            gh issue edit "$ISSUE_NUMBER" --remove-label needs-plan 2>/dev/null || true
+            gh issue edit "$ISSUE_NUMBER" --remove-label needs-spec 2>/dev/null || true
+            gh issue edit "$ISSUE_NUMBER" --add-label ready-for-implementation
+            echo "Activated issue #$ISSUE_NUMBER via skip-spec shortcut."
+          fi

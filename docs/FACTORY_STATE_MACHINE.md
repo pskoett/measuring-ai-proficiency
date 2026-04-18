@@ -25,7 +25,7 @@ Four board lanes, derived from label semantics by [`sync-factory-state.yml`](../
 | Label | Meaning | Set by |
 |-------|---------|--------|
 | `needs-spec` | Needs a structured plan file | Human |
-| `needs-plan` | Spec done; plan PR in flight | `spec-refiner` |
+| `needs-plan` | Spec done; plan PR in flight | `spec-refiner` (or human, for skip-spec shortcut) |
 | `blocked-on-human` | Agent cannot proceed without human input | `spec-refiner`, `conflict-resolver` |
 | `spec-refined` | Spec refinement complete (informational) | `spec-refiner` |
 | `impl:copilot` | Implementer chosen (Copilot, auto-dispatch) | `spec-refiner` (or human) |
@@ -69,6 +69,7 @@ All factory workflows. Plain GitHub Actions workflows are marked **[Actions]**; 
 | `issue-triage` | `issues: [opened, reopened]` | Any issue | Applies type/priority labels, posts analysis comment |
 | `spec-refiner` | `issues: [labeled]` | `needs-spec` label | Opens plan PR (`[plan] Plan NNN`), adds `needs-plan` + `impl:copilot`, removes `needs-spec` |
 | `plan-merged-dispatcher` **[Actions]** | `pull_request: [closed]` (merged) | Path `docs/plans/plan-*.md` | Writes plan checklist onto source issue body, removes `needs-plan`, adds `ready-for-implementation` |
+| `trigger-plan` **[Actions]** | `issues: [labeled]` | `needs-plan` label | Three-path activation: (1) merged plan file found → checklist recovery; (2) no plan file, no `spec-refined` → skip-spec direct activation; (3) `spec-refined` present → leave for `plan-merged-dispatcher` |
 | `implementer-dispatcher` | `issues: [labeled]` | `ready-for-implementation` label | Assigns source issue to Copilot cloud agent (`assign-to-agent`), adds `assigned-to-agent` |
 | `reviewer` | `pull_request: [opened, ready_for_review, synchronize]` | Bot authors only | Posts structured review comment, applies `ai-reviewed` / `needs-changes` / `fast-track`; adds `needs-rebase` when PR is behind main |
 | `contribution-checker` | `pull_request: [opened, synchronize, ready_for_review]` | Bot authors only | Posts CONTRIBUTING.md compliance check comment |
@@ -186,7 +187,7 @@ Weekly (independent of main chain)
 | "What happens when a human merges a plan PR?" | `plan-merged-dispatcher` writes the checklist and adds `ready-for-implementation` |
 | "What triggers when a reviewer applies `needs-rebase`?" | `conflict-resolver` fires and attempts an automatic merge |
 | "How do I pause the chain?" | Add `human-review` to the issue or PR; all agents call noop |
-| "How do I skip spec-refinement?" | Label the issue `needs-plan` directly |
+| "How do I skip spec-refinement?" | Label the issue `needs-plan` directly. `trigger-plan` fires automatically and activates the issue. |
 | "What auto-routes vs. requires manual assignment?" | Only `impl:copilot` auto-routes; hand-assign Partner Agents (Claude, Codex) outside the factory if needed |
 | "Where is the board?" | [AI Agent Factory project](https://github.com/users/pskoett/projects/3). Labels are authoritative; the board is a read-only view. Setup details in [`AGENT_FACTORY.md#github-projects-board`](AGENT_FACTORY.md#github-projects-board). |
 | "Which lane means 'I need to do something'?" | 👉 Your turn. Filter the issue/PR list by `label:your-turn` for the same view. |
