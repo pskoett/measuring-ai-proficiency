@@ -16,7 +16,13 @@ name: Sync Factory State
 on:
   issues:
     types: [opened, edited, labeled, unlabeled, closed, reopened, transferred]
-  pull_request:
+  # pull_request_target runs in the base branch's trusted context, which
+  # bypasses GitHub's "require approval for outside collaborators" gate.
+  # Copilot-authored PRs (app/copilot-swe-agent) would otherwise land every
+  # sync run in action_required limbo, leaving the PR invisible on the board.
+  # Safe here: this workflow only calls the GitHub API via PROJECTS_PAT —
+  # it never checks out or executes code from the PR branch.
+  pull_request_target:
     types: [opened, edited, labeled, unlabeled, closed, reopened, ready_for_review, converted_to_draft]
   schedule:
     - cron: '*/10 * * * *'  # reconcile all open items every 10 min as a safety net
