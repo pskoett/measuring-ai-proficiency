@@ -8,9 +8,13 @@ Managed by `eval-creator-ci`. Do not edit manually unless adding a hand-crafted 
 
 | Eval ID | Source | Target | Method | Pattern |
 |---------|--------|--------|--------|---------|
-| [EVAL-001](.evals/cases/EVAL-001.md) | plan-003 sibling PR awareness | `.github/workflows/reviewer.md` | grep-check | `Deferred` |
-| [EVAL-002](.evals/cases/EVAL-002.md) | plan-003 sibling PR awareness | `.github/workflows/reviewer.md` | grep-check | `Deferred: covered by #NN` |
-| [EVAL-003](.evals/cases/EVAL-003.md) | plan-003 sibling PR awareness | `.github/workflows/reviewer.md` | grep-check | `neither the current PR nor any sibling PR` |
+| [EVAL-004](.evals/cases/EVAL-004.md) | spec-refiner `Fixes #NN` bug (`.learnings/ERRORS.md`, 2026-04-17) | `.github/workflows/spec-refiner.md` | grep-check | ``NEVER** write `Closes`` |
+
+## Retired cases
+
+| Eval ID | Retired | Reason |
+|---------|---------|--------|
+| EVAL-001 / EVAL-002 / EVAL-003 | 2026-04-18 | All three tested sibling-PR awareness strings (`Deferred`, `Deferred: covered by #NN`, `neither the current PR nor any sibling PR`) in `reviewer.md`. The #138 refactor deliberately removed the sibling-PR model, so every eval failed on every PR by design. Lesson: evals must track current product, not historical implementations. |
 
 ## Format
 
