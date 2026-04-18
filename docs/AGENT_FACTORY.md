@@ -346,6 +346,18 @@ Skills live in `.claude/skills/` and work identically in Claude Code, Codex CLI,
 
 The factory auto-routes to Copilot only. `impl:copilot` is the one routing signal; `implementer-dispatcher` calls `assign-to-agent` for that label. If you want to hand off to a different implementer (Claude, Codex), do that outside the factory via the GitHub UI assignees picker after `plan-merged-dispatcher` activates the source issue.
 
+## Migration note: issues that predate the sub-issue removal
+
+If you have an issue that was in-flight through the old `/plan` → sub-issue factory chain when this refactor landed, the sub-issues and the old dispatcher path no longer exist. The source issue is now the direct unit of work.
+
+To restart the chain for any stranded source issue, apply `ready-for-implementation` directly:
+
+```bash
+gh issue edit <issue-number> --add-label ready-for-implementation
+```
+
+This triggers `implementer-dispatcher`, which assigns Copilot to the source issue and resumes the factory chain from that point. Remove any stale sub-issues manually — they are orphaned and will not be picked up.
+
 ## Stale lock file failure mode
 
 Every `.github/workflows/*.md` source file has a paired `.lock.yml` compiled by `gh aw compile`. The `frontmatter_hash` embedded in the lock file must match the source. When they diverge, gh-aw rejects the next workflow run with a hash mismatch error.
