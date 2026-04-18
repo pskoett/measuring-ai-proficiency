@@ -24,12 +24,21 @@ tools:
 safe-outputs:
   push-to-pull-request-branch:
     allowed-files:
+      # Root-level patterns. `**/*.md` does NOT match files at the repo
+      # root — the `**` glob requires at least one directory segment.
+      # Root-level files like CLAUDE.md, AGENTS.md, README.md,
+      # CHANGELOG.md need explicit root-level patterns.
+      - "*.py"
+      - "*.md"
+      - "*.yml"
+      - "*.yaml"
+      - "*.toml"
+      # Subdirectory patterns.
       - "**/*.py"
       - "**/*.md"
       - "**/*.yml"
       - "**/*.yaml"
       - "docs/**"
-      - "CHANGELOG.md"
       - "tests/**"
       - "scripts/**"
       - ".github/**"
