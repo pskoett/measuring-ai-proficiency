@@ -60,13 +60,14 @@ spec-refiner  (classifies issue: plan-worthy, direct-route, or blocked)
      |                 plan-merged-dispatcher  (auto: writes plan checklist onto source issue,
      |                                          moves label needs-plan -> ready-for-implementation)
      |
-     +--[direct route]--> adds impl:copilot + ready-for-implementation directly
-     |                    (no plan PR, no GATE 1)
+     +--[direct route]--> adds impl:copilot + ready-for-implementation + assigned-to-agent;
+     |                    calls assign-to-agent in the same run
+     |                    (no plan PR, no GATE 1, no cascade dependency)
      |
      +--[blocked]--------> adds blocked-on-human; human resolves before anything else runs
      |
-     v (ready-for-implementation)
-implementer-dispatcher  (auto: assigns source issue to the chosen agent)
+     v (ready-for-implementation, plan-worthy path only)
+implementer-dispatcher  (auto: assigns source issue to the chosen agent via plan-worthy path)
      |
      v
 coding agent opens PR
@@ -162,7 +163,7 @@ These are the concrete failure modes this factory has hit. When you see symptoms
 
 **Cause**: Two possibilities. First: spec-refiner classified the issue as direct-route and fast-tracked it without a plan PR. Check the issue for a comment from spec-refiner and an `impl:copilot` + `ready-for-implementation` label. If both are present, no plan PR is expected. Second: the workflow failed. Usually a missing secret (`COPILOT_GITHUB_TOKEN`), Copilot coding agent not enabled, or the `blocked-on-human` label already on the issue.
 
-**Action for direct-route**: No action needed. The issue is queued for `implementer-dispatcher`. If you want a plan PR anyway, remove `ready-for-implementation`, add `needs-spec`, and comment on the issue to ask spec-refiner to treat it as plan-worthy.
+**Action for direct-route**: No action needed. `spec-refiner` already assigned Copilot in the same run. Check the issue for an `assigned-to-agent` label and a comment from spec-refiner confirming direct assignment. If you want a plan PR anyway, remove `ready-for-implementation` and `assigned-to-agent`, add `needs-spec`, and comment on the issue to ask spec-refiner to treat it as plan-worthy.
 
 **Action for workflow failure**: Check `gh aw status` and the most recent run in the Actions tab. If the run shows "NEEDS HUMAN INPUT", read its comment for the missing context, answer in the issue, remove `blocked-on-human`, and re-trigger.
 

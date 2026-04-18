@@ -176,7 +176,7 @@ As of April 2026, the implementer step in the chain has four choices, all bundle
 
 `spec-refiner` classifies each issue and routes it. For plan-worthy issues, it writes a recommendation into the plan file itself. A human reviewing the plan PR sees the recommendation. When the plan PR merges, `plan-merged-dispatcher` labels the source issue `ready-for-implementation`; `implementer-dispatcher` then auto-assigns that issue to the chosen agent based on its `impl:*` label. One plan, one source issue, one PR.
 
-For direct-route issues, `spec-refiner` skips the plan file and applies `ready-for-implementation` and `impl:copilot` directly. `implementer-dispatcher` picks the issue up without a plan PR or human merge gate.
+For direct-route issues, `spec-refiner` skips the plan file, applies `impl:copilot` and `ready-for-implementation`, and calls `assign-to-agent` directly in the same run. Copilot is assigned without a plan PR or human merge gate and without depending on `implementer-dispatcher`.
 
 This is a deliberate human-in-the-loop decision point for plan-worthy work. The routing rule is "complexity warrants Opus" and only a human can decide, for a given repo on a given day, whether the cost or latency difference is worth it. The spec-refiner recommends, the human chooses, and `reviewer` calibrates the review based on who actually produced the code.
 

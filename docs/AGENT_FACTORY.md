@@ -149,7 +149,7 @@ The `spec-refiner` workflow triggers and classifies the issue into one of three 
 - An `impl:copilot` label on the source issue. Only Copilot is auto-assignable today; see Step 3 for the reasoning.
 - A label swap: `needs-spec` removed, `needs-plan` added.
 
-**Direct route (simple, clearly bounded issues):** spec-refiner skips the plan file entirely. It removes `needs-spec`, adds `impl:copilot` and `ready-for-implementation`, and posts a short comment. `implementer-dispatcher` picks up the issue immediately. No plan PR, no Step 3 merge gate. Typical examples: single-file bug fix, dependency bump, one-line config change.
+**Direct route (simple, clearly bounded issues):** spec-refiner skips the plan file entirely. It removes `needs-spec`, adds `impl:copilot`, `ready-for-implementation`, and `assigned-to-agent`, calls `assign-to-agent` to assign Copilot in the same run, and posts a short comment. No plan PR, no Step 3 merge gate, no dependency on `implementer-dispatcher`. Typical examples: single-file bug fix, dependency bump, one-line config change.
 
 **Terminal or blocked:** spec-refiner removes `needs-spec`, adds `blocked-on-human`, and posts a comment explaining what a human must do. This covers spam, duplicates, issues with missing context, and issues already labeled `human-review`. No further automation runs until a human acts.
 
@@ -178,13 +178,15 @@ On merge, `plan-merged-dispatcher` (a plain GitHub Actions workflow) reads the m
 
 ### Step 4: Auto-Assignment (No Manual Work)
 
-The `implementer-dispatcher` workflow triggers when the **source issue** receives the `ready-for-implementation` label. This label is applied by `plan-merged-dispatcher` (plan-worthy path) or directly by `spec-refiner` (direct-route path). Either way, `implementer-dispatcher` reads the `impl:*` label from the issue and calls `assign-to-agent` when the label is `impl:copilot`.
+For the **plan-worthy path**, `implementer-dispatcher` triggers when the source issue receives the `ready-for-implementation` label from `plan-merged-dispatcher`. It reads the `impl:*` label and calls `assign-to-agent` for `impl:copilot`.
+
+For the **direct-route path**, `spec-refiner` calls `assign-to-agent` in the same run that fast-tracks the issue, bypassing `implementer-dispatcher` entirely. GitHub's anti-loop rule blocks `GITHUB_TOKEN` label events from triggering downstream workflows, so direct-route assignment must happen in the same run.
 
 No sub-issue layer, no parent-issue lookup, no manual assignment.
 
 The agent opens a PR with its implementation.
 
-**Re-dispatching an issue manually.** The dispatcher calls `noop` if the issue already has the `assigned-to-agent` label (prevents double-dispatch). If you ever need to force dispatcher to re-run — for example, you changed the `impl:*` label and want the new routing to take effect — strip **both** `ready-for-implementation` and `assigned-to-agent`, then re-add `ready-for-implementation`. Re-adding alone is not enough because the noop guard on `assigned-to-agent` still fires.
+**Re-dispatching an issue manually.** The dispatcher (plan-worthy path) calls `noop` if the issue already has the `assigned-to-agent` label (prevents double-dispatch). If you ever need to force re-assignment — for example, you changed the `impl:*` label and want the new routing to take effect — strip **both** `ready-for-implementation` and `assigned-to-agent`, then re-add `ready-for-implementation`. Re-adding alone is not enough because the noop guard on `assigned-to-agent` still fires.
 
 ### Step 5: Automated Review
 
