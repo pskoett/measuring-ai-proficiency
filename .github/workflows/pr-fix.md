@@ -23,7 +23,19 @@ tools:
 
 safe-outputs:
   push-to-pull-request-branch:
-    allowed-files: [".github/workflows/*.md", ".github/workflows/*.lock.yml"]
+    allowed-files:
+      - "**/*.py"
+      - "**/*.md"
+      - "**/*.yml"
+      - "**/*.yaml"
+      - "docs/**"
+      - "CHANGELOG.md"
+      - "tests/**"
+      - "scripts/**"
+      - ".github/**"
+      - ".claude/**"
+      - ".evals/**"
+      - ".learnings/**"
   create-issue:
     title-prefix: "${{ github.workflow }}"
     labels: [automation, pr-fix]
