@@ -34,7 +34,7 @@ concurrency:
   # Cancel in-progress so a fast-merging PR reflects its final state without
   # waiting for a backlog to drain (which was letting PRs skip the YourTurn lane
   # entirely when they merged faster than the queue could process earlier events).
-  group: sync-factory-state-${{ github.event.issue.number || github.event.pull_request.number || inputs.issue_number || 'scheduled' }}
+  group: sync-factory-state-${{ github.event.issue.number || github.event.pull_request.number || github.event.inputs.issue_number || 'scheduled' }}
   cancel-in-progress: true
 
 jobs:
