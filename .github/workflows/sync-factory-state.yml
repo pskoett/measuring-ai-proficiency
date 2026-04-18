@@ -1,8 +1,13 @@
 name: Sync Factory State
 
 # Mirrors the factory label set onto the "AI Agent Factory" Projects v2 board's
-# "Factory state" single-select field. Labels are authoritative; this workflow
-# derives the projected state one-way. Never reads field -> back to labels.
+# Status field. Labels are authoritative; this workflow derives the projected
+# state one-way. Never reads field -> back to labels.
+#
+# Runs on:
+#  - issue/PR state or label changes (per-item sync)
+#  - scheduled cron every 10 min (reconcile all open items, catches missed events)
+#  - workflow_dispatch (manual resync of a specific item)
 #
 # Requires a repo secret PROJECTS_PAT with `project` scope (fine-grained PAT,
 # access to pskoett/measuring-ai-proficiency + project permission read/write).
@@ -10,20 +15,22 @@ name: Sync Factory State
 
 on:
   issues:
-    types: [labeled, unlabeled, closed, reopened, transferred]
+    types: [opened, edited, labeled, unlabeled, closed, reopened, transferred]
   pull_request:
-    types: [labeled, unlabeled, closed, reopened]
+    types: [opened, edited, labeled, unlabeled, closed, reopened, ready_for_review, converted_to_draft]
+  schedule:
+    - cron: '*/10 * * * *'  # reconcile all open items every 10 min as a safety net
   workflow_dispatch:
     inputs:
       issue_number:
-        description: "Issue or PR number to resync (for manual testing)"
-        required: true
+        description: "Issue or PR number to resync (leave empty for full reconcile)"
+        required: false
 
 permissions:
   contents: read
 
 concurrency:
-  group: sync-factory-state-${{ github.event.issue.number || github.event.pull_request.number || inputs.issue_number }}
+  group: sync-factory-state-${{ github.event.issue.number || github.event.pull_request.number || inputs.issue_number || 'scheduled' }}
   cancel-in-progress: false
 
 jobs:
@@ -50,82 +57,85 @@ jobs:
             [Done]='675bf0bb'           # ✅ Done
           )
 
-          # Fetch current labels + node id + state from REST (works for both issues and PRs)
-          ITEM_JSON=$(gh api "repos/$REPO/issues/$ISSUE_NUMBER" \
-            --jq '{labels: [.labels[].name], node_id: .node_id, state: .state, pr: (has("pull_request"))}')
-          LABELS=$(echo "$ITEM_JSON" | jq -r '.labels | join(",")')
-          NODE_ID=$(echo "$ITEM_JSON" | jq -r '.node_id')
-          ITEM_STATE=$(echo "$ITEM_JSON" | jq -r '.state')
-          IS_PR=$(echo "$ITEM_JSON" | jq -r '.pr')
+          sync_one() {
+            local num="$1"
 
-          echo "Item: $REPO#$ISSUE_NUMBER  state=$ITEM_STATE  pr=$IS_PR  merged=$EVENT_MERGED"
-          echo "Labels: $LABELS"
+            local item_json labels node_id item_state is_pr
+            item_json=$(gh api "repos/$REPO/issues/$num" \
+              --jq '{labels: [.labels[].name], node_id: .node_id, state: .state, pr: (has("pull_request"))}' 2>/dev/null) || {
+              echo "  skip #$num: not accessible"
+              return 0
+            }
+            labels=$(echo "$item_json" | jq -r '.labels | join(",")')
+            node_id=$(echo "$item_json" | jq -r '.node_id')
+            item_state=$(echo "$item_json" | jq -r '.state')
+            is_pr=$(echo "$item_json" | jq -r '.pr')
 
-          # Priority-ordered label-to-lane derivation (4-column overview).
-          # Rules, from highest priority:
-          #  1) closed -> Done
-          #  2) any human-action label, OR any open PR -> Your turn
-          #  3) factory-progress labels (ready-for-implementation, assigned-to-agent, needs-plan) -> Factory building
-          #  4) fallback -> Waiting for spec
-          L=",$LABELS,"
-          if [ "$ITEM_STATE" = "closed" ]; then
-            STATE_NAME=Done
-          elif [[ "$L" == *",needs-changes,"* \
-               || "$L" == *",needs-rebase,"* \
-               || "$L" == *",human-review,"* \
-               || "$L" == *",blocked-on-human,"* \
-               || "$L" == *",ai-reviewed,"* \
-               || "$L" == *",plan-file,"* ]]; then
-            STATE_NAME=YourTurn
-          elif [ "$IS_PR" = "true" ] && [ "$ITEM_STATE" = "open" ]; then
-            # Any open PR defaults to Your turn — you're the one who merges it.
-            STATE_NAME=YourTurn
-          elif [[ "$L" == *",ready-for-implementation,"* \
-               || "$L" == *",assigned-to-agent,"* \
-               || "$L" == *",needs-plan,"* ]]; then
-            STATE_NAME=Factory
+            local L=",$labels,"
+            local state_name
+            if [ "$item_state" = "closed" ]; then
+              state_name=Done
+            elif [[ "$L" == *",needs-changes,"* \
+                 || "$L" == *",needs-rebase,"* \
+                 || "$L" == *",human-review,"* \
+                 || "$L" == *",blocked-on-human,"* \
+                 || "$L" == *",ai-reviewed,"* \
+                 || "$L" == *",plan-file,"* ]]; then
+              state_name=YourTurn
+            elif [ "$is_pr" = "true" ] && [ "$item_state" = "open" ]; then
+              state_name=YourTurn
+            elif [[ "$L" == *",ready-for-implementation,"* \
+                 || "$L" == *",assigned-to-agent,"* \
+                 || "$L" == *",needs-plan,"* ]]; then
+              state_name=Factory
+            else
+              state_name=Waiting
+            fi
+            local opt_id="${OPT[$state_name]}"
+            echo "  #$num state=$item_state pr=$is_pr labels=[$labels] -> $state_name"
+
+            local item_id
+            item_id=$(gh api graphql -f query='
+              mutation($projectId: ID!, $contentId: ID!) {
+                addProjectV2ItemById(input: { projectId: $projectId, contentId: $contentId }) {
+                  item { id }
+                }
+              }' -f projectId="$PROJECT_ID" -f contentId="$node_id" \
+              --jq '.data.addProjectV2ItemById.item.id' 2>/dev/null) || return 0
+
+            gh api graphql -f query='
+              mutation($projectId: ID!, $itemId: ID!, $fieldId: ID!, $optId: String!) {
+                updateProjectV2ItemFieldValue(input: {
+                  projectId: $projectId,
+                  itemId: $itemId,
+                  fieldId: $fieldId,
+                  value: { singleSelectOptionId: $optId }
+                }) { projectV2Item { id } }
+              }' -f projectId="$PROJECT_ID" -f itemId="$item_id" -f fieldId="$FIELD_ID" -f optId="$opt_id" \
+              --jq '.data.updateProjectV2ItemFieldValue.projectV2Item.id' >/dev/null || true
+
+            case "$state_name" in
+              YourTurn)
+                gh issue edit "$num" --add-label your-turn --repo "$REPO" 2>/dev/null \
+                  || gh pr edit "$num" --add-label your-turn --repo "$REPO" 2>/dev/null \
+                  || true
+                ;;
+              *)
+                gh issue edit "$num" --remove-label your-turn --repo "$REPO" 2>/dev/null \
+                  || gh pr edit "$num" --remove-label your-turn --repo "$REPO" 2>/dev/null \
+                  || true
+                ;;
+            esac
+          }
+
+          if [ -z "${ISSUE_NUMBER}" ]; then
+            echo "No item number — full reconcile of open items + 15 most recent closed."
+            ITEMS=$({ gh issue list --state all --limit 30 --json number --jq '.[].number'; \
+                      gh pr list    --state all --limit 30 --json number --jq '.[].number'; } \
+                      | sort -un)
+            for n in $ITEMS; do
+              sync_one "$n" || true
+            done
           else
-            # needs-spec, no labels yet, or anything else the factory hasn't picked up.
-            STATE_NAME=Waiting
+            sync_one "$ISSUE_NUMBER"
           fi
-          OPT_ID="${OPT[$STATE_NAME]}"
-          echo "Lane -> $STATE_NAME ($OPT_ID)"
-
-          # Ensure item is on the project (idempotent) + capture item id
-          ITEM_ID=$(gh api graphql -f query='
-            mutation($projectId: ID!, $contentId: ID!) {
-              addProjectV2ItemById(input: { projectId: $projectId, contentId: $contentId }) {
-                item { id }
-              }
-            }' -f projectId="$PROJECT_ID" -f contentId="$NODE_ID" \
-            --jq '.data.addProjectV2ItemById.item.id')
-          echo "Project item id: $ITEM_ID"
-
-          # Update the Factory state field
-          gh api graphql -f query='
-            mutation($projectId: ID!, $itemId: ID!, $fieldId: ID!, $optId: String!) {
-              updateProjectV2ItemFieldValue(input: {
-                projectId: $projectId,
-                itemId: $itemId,
-                fieldId: $fieldId,
-                value: { singleSelectOptionId: $optId }
-              }) { projectV2Item { id } }
-            }' -f projectId="$PROJECT_ID" -f itemId="$ITEM_ID" -f fieldId="$FIELD_ID" -f optId="$OPT_ID" \
-            --jq '.data.updateProjectV2ItemFieldValue.projectV2Item.id'
-
-          # Apply/remove the "your-turn" label so cards in the Your turn lane
-          # show a visible chip wherever they appear (Label view, filters, etc.).
-          # Uses PROJECTS_PAT (which has `repo` scope) rather than GITHUB_TOKEN
-          # because this workflow currently runs with `contents: read` only.
-          case "$STATE_NAME" in
-            YourTurn)
-              gh issue edit "$ISSUE_NUMBER" --add-label your-turn --repo "$REPO" 2>/dev/null \
-                || gh pr edit "$ISSUE_NUMBER" --add-label your-turn --repo "$REPO" 2>/dev/null \
-                || true
-              ;;
-            *)
-              gh issue edit "$ISSUE_NUMBER" --remove-label your-turn --repo "$REPO" 2>/dev/null \
-                || gh pr edit "$ISSUE_NUMBER" --remove-label your-turn --repo "$REPO" 2>/dev/null \
-                || true
-              ;;
-          esac
