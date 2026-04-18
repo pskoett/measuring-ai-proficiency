@@ -91,7 +91,7 @@ Focus on runs from the last 7 days. Skip runs with conclusion `skipped` or `canc
 
 ### Step 2: Download transcript artifacts
 
-For each run ID collected above, attempt to download the `agent` artifact:
+For each run ID collected above, attempt to download the `agent` artifact. Replace `<run-id>` with the actual numeric run ID (e.g., `24604287411`):
 
 ```bash
 mkdir -p /tmp/transcripts/<run-id>
