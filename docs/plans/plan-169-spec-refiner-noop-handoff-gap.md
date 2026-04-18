@@ -1,3 +1,8 @@
+---
+plan-id: plan-169
+status: shipped
+shipped-in: "#169"
+---
 # Plan 169: Close the spec-refiner noop handoff gap
 
 **Source issue**: #169

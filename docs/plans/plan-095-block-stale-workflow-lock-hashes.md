@@ -1,3 +1,8 @@
+---
+plan-id: plan-095
+status: shipped
+shipped-in: "#95"
+---
 # Plan 095: Block PRs with stale workflow lock-file hashes
 
 **Source issue**: #95

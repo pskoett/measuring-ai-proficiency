@@ -1,3 +1,8 @@
+---
+plan-id: plan-070
+status: shipped
+shipped-in: "#70"
+---
 # Plan 070: Keep source issues open when plan PRs merge
 
 **Source issue**: #70

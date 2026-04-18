@@ -1,3 +1,8 @@
+---
+plan-id: plan-096
+status: superseded
+superseded-by: plan-136
+---
 # Plan 096: Auto-trigger /plan when `needs-plan` label is applied
 
 **Source issue**: #96

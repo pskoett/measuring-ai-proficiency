@@ -1,3 +1,8 @@
+---
+plan-id: plan-149
+status: shipped
+shipped-in: "#149"
+---
 # Plan 149: Reviewer auto-labels behind-main PRs with `needs-rebase`
 
 **Source issue**: #149

@@ -1,3 +1,8 @@
+---
+plan-id: plan-140
+status: shipped
+shipped-in: "#140"
+---
 # Plan 140: Verify agent-factory docs and skill are current
 
 **Source issue**: #140

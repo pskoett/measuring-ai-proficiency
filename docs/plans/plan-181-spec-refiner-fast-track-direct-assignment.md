@@ -1,3 +1,8 @@
+---
+plan-id: plan-181
+status: shipped
+shipped-in: "#181"
+---
 # Plan 181: Spec-refiner fast-track direct assignment
 
 **Source issue**: #181

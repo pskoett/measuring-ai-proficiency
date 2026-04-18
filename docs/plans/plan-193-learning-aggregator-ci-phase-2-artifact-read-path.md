@@ -1,3 +1,8 @@
+---
+plan-id: plan-193
+status: shipped
+shipped-in: "#193"
+---
 # Plan 193: Fix learning-aggregator-ci Phase 2 artifact transcript reads
 
 **Source issue**: #193

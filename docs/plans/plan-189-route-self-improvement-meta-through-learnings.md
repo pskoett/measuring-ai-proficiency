@@ -1,3 +1,8 @@
+---
+plan-id: plan-189
+status: shipped
+shipped-in: "#189"
+---
 # Plan 189: Route self-improvement-meta through `.learnings/` instead of straight to harness
 
 **Source issue**: #189

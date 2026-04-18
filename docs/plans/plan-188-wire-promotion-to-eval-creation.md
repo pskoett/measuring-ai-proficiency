@@ -1,3 +1,8 @@
+---
+plan-id: plan-188
+status: shipped
+shipped-in: "#188"
+---
 # Plan 188: Wire promotion to eval creation
 
 **Source issue**: #188

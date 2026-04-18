@@ -1,3 +1,8 @@
+---
+plan-id: plan-066
+status: shipped
+shipped-in: "#66"
+---
 # Plan 066: Fix spec-refiner plan numbering races
 
 **Source issue**: #66

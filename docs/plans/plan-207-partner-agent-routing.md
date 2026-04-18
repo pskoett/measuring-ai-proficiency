@@ -1,3 +1,8 @@
+---
+plan-id: plan-207
+status: shipped
+shipped-in: "#207"
+---
 # Plan 207: Remove dead Partner-Agent routing surface
 
 **Source issue**: #207

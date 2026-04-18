@@ -1,3 +1,8 @@
+---
+plan-id: plan-208
+status: shipped
+shipped-in: "#208"
+---
 # Plan 208: impl PR body must close its source issue
 
 **Source issue**: #208

@@ -1,3 +1,8 @@
+---
+plan-id: plan-136
+status: shipped
+shipped-in: "#136"
+---
 # Plan 136: Remove sub-issue layer, put plan checklist on the original issue
 
 **Source issue**: #136

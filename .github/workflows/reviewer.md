@@ -59,6 +59,15 @@ Read the PR's merge state using the pull_requests toolset (get the PR details an
 
 Look at the PR for a linked issue, a `plan-NNN` reference in the title or body, or a label that identifies which plan this implements. If found, read the plan file in full. It is your ground truth for spec compliance.
 
+Before using the plan file, check its `status` field in the YAML frontmatter at the top:
+
+- `status: active` — current design. Use as authoritative ground truth.
+- `status: shipped` — historical artifact. Use it as background context for understanding the original intent, but do not flag missing items as failures if the code already reflects the shipped state. Verify against the live code.
+- `status: superseded` — historical. Check `superseded-by` for the replacement plan. Do not enforce the superseded plan's criteria.
+- `status: abandoned` — historical. Do not use as review criteria.
+
+**Do not enforce a `shipped`, `superseded`, or `abandoned` plan's criteria as though they represent the current accepted design.** If the plan file has no frontmatter yet, treat it as `active` and proceed normally.
+
 If no plan file exists, note that in your review and proceed with a standard code review. Do not block the PR just because there is no plan file.
 
 ### Step 2: Identify the implementer and apply calibration
