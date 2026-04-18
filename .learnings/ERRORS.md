@@ -7,9 +7,15 @@ Command failures, exceptions, and unexpected behaviors captured during developme
 
 ---
 
-## 2026-04-17 — spec-refiner wrote `Fixes #NN` in plan PR body
+## [ERR-20260417-001] spec-refiner wrote `Fixes #NN` in plan PR body
 
-**Area**: infra (factory) · **Status**: in_progress · **Tracked in**: new follow-up issue
+**Logged**: 2026-04-17T16:16:00Z · **Priority**: high · **Status**: resolved · **Area**: infra
+
+**Pattern-Key**: `spec-refiner/plan-pr-body-closing-keywords` · **Recurrence-Count**: 1 · **First-Seen**: 2026-04-17 · **Last-Seen**: 2026-04-17
+
+**Related Files**: `.github/workflows/spec-refiner.md` · **Tags**: spec-refiner, plan-pr, auto-close, github-keywords · **Source**: conversation
+
+**Tracked in**: #171 (harden spec-refiner), #186 (self-improvement-meta protected-files unblocker). Prevention shipped in `.github/workflows/spec-refiner.md` lines 100–104; regression-guarded by `.evals/cases/EVAL-004.md`.
 
 **What happened**
 
