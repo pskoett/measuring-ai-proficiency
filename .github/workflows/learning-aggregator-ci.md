@@ -66,6 +66,12 @@ If `.learnings/` does not exist or all files are empty and no transcript artifac
 
 Every factory workflow run uploads an `agent` artifact containing the session transcript. Download and analyze recent transcripts to find patterns not yet logged in `.learnings/`.
 
+`gh run download` **extracts** the artifact contents directly into `--dir` — it does not leave a ZIP file. After a successful download you will find `agent-stdio.log`, `agent_usage.json`, `safeoutputs.jsonl`, and other files placed directly inside the target directory.
+
+Track two counters throughout this phase:
+- `artifacts_read` — how many `agent-stdio.log` files were successfully opened and non-empty
+- `patterns_extracted` — how many distinct new patterns were identified across all transcripts
+
 ### Step 1: Discover recent factory workflow runs
 
 List the last 20 runs for each agent-backed factory workflow:
@@ -85,24 +91,43 @@ Focus on runs from the last 7 days. Skip runs with conclusion `skipped` or `canc
 
 ### Step 2: Download transcript artifacts
 
-For each run ID collected above, attempt to download the `agent` artifact:
+For each run ID collected above, attempt to download the `agent` artifact. Replace `<run-id>` with the actual numeric run ID (e.g., `24604287411`):
 
 ```bash
 mkdir -p /tmp/transcripts/<run-id>
 gh run download <run-id> --name agent --dir /tmp/transcripts/<run-id> 2>/dev/null || true
+ls /tmp/transcripts/<run-id>/ 2>/dev/null || echo "no files downloaded for run <run-id>"
 ```
+
+The `ls` step is required — run it for every attempted download. It makes missing-artifact failures visible instead of silent. If the directory is empty or the ls fails, log that the run had no downloadable artifact and continue.
 
 Skip silently if the artifact does not exist or has expired. Do not fail if no transcripts are available.
 
 ### Step 3: Parse transcripts for patterns
 
-For each downloaded transcript, read `agent-stdio.log`. Apply the transcript analysis method from the "GitHub Actions Transcript Analysis" section of `.claude/skills/learning-aggregator/SKILL.md`:
+For each run directory, check for the transcript at the canonical path and read it:
+
+```bash
+# Check what was extracted
+ls /tmp/transcripts/<run-id>/
+
+# Read the transcript
+cat /tmp/transcripts/<run-id>/agent-stdio.log
+```
+
+If `/tmp/transcripts/<run-id>/agent-stdio.log` exists and is non-empty, increment `artifacts_read`. If it does not exist (download failed, artifact expired, or run produced no agent output), note the missing file and continue — do **not** fail the whole phase.
+
+Apply the transcript analysis method from the "GitHub Actions Transcript Analysis" section of `.claude/skills/learning-aggregator/SKILL.md`:
 
 - Look for retry loops (same tool call repeated 3+ times)
 - Look for approach changes mid-task
 - Look for error messages in tool outputs
 - Look for noop calls on runs that should have produced output
 - Compare workflow name and run event to understand context
+
+For each distinct pattern found, increment `patterns_extracted`.
+
+**Success-path example**: Suppose `spec-refiner` run `24604287411` was downloaded to `/tmp/transcripts/24604287411/`. The `ls` shows `agent-stdio.log agent_usage.json safeoutputs.jsonl`. Reading `agent-stdio.log` reveals the same `gh api` call repeated 4 times with varied parameters before succeeding. This maps to Pattern-Key `retry-loop.gh-api`, gap type: tool gap. Result: `artifacts_read=1`, `patterns_extracted=1`. This pattern would appear in the "Transcript-Only Findings" section of the output issue if it is not already present in `.learnings/`.
 
 Map each finding to a `Pattern-Key` using the taxonomy from the skill. Merge with findings from Phase 1.
 
@@ -126,7 +151,8 @@ Create one issue with this structure:
 
 **Scan date**: YYYY-MM-DD
 **Learnings entries scanned**: N
-**Transcript artifacts analyzed**: M
+**Transcript artifacts read**: M
+**Transcript patterns extracted**: P_t
 **Pattern groups**: K
 **Promotion candidates**: P
 
@@ -146,7 +172,14 @@ Create one issue with this structure:
 
 [Patterns found only in transcripts that have not been logged manually. These
 are candidates for adding to .learnings/LEARNINGS.md in the next
-self-improvement-meta PR.]
+self-improvement-meta PR.
+
+If artifacts were downloaded and read but no new patterns were found, write:
+"artifacts read: M, patterns extracted: 0 — transcripts were parseable but
+yielded no patterns not already covered in .learnings/."
+
+Do not omit this section when M > 0. It must be present even if P_t = 0, so
+readers can distinguish a successful empty parse from a failed read.]
 
 ### Ungrouped Entries
 

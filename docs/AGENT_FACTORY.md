@@ -594,10 +594,15 @@ Session transcripts may contain content from:
 The `learning-aggregator-ci` workflow runs weekly (Monday) and:
 
 1. Reads accumulated entries in `.learnings/` (explicit, manually logged patterns)
-2. Downloads `agent` artifacts from the last 7 days of each factory workflow run
-3. Parses `agent-stdio.log` for structural patterns (retry loops, noop misfires, approach changes, token anomalies)
-4. Merges transcript findings with `.learnings/` entries, deduplicating by `Pattern-Key`
-5. Creates a weekly gap report issue with promotion candidates
+2. Downloads `agent` artifacts from the last 7 days of each factory workflow run using `gh run download <run-id> --name agent --dir /tmp/transcripts/<run-id>`
+3. Verifies the download with `ls /tmp/transcripts/<run-id>/` — failures are logged explicitly, not silently skipped
+4. Reads `agent-stdio.log` from the canonical path `/tmp/transcripts/<run-id>/agent-stdio.log` and parses it for structural patterns (retry loops, noop misfires, approach changes, token anomalies)
+5. Merges transcript findings with `.learnings/` entries, deduplicating by `Pattern-Key`
+6. Creates a weekly gap report issue with promotion candidates
+
+**Observable output**: The weekly issue reports `Transcript artifacts read: M` and `Transcript patterns extracted: P` separately. When `M > 0` and `P = 0`, the issue explicitly states "artifacts read: M, patterns extracted: 0 — transcripts were parseable but yielded no new patterns." This distinguishes a successful empty parse from a failed read.
+
+**Extraction behavior**: `gh run download` extracts artifact contents directly into `--dir` — it does not leave a ZIP file. Files (`agent-stdio.log`, `agent_usage.json`, `safeoutputs.jsonl`) appear directly in the target directory.
 
 Transcript-derived patterns labeled `**TRANSCRIPT CANDIDATE**` in the weekly issue are routed to `self-improvement-meta` for addition to `.learnings/LEARNINGS.md` via a reviewed PR. This preserves the two-step write path: discover in transcript analysis, land in a PR that a human approves.
 
