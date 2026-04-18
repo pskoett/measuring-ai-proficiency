@@ -47,6 +47,16 @@ safe-outputs:
       - .claude/skills/**/SKILL.md
       - .evals/cases/**
       - .evals/EVAL_INDEX.md
+    # gh-aw default protected-files blacklist includes AGENTS.md,
+    # copilot-instructions.md, and the `.github/` prefix — exactly the files
+    # meta is designed to update. gh-aw does not accept an array override
+    # for this key (only the sanctioned string values), so use
+    # fallback-to-issue: when the patch touches a protected file (which is
+    # every meta run by design), create an advisory [learnings] issue with
+    # the patch attached instead of a PR. Trade-off: humans must manually
+    # apply the patch or re-file as a PR. Acceptable given the alternative
+    # is silent complete failure (observed run 24612152643, 2026-04-18).
+    protected-files: fallback-to-issue
   create-issue:
     title-prefix: "[meta] "
     labels: [self-improvement, workflow-health]
