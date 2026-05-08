@@ -8,6 +8,35 @@ Corrections, insights, and knowledge gaps captured during development.
 
 ---
 
+## [LRN-003] GitHub GraphQL connections fail above 100 items
+
+**Status**: pending
+**Priority**: high
+**Area**: ci
+**Pattern-Key**: github-graphql-connection-over-100
+**Discovered**: 2026-05-07 via https://github.com/pskoett/measuring-ai-proficiency/actions/runs/25478340391
+
+### What went wrong
+
+On 2026-05-04, 2026-05-05, 2026-05-06, and 2026-05-07, the scheduled full reconcile in `sync-factory-state.yml` failed before syncing any board item. The query used `items(first: 250)` against `ProjectV2`, and GitHub rejected the request with the same `first` limit error each time. That removed the scheduled safety net that `LRN-002` depends on when webhook delivery misses.
+
+### Root cause
+
+GitHub GraphQL connections hard-cap `first` and `last` at 100. The workflow requested 250 project items in one call instead of paging through the connection. The failure is deterministic and will recur on every scheduled reconcile until the query is capped or paginated.
+
+### Prevention rule
+
+Never request more than 100 nodes from a GitHub GraphQL connection. For board-wide or project-wide scans, use `first: 100` and paginate instead of larger batch sizes.
+
+### See also
+
+- https://github.com/pskoett/measuring-ai-proficiency/actions/runs/25478340391
+- https://github.com/pskoett/measuring-ai-proficiency/actions/runs/25418711829
+- https://github.com/pskoett/measuring-ai-proficiency/actions/runs/25359639131
+- https://github.com/pskoett/measuring-ai-proficiency/actions/runs/25303368576
+
+---
+
 ## [LRN-002] `sync-factory-state` misses `pull_request` webhooks on certain producer paths
 
 **Status**: pending

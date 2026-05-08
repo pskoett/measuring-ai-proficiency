@@ -138,6 +138,7 @@ This repo runs an agent factory via [GitHub Agentic Workflows (gh-aw)](https://g
 - Update gh-aw: `gh extension upgrade gh-aw`, then `gh aw compile` to recompile all lock files
 - Add a skill for workflows: create `.claude/skills/<name>/SKILL.md`, reference it from the workflow body
 - Debug a run: `gh aw logs <workflow>` or `gh aw audit <run-id>`
+- GitHub GraphQL connections cap `first` and `last` at 100. For board-wide or project-wide scans, use `first: 100` and paginate instead of larger batch sizes.
 
 **Factory chain:** issue-triage > spec-refiner (classifies: plan-worthy, direct-route, or blocked) > [plan-worthy: plan PR merged > plan-merged-dispatcher >] implementer-dispatcher > reviewer + contribution-checker > /pr-fix > ci-cleaner > self-improvement-meta (nightly)
 
