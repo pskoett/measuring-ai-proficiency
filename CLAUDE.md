@@ -139,6 +139,8 @@ This repo runs an agent factory via [GitHub Agentic Workflows (gh-aw)](https://g
 - Add a skill for workflows: create `.claude/skills/<name>/SKILL.md`, reference it from the workflow body
 - Debug a run: `gh aw logs <workflow>` or `gh aw audit <run-id>`
 
+**Projects v2 guardrail:** GitHub ProjectV2 GraphQL connections cap `first` at 100. When a workflow enumerates board items, page at 100 or less. Do not use `items(first: 250)` or any value above 100.
+
 **Factory chain:** issue-triage > spec-refiner (classifies: plan-worthy, direct-route, or blocked) > [plan-worthy: plan PR merged > plan-merged-dispatcher >] implementer-dispatcher > reviewer + contribution-checker > /pr-fix > ci-cleaner > self-improvement-meta (nightly)
 
 **Human decisions:** (1) for plan-worthy issues: review and merge the plan PR, (2) merge the final PR, (3) approve learnings. Direct-route issues skip step 1. Everything else is automated.

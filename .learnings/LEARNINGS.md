@@ -8,6 +8,33 @@ Corrections, insights, and knowledge gaps captured during development.
 
 ---
 
+## [LRN-003] ProjectV2 full-reconcile queries must page at 100 items
+
+**Status**: promoted_to_skill
+**Priority**: high
+**Area**: ci
+**Pattern-Key**: projectv2-items-first-over-limit
+**Discovered**: 2026-05-15 via https://github.com/pskoett/measuring-ai-proficiency/actions/runs/25903655009
+
+### What went wrong
+
+The scheduled `sync-factory-state` reconcile failed before it could process any board items. The workflow switched to a GraphQL-by-project query for full-board sync, but asked GitHub Projects v2 for `items(first: 250)`. GitHub rejected the query with `Requesting 250 records on the connection exceeds the first limit of 100 records.`
+
+### Root cause
+
+The workflow encoded an oversized GraphQL page size directly in `.github/workflows/sync-factory-state.yml` and had no paging loop or regression check around that limit. This was a tool-shape failure, not a transient outage: the query was invalid the moment it shipped.
+
+### Prevention rule
+
+For GitHub ProjectV2 GraphQL queries, never request more than 100 records in one connection page. Paginate instead.
+
+### See also
+
+- LRN-002
+- https://github.com/pskoett/measuring-ai-proficiency/actions/runs/25903655009
+
+---
+
 ## [LRN-002] `sync-factory-state` misses `pull_request` webhooks on certain producer paths
 
 **Status**: pending

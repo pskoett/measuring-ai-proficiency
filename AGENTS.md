@@ -282,6 +282,10 @@ The routing rules above are about the **implementer step** (who writes the code 
 - `edit:` for file modifications (ci-cleaner, pr-fix)
 - `web-fetch:` for external content (issue-triage, pr-fix)
 
+### Projects v2 GraphQL guardrail
+
+- GitHub ProjectV2 GraphQL connections cap `first` at 100. When a workflow enumerates board items, page at 100 or less. Never use `items(first: 250)` or any other value above 100.
+
 
 ### Workflow inventory
 

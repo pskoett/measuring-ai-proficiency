@@ -162,3 +162,7 @@ Use `scripts/find-org-repos.sh` to discover which repositories have context engi
 - Lists repos to scan with measure-ai-proficiency
 
 **Requirements:** GitHub CLI (gh) and jq
+
+## Agent Factory Guardrails
+
+- GitHub ProjectV2 GraphQL connections cap `first` at 100. When factory automation enumerates board items, page at 100 or less. Do not use `items(first: 250)` or any value above 100.
