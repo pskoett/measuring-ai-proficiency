@@ -41,6 +41,33 @@ Never rely on `pull_request` webhook triggers as the sole delivery path for `syn
 
 ---
 
+## [LRN-003] `sync-factory-state` full reconcile exceeded the Projects v2 page limit
+
+**Status**: promoted_to_skill
+**Priority**: high
+**Area**: ci
+**Pattern-Key**: sync-factory-state-project-items-first-limit
+**Discovered**: 2026-05-17 via https://github.com/pskoett/measuring-ai-proficiency/actions/runs/25954157863
+
+### What went wrong
+
+On 2026-05-16, scheduled run 698 of `sync-factory-state.yml` entered the full-reconcile path and emitted `No item number — full reconcile across every board item via GraphQL.` GitHub then rejected the query with `Requesting 250 records on the connection exceeds the \`first\` limit of 100 records.` The workflow exited with code 1 before updating any board items.
+
+### Root cause
+
+`sync-factory-state.yml` hard-codes `items(first: 250)` in the Projects v2 GraphQL query. GitHub GraphQL enforces a hard per-connection maximum of 100 items, so the scheduled full-reconcile path fails deterministically instead of falling back to pagination.
+
+### Prevention rule
+
+Never request more than 100 items from a GitHub GraphQL connection in one call. For Projects v2 reconciles, use `items(first: 100)` and paginate with `pageInfo` / `endCursor` when more items can exist.
+
+### See also
+
+- LRN-002
+- `sync-factory-state.yml:186`
+
+---
+
 ## [LRN-001] Factory workflow allowed-files lists are narrower than the file surfaces their prompts touch
 
 **Status**: pending

@@ -143,6 +143,8 @@ This repo runs an agent factory via [GitHub Agentic Workflows (gh-aw)](https://g
 
 **Human decisions:** (1) for plan-worthy issues: review and merge the plan PR, (2) merge the final PR, (3) approve learnings. Direct-route issues skip step 1. Everything else is automated.
 
+**GitHub Projects v2 guardrail:** GraphQL connections cap `first` at 100 records. For board reconciles like `sync-factory-state.yml`, use `items(first: 100)` and paginate with `pageInfo` / `endCursor`.
+
 ## Architecture
 
 ```

@@ -281,6 +281,7 @@ The routing rules above are about the **implementer step** (who writes the code 
 - `bash: true` for shell commands (ci-cleaner, pr-fix)
 - `edit:` for file modifications (ci-cleaner, pr-fix)
 - `web-fetch:` for external content (issue-triage, pr-fix)
+- GitHub GraphQL connections cap `first` at 100 records. For Projects v2 board reconciles, use `items(first: 100)` and paginate with `pageInfo` / `endCursor`.
 
 
 ### Workflow inventory

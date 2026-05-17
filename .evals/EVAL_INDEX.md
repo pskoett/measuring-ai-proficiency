@@ -11,6 +11,7 @@ Managed by `self-improvement-meta` (creates eval cases for promoted learnings) a
 | [EVAL-004](.evals/cases/EVAL-004.md) | spec-refiner `Fixes #NN` bug (`.learnings/ERRORS.md`, 2026-04-17) — prompt-side | `.github/workflows/spec-refiner.md` | grep-check | `Before finalizing the body, grep your own draft` |
 | [EVAL-005](.evals/cases/EVAL-005.md) | impl PR #187 merged without `Closes #186`, issue hand-closed (2026-04-18) — reviewer requires keyword | `.github/workflows/reviewer.md` | grep-check | `impl PR must close its source issue` |
 | [EVAL-006](.evals/cases/EVAL-006.md) | spec-refiner slipped `Closes #234` into plan PR #236 despite prompt prohibition (2026-04-18) — reviewer forbids keyword on plan PRs | `.github/workflows/reviewer.md` | grep-check | `Check for forbidden closing keyword (plan PRs only)` |
+| [EVAL-007](.evals/cases/EVAL-007.md) | LRN-003 | `AGENTS.md` | grep-check | `GitHub GraphQL connections cap \`first\` at 100 records.` |
 
 ## Retired cases
 
