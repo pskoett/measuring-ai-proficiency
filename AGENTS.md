@@ -282,6 +282,9 @@ The routing rules above are about the **implementer step** (who writes the code 
 - `edit:` for file modifications (ci-cleaner, pr-fix)
 - `web-fetch:` for external content (issue-triage, pr-fix)
 
+### GitHub API guardrails
+
+- GitHub GraphQL connections hard-limit `first` to 100 records. Never set a larger page size in workflow queries. Paginate instead.
 
 ### Workflow inventory
 

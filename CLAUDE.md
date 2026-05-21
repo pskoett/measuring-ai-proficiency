@@ -216,6 +216,10 @@ pytest tests/ -v
 - Add new quality indicators: Edit `QUALITY_PATTERNS` in `measure_ai_proficiency/scanner.py`
 - Add new MCP tools: Add handler in `measure_ai_proficiency/mcp_server.py`, update `list_tools()` and `call_tool()`
 
+## GitHub Workflow Guardrails
+
+- GitHub GraphQL connections hard-limit `first` to 100 records. Never set a larger page size in workflow queries. Paginate instead.
+
 ## Scanning Options
 
 The tool supports **two scanning modes** - use whichever fits your workflow:

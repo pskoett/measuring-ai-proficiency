@@ -79,3 +79,30 @@ Walk every factory workflow's `safe-outputs.*.allowed-files` and verify it match
 - Issue #186 (same class of bug on `self-improvement-meta`)
 - Issue #203 (the auto-filed failure notice closed by issue #204)
 - Issue #204 (fix for `pr-fix` allowed-files)
+
+---
+
+## [LRN-003] `sync-factory-state` GraphQL project query exceeds the connection limit
+
+**Status**: pending
+**Priority**: high
+**Area**: ci
+**Pattern-Key**: sync-factory-state-graphql-first-limit
+**Discovered**: 2026-05-20 via https://github.com/pskoett/measuring-ai-proficiency/actions/runs/26145817525
+
+### What went wrong
+
+On 2026-05-20, scheduled run #702 of `sync-factory-state` failed before it updated any project items. The previous scheduled run on 2026-05-19 failed the same way. Full-board reconcile is now broken on every scheduled invocation, so the board can drift until a human notices.
+
+### Root cause
+
+`sync-factory-state.yml` queries `ProjectV2.items(first: 250)`, but GitHub GraphQL connections reject any `first` value above 100. This is a deterministic API constraint, not a transient outage, so the workflow fails every time it reaches that query shape until the connection is capped and paginated.
+
+### Prevention rule
+
+Never request more than 100 records from a GitHub GraphQL connection. When a workflow needs more items, paginate instead of raising `first` above the API limit.
+
+### See also
+
+- LRN-002
+- Run 26080659958 on 2026-05-19 (same failure one day earlier)
