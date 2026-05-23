@@ -83,6 +83,10 @@ pytest tests/ -v
 | Discover org repos | `scripts/find-org-repos.sh <org-name>` (or use `--github-org` directly) |
 | Improve AI context | Use `.github/agents/improve-ai-context.agent.md` to systematically create/improve files |
 
+## Workflow Authoring
+
+- GitHub GraphQL connections cap `first` at 100 records. Never request more than 100 items in one call. Use `first: 100`, then paginate with `pageInfo` and `endCursor` when a workflow can exceed that size.
+
 ## Cross-Reference Detection
 
 The scanner analyzes AI instruction file content to detect references:

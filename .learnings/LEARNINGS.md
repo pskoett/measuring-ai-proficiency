@@ -8,6 +8,33 @@ Corrections, insights, and knowledge gaps captured during development.
 
 ---
 
+## [LRN-003] GitHub GraphQL project queries cannot request more than 100 items per page
+
+**Status**: pending
+**Priority**: high
+**Area**: ci
+**Pattern-Key**: github-graphql-first-limit-100
+**Discovered**: 2026-05-23 via https://github.com/pskoett/measuring-ai-proficiency/actions/runs/26272480150
+
+### What went wrong
+
+The scheduled `sync-factory-state.yml` reconcile failed on 2026-05-22 because its project query asked GitHub GraphQL for `items(first: 250)`. GitHub rejected the request before any reconciliation work happened, so the board safety-net run exited immediately instead of correcting stale state.
+
+### Root cause
+
+GitHub GraphQL connections cap `first` at 100 records. The workflow comment described the GraphQL-by-project-ID approach as the only reliable full-reconcile shape, but the query itself exceeded the API limit and had no pagination path.
+
+### Prevention rule
+
+Never request more than 100 items from a GitHub GraphQL connection in one call. When a workflow may need more than 100 records, use `first: 100` and paginate with `pageInfo` and `endCursor`.
+
+### See also
+
+- Issue #278
+- Issue #282
+
+---
+
 ## [LRN-002] `sync-factory-state` misses `pull_request` webhooks on certain producer paths
 
 **Status**: pending

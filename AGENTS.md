@@ -230,6 +230,10 @@ When a learning is promoted (high priority, recurrent pattern, broadly applicabl
 
 If the rule is workflow-specific (only applies to one workflow), also add it to that workflow's `.md` file body. Generic rules go in the harness files only.
 
+#### Workflow authoring guardrails
+
+- GitHub GraphQL connections cap `first` at 100 records. Never request more than 100 items in one call. Use `first: 100`, then paginate with `pageInfo` and `endCursor` when a workflow can exceed that size.
+
 ### Agent routing guidelines
 
 As of April 2026, GitHub offers three cloud coding agents, all bundled with the Copilot subscription: Copilot cloud agent, Claude (Sonnet 4.5/4.6, Opus 4.5/4.6), and Codex (GPT-5.2/5.3/5.4-Codex). The factory auto-routes to Copilot only. If a maintainer wants a different implementer for a given issue, that assignment happens outside the factory via the GitHub UI.
