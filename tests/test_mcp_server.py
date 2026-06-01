@@ -411,8 +411,13 @@ class TestGitHubHandlers:
 
         # github_scanner.scan_github_org returns List[(repo_name, temp_dir_path)].
         # The handler wraps each temp dir with RepoScanner and cleans them up.
-        d1 = tmp_path / "r1"; d1.mkdir(); (d1 / "CLAUDE.md").write_text("# r1\n" + "x" * 200)
-        d2 = tmp_path / "r2"; d2.mkdir(); (d2 / "CLAUDE.md").write_text("# r2\n" + "x" * 200)
+        d1 = tmp_path / "r1"
+        d1.mkdir()
+        (d1 / "CLAUDE.md").write_text("# r1\n" + "x" * 200)
+
+        d2 = tmp_path / "r2"
+        d2.mkdir()
+        (d2 / "CLAUDE.md").write_text("# r2\n" + "x" * 200)
 
         monkeypatch.setattr(
             "measure_ai_proficiency.mcp_server.scan_github_org",
