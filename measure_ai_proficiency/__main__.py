@@ -199,11 +199,14 @@ GitHub CLI Requirements:
     is_remote = bool(args.github_repo or args.github_org)
     cw = args.context_window
     if args.prove_exec and is_remote:
+        # Hard error (not a silent downgrade) so automation can't gain false confidence
+        # that an exec pass ran. Execution is never permitted on remote/GitHub repos.
         print(
-            "Note: --prove-exec ignored for remote scans (execution is disabled for "
-            "GitHub-scanned repos); running resolve-only.",
+            "Error: --prove-exec is not permitted with --github-repo/--github-org "
+            "(execution is disabled for remote repos). Use --prove for a resolve-only pass.",
             file=sys.stderr,
         )
+        sys.exit(1)
 
     # Track temp directories for cleanup
     temp_dirs = []

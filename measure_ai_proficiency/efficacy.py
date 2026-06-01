@@ -35,10 +35,12 @@ from typing import Dict, List, Optional, Tuple
 # =============================================================================
 
 # Env vars passed through to sandboxed processes (everything else is dropped).
-# NOTE: HOME is intentionally EXCLUDED — it is replaced with a throwaway temp dir per
-# call so user credential files (~/.npmrc, ~/.pypirc, ~/.m2/settings.xml, ...) can never
-# be read by a probed tool.
-_SAFE_ENV_KEYS = ("PATH", "LANG", "LC_ALL", "LC_CTYPE", "TMPDIR", "SYSTEMROOT")
+# Intentionally EXCLUDES HOME (replaced with a throwaway temp dir per call so user
+# credential files ~/.npmrc, ~/.pypirc, ~/.m2/settings.xml, ... can't be read), TMPDIR
+# (operator-redirectable; the throwaway HOME gives writable space), and ALL credential/
+# token vars (e.g. GITHUB_TOKEN, GH_TOKEN, AWS_*, NPM_TOKEN, XDG_CONFIG_HOME, CARGO_HOME,
+# GOPATH). Add new keys here only after confirming they cannot carry secrets.
+_SAFE_ENV_KEYS = ("PATH", "LANG", "LC_ALL", "LC_CTYPE", "SYSTEMROOT")
 
 # Default allowlist of command basenames eligible for the `<cmd> --help` probe under
 # --prove-exec. Resolution checks (`which`) are always safe and not gated by this.
@@ -469,7 +471,9 @@ class EfficacyAnalyzer:
         script_files: List[Path] = []
         if hooks_dir.is_dir():
             try:
-                script_files = [f for f in hooks_dir.iterdir() if f.is_file()]
+                script_files = [
+                    f for f in hooks_dir.iterdir() if f.is_file() and self._within_repo(f)
+                ]
             except (OSError, PermissionError):
                 pass
 
@@ -485,7 +489,7 @@ class EfficacyAnalyzer:
             # report strings (they could carry shell metacharacters/newlines): the event
             # name against the known-events allowlist, and the command basename against
             # the CLI-token charset.
-            safe_event = event if event in _HOOK_EVENTS else repr(event)
+            safe_event = event if event in _HOOK_EVENTS else "<custom-event>"
             safe_first = first if _CMD_FIRST_TOKEN.match(first) else "<cmd>"
             referenced = self._resolve_referenced_script(argv)
             if referenced is not None and not referenced.exists():
