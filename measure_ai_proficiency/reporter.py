@@ -385,6 +385,49 @@ class TerminalReporter:
 
                 print(file=output)
 
+        # 2026 context-engineering signals
+        if score.signals:
+            sig = score.signals
+            print(_color("  Context Engineering Signals (2026):", Colors.BOLD), file=output)
+            print(file=output)
+
+            if sig.structural:
+                sq = sig.structural
+                print(
+                    f"    Structural quality: {sq.structural_score:.1f}/10  "
+                    f"(skills:{sq.skills_count} hooks:{'yes' if sq.hooks_present else 'no'} "
+                    f"subagents:{sq.subagents_count} workflows:{'yes' if sq.workflows_present else 'no'} "
+                    f"plugins:{'yes' if sq.plugins_present else 'no'})",
+                    file=output,
+                )
+                print(file=output)
+
+            for key, h in sig.hits.items():
+                status = "✓" if h.matched else "○"
+                status_color = Colors.GREEN if h.matched else Colors.DIM
+                evidence = ""
+                if h.matched and h.evidence:
+                    evidence = _color(" — " + ", ".join(h.evidence[:3]), Colors.DIM)
+                print(f"    {_color(status, status_color)} {h.title}{evidence}", file=output)
+
+            print(file=output)
+            for lvl in (6, 7, 8):
+                if lvl not in sig.gates:
+                    continue
+                ok = sig.gates[lvl]
+                gstat = "✓" if ok else "○"
+                gcolor = Colors.GREEN if ok else Colors.DIM
+                if ok:
+                    print(f"    {_color(gstat, gcolor)} L{lvl} signal gate satisfied", file=output)
+                else:
+                    missing = ", ".join(sig.gate_missing.get(lvl, []))
+                    print(f"    {_color(gstat, gcolor)} L{lvl} signal gate: missing {missing}", file=output)
+
+            if sig.bonus_points > 0:
+                print(file=output)
+                print(f"    {_color(f'Signal Bonus: +{sig.bonus_points:.1f}', Colors.CYAN)}", file=output)
+            print(file=output)
+
         # Recommendations
         if score.recommendations:
             print(_color("  Recommendations:", Colors.BOLD), file=output)
@@ -656,6 +699,42 @@ class JsonReporter:
                         "indicators": b.outcomes.indicators,
                     }
 
+        # Add 2026 context-engineering signals if present (also consumed by MCP)
+        if score.signals:
+            sig = score.signals
+            result["signals"] = {
+                "bonus_points": round(sig.bonus_points, 2),
+                "matched": sig.matched_keys,
+                "gates": {str(k): v for k, v in sig.gates.items()},
+                "gate_missing": {str(k): list(v) for k, v in sig.gate_missing.items()},
+                "warnings": sig.warnings,
+                "hits": {
+                    key: {
+                        "title": h.title,
+                        "category": h.category,
+                        "matched": h.matched,
+                        "evidence": h.evidence,
+                        "official_reference": h.official_reference,
+                    }
+                    for key, h in sig.hits.items()
+                },
+            }
+            if sig.structural:
+                sq = sig.structural
+                result["signals"]["structural_quality"] = {
+                    "structural_score": round(sq.structural_score, 2),
+                    "skills_count": sq.skills_count,
+                    "skills_with_frontmatter": sq.skills_with_frontmatter,
+                    "skills_with_executable_content": sq.skills_with_executable_content,
+                    "skills_with_verification": sq.skills_with_verification,
+                    "skills_structured": sq.skills_structured,
+                    "hooks_present": sq.hooks_present,
+                    "hook_events": sq.hook_events,
+                    "subagents_count": sq.subagents_count,
+                    "workflows_present": sq.workflows_present,
+                    "plugins_present": sq.plugins_present,
+                }
+
         return result
 
     def report_single(self, score: RepoScore, output: TextIO = sys.stdout) -> None:
@@ -888,6 +967,50 @@ class MarkdownReporter:
 
                 print(file=output)
 
+        # 2026 context-engineering signals section
+        if score.signals:
+            sig = score.signals
+            print("## Context Engineering Signals (2026)", file=output)
+            print(file=output)
+            if sig.structural:
+                sq = sig.structural
+                print(f"- **Structural Quality:** {sq.structural_score:.1f}/10", file=output)
+                print(
+                    f"- **Primitives:** skills={sq.skills_count} "
+                    f"(frontmatter={sq.skills_with_frontmatter}, "
+                    f"executable={sq.skills_with_executable_content}, "
+                    f"verification={sq.skills_with_verification}), "
+                    f"hooks={'yes' if sq.hooks_present else 'no'}, "
+                    f"subagents={sq.subagents_count}, "
+                    f"workflows={'yes' if sq.workflows_present else 'no'}, "
+                    f"plugins={'yes' if sq.plugins_present else 'no'}",
+                    file=output,
+                )
+            if sig.bonus_points > 0:
+                print(f"- **Signal Bonus:** +{sig.bonus_points:.1f}", file=output)
+            print(file=output)
+
+            print("| Signal | Category | Detected | Evidence |", file=output)
+            print("|--------|----------|----------|----------|", file=output)
+            for key, h in sig.hits.items():
+                detected = "✓" if h.matched else "○"
+                ev = ", ".join(h.evidence[:3]) if h.evidence else ""
+                print(f"| {h.title} | {h.category} | {detected} | {ev} |", file=output)
+            print(file=output)
+
+            print("### Level Gates (L6-L8)", file=output)
+            print(file=output)
+            print("These signals are *required* (with file coverage) to reach the level.", file=output)
+            print(file=output)
+            print("| Level | Gate | Missing |", file=output)
+            print("|-------|------|---------|", file=output)
+            for lvl in (6, 7, 8):
+                if lvl in sig.gates:
+                    gate = ":white_check_mark: satisfied" if sig.gates[lvl] else ":o: blocked"
+                    missing = ", ".join(sig.gate_missing.get(lvl, [])) or "—"
+                    print(f"| L{lvl} | {gate} | {missing} |", file=output)
+            print(file=output)
+
         if score.recommendations:
             print("## Recommendations", file=output)
             print(file=output)
@@ -919,8 +1042,8 @@ class MarkdownReporter:
 
         print("## Repositories", file=output)
         print(file=output)
-        print("| Repository | Level | Score | Bonus | Quality | Status |", file=output)
-        print("|------------|-------|-------|-------|---------|--------|", file=output)
+        print("| Repository | Level | Score | Bonus | Quality | Gates (L6/7/8) | Status |", file=output)
+        print("|------------|-------|-------|-------|---------|----------------|--------|", file=output)
 
         sorted_scores = sorted(
             scores,
@@ -950,9 +1073,17 @@ class MarkdownReporter:
                     total_quality += avg_quality
                     repos_with_quality += 1
 
+            # Signal gate summary (L6/L7/L8)
+            gates_str = "-"
+            if score.signals and score.signals.gates:
+                g = score.signals.gates
+                gates_str = " ".join(
+                    f"{lvl}{'✓' if g.get(lvl) else '○'}" for lvl in (6, 7, 8)
+                )
+
             print(
                 f"| {score.repo_name} | Level {score.overall_level} | "
-                f"{score.overall_score:.1f} | {bonus_str} | {quality_str} | {status} |",
+                f"{score.overall_score:.1f} | {bonus_str} | {quality_str} | {gates_str} | {status} |",
                 file=output,
             )
 
@@ -979,8 +1110,10 @@ class CsvReporter:
     def report_multiple(self, scores: List[RepoScore], output: TextIO = sys.stdout) -> None:
         """Report multiple repository scores as CSV."""
 
-        # Header with levels 1-8, cross-reference columns, and validation columns
+        # Header: core + cross-reference + validation + 2026 signal columns,
+        # with the level_N_coverage columns kept last.
         header = "repo_name,repo_path,overall_level,overall_score,bonus_points,avg_quality,ref_count,resolved_count,validation_penalty,has_stale_files,has_templates,warning_count,ci_agents,handoffs_valid,outcomes_valid"
+        header += ",signal_bonus,structural_score,matched_signal_count,l6_gate,l7_gate,l8_gate"
         for i in range(1, 9):
             header += f",level_{i}_coverage"
         print(header, file=output)
@@ -1024,12 +1157,31 @@ class CsvReporter:
                     handoffs_valid = v.behavioral.level_7_ready
                     outcomes_valid = v.behavioral.level_8_ready
 
+            # 2026 signal data
+            signal_bonus = 0.0
+            structural_score = 0.0
+            matched_signal_count = 0
+            l6_gate = False
+            l7_gate = False
+            l8_gate = False
+            if score.signals:
+                sig = score.signals
+                signal_bonus = sig.bonus_points
+                matched_signal_count = len(sig.matched_keys)
+                if sig.structural:
+                    structural_score = sig.structural.structural_score
+                l6_gate = sig.gates.get(6, False)
+                l7_gate = sig.gates.get(7, False)
+                l8_gate = sig.gates.get(8, False)
+
             line = (
                 f'"{score.repo_name}","{score.repo_path}",{score.overall_level},'
                 f'{score.overall_score:.2f},{bonus:.2f},{avg_quality:.2f},'
                 f'{ref_count},{resolved_count},{validation_penalty:.2f},'
                 f'{has_stale},{has_templates},{warning_count},'
-                f'{ci_agents},{handoffs_valid},{outcomes_valid}'
+                f'{ci_agents},{handoffs_valid},{outcomes_valid},'
+                f'{signal_bonus:.2f},{structural_score:.2f},{matched_signal_count},'
+                f'{l6_gate},{l7_gate},{l8_gate}'
             )
             for cov in coverages:
                 line += f",{cov:.2f}"

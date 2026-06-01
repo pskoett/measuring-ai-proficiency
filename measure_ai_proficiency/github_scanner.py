@@ -218,7 +218,15 @@ def get_repo_tree(owner: str, repo: str, branch: str = "main") -> List[Dict[str,
         check=True  # Raise CalledProcessError on non-zero exit
     )
 
-    data = json.loads(result.stdout)
+    try:
+        data = json.loads(result.stdout)
+    except json.JSONDecodeError as e:
+        # A non-JSON response (HTML error page, truncated body) is treated as a
+        # subprocess failure so the retry decorator can back off and retry.
+        raise subprocess.CalledProcessError(
+            1, ["gh", "api", f"repos/{owner}/{repo}/git/trees/{branch}"],
+            output=result.stdout, stderr=f"Invalid JSON from GitHub API: {e}"
+        )
     tree = data.get("tree", [])
 
     # Filter for files only (not directories) and exclude large files
@@ -248,7 +256,9 @@ def get_relevant_files(tree: List[Dict[str, Any]]) -> List[str]:
     always_check = {
         "CLAUDE.md", "AGENTS.md", ".cursorrules", "CODEX.md",
         ".github/copilot-instructions.md", ".copilot-instructions.md",
-        ".ai-proficiency.yaml", ".ai-proficiency.yml"
+        ".ai-proficiency.yaml", ".ai-proficiency.yml",
+        # Hook configuration (2026 signal detection)
+        ".claude/settings.json", ".claude/settings.local.json",
     }
 
     # Patterns that need special handling
@@ -261,12 +271,29 @@ def get_relevant_files(tree: List[Dict[str, Any]]) -> List[str]:
         ".claude/commands/", ".github/commands/"
     ]
 
+    # 2026 artifact directories: pull any file under these prefixes so signal
+    # detection (workflows, hooks, plugins, eval loops) works on remote scans.
+    artifact_prefixes = [
+        ".claude/workflows/", ".claude/hooks/", ".claude/plugins/",
+        ".claude-plugin/", ".evals/", "evals/",
+    ]
+
     for entry in tree:
         path = entry.get("path", "")
 
         # Check always_check files
         if path in always_check:
             relevant_paths.append(path)
+            continue
+
+        # Check 2026 artifact directories (any file underneath)
+        matched_artifact = False
+        for prefix in artifact_prefixes:
+            if path.startswith(prefix):
+                relevant_paths.append(path)
+                matched_artifact = True
+                break
+        if matched_artifact:
             continue
 
         # Check if in skills directory
@@ -314,8 +341,14 @@ def download_repo_files(owner: str, repo: str, branch: str, target_dir: Path) ->
         for file_path in relevant_files:
             content = fetch_file_from_github(owner, repo, file_path, branch)
             if content is not None:
-                # Create directory structure
-                full_path = target_dir / file_path
+                # Resolve and verify the path stays inside target_dir — defends
+                # against path traversal if the API returns adversarial paths
+                # (e.g. "../../etc/passwd").
+                target_root = target_dir.resolve()
+                full_path = (target_dir / file_path).resolve()
+                if not (full_path == target_root or target_root in full_path.parents):
+                    print(f"Warning: Skipping path outside target dir: {file_path}", file=sys.stderr)
+                    continue
                 full_path.parent.mkdir(parents=True, exist_ok=True)
 
                 # Write file

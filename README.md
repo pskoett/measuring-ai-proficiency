@@ -14,6 +14,8 @@ Measure context engineering. Look at whether teams are creating files like `CLAU
 
 This tool scans repositories for context engineering artifacts and calculates a maturity score based on an 8-level model aligned with [Steve Yegge's stages](https://steve-yegge.medium.com/welcome-to-gas-town-4f25ee16dd04).
 
+Since v0.6.0 it also detects **2026 context-engineering signals** — verification, hooks, eval loops, telemetry, anti-drift maintenance hygiene, dynamic-workflow orchestration, plugins, and harness engineering — and uses them to **gate Levels 6-8** (file coverage alone is no longer enough). See **[docs/SIGNALS.md](docs/SIGNALS.md)**. All detection is grounded in official documentation.
+
 ## Quick Start
 
 ```bash
@@ -66,6 +68,11 @@ Ask your AI assistant:
 - `scan_github_repo` - Analyze remote GitHub repo
 - `scan_github_org` - Scan entire GitHub organization
 - `validate_file_quality` - Check specific file quality
+- `check_harness_orchestration_quality` - 2026 harness/orchestration maturity + L6-L8 gates
+- `scan_for_maintenance_hygiene` - Anti-drift maintenance hygiene
+- `get_dynamic_workflow_recommendations` - Adopt Dynamic Workflows + verification
+- `curricula_alignment` - Official learning on-ramp references
+- `cheapest_primitive_decision_tree_report` - Primitive decision discipline
 
 📖 **[Full MCP Documentation](docs/MCP.md)** - Setup, examples, troubleshooting
 

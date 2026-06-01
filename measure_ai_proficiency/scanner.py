@@ -15,6 +15,13 @@ from pathlib import Path
 from typing import Dict, List, Optional, Set
 
 from .config import LEVELS, CORE_AI_FILES, LevelConfig, filter_patterns_for_tools
+from .signals import (
+    SIGNAL_GROUPS,
+    SIGNAL_GROUPS_BY_KEY,
+    LEVEL_GATE_REQUIREMENTS,
+    GATE_REQUIREMENT_LABELS,
+    GATE_REQUIREMENT_REFERENCES,
+)
 from .repo_config import (
     RepoConfig,
     load_repo_config,
@@ -291,6 +298,99 @@ class BehavioralAnalysis:
 
 
 @dataclass
+class StructuralQuality:
+    """Structural-quality metrics for the 6 primitives (2026 signals).
+
+    Goes beyond presence: detects YAML frontmatter, executable content, and
+    verification inside skills, plus deterministic hooks, subagents, workflows,
+    and plugin manifests.
+    """
+
+    skills_count: int = 0
+    skills_with_frontmatter: int = 0
+    skills_with_executable_content: int = 0
+    skills_with_verification: int = 0
+    hooks_present: bool = False
+    hook_events: List[str] = field(default_factory=list)
+    subagents_count: int = 0
+    workflows_present: bool = False
+    plugins_present: bool = False
+
+    @property
+    def skills_structured(self) -> bool:
+        """True if at least one skill has real structure (frontmatter or scripts)."""
+        return self.skills_count > 0 and (
+            self.skills_with_frontmatter > 0 or self.skills_with_executable_content > 0
+        )
+
+    @property
+    def structural_score(self) -> float:
+        """0-10 structural-quality score across the primitives."""
+        score = 0.0
+        if self.skills_count > 0:
+            score += 1.0
+        if self.skills_with_frontmatter > 0:
+            score += 1.5
+        if self.skills_with_executable_content > 0:
+            score += 1.5
+        if self.skills_with_verification > 0:
+            score += 1.0
+        if self.hooks_present:
+            score += 1.5
+        if self.subagents_count >= 2:
+            score += 1.5
+        elif self.subagents_count == 1:
+            score += 0.5
+        if self.workflows_present:
+            score += 1.0
+        if self.plugins_present:
+            score += 1.0
+        return min(score, 10.0)
+
+
+@dataclass
+class SignalHit:
+    """A single 2026 content-signal detection result."""
+
+    key: str
+    title: str
+    category: str
+    matched: bool
+    evidence: List[str] = field(default_factory=list)
+    official_reference: str = ""
+
+
+@dataclass
+class HarnessSignals:
+    """2026 context-engineering signals: content hits + structural quality + gates.
+
+    These rewire the L6-L8 ladder: reaching those levels requires the matching
+    signals (resolved in scanner._compute_signal_gates), not file coverage alone.
+    """
+
+    hits: Dict[str, SignalHit] = field(default_factory=dict)
+    structural: Optional[StructuralQuality] = None
+    bonus_points: float = 0.0
+    gates: Dict[int, bool] = field(default_factory=dict)               # level -> satisfied
+    gate_missing: Dict[int, List[str]] = field(default_factory=dict)   # level -> missing reqs
+
+    @property
+    def matched_keys(self) -> List[str]:
+        return [k for k, h in self.hits.items() if h.matched]
+
+    @property
+    def warnings(self) -> List[str]:
+        """Human-readable gate gaps (e.g. 'SIGNAL GAP (L7): missing telemetry...')."""
+        out: List[str] = []
+        for level in sorted(self.gate_missing):
+            missing = self.gate_missing[level]
+            if missing:
+                labels = "; ".join(GATE_REQUIREMENT_LABELS.get(m, m) for m in missing)
+                out.append(f"SIGNAL GAP (L{level}): missing {labels}")
+        return out
+
+
+@dataclass
 class ValidationResult:
     """Combined validation results for a repository (Improvements 2-4)."""
 
@@ -434,6 +534,7 @@ class RepoScore:
     effective_thresholds: Dict[int, int] = field(default_factory=dict)  # Level -> % threshold
     default_level: Optional[int] = None  # Level with default thresholds (when custom are used)
     validation: Optional[ValidationResult] = None  # Content validation results (Improvements 2-4)
+    signals: Optional["HarnessSignals"] = None  # 2026 context-engineering signals (gates L6-8)
 
     @property
     def has_any_ai_files(self) -> bool:
@@ -458,6 +559,7 @@ class RepoScanner:
         self.repo_path = Path(repo_path).resolve()
         self.verbose = verbose
         self._dir_cache: Dict[str, bool] = {}
+        self._instruction_files_cache: Optional[List[Path]] = None
         self.config: Optional[RepoConfig] = None
 
     # Config getters with defaults (used before config is loaded)
@@ -486,6 +588,10 @@ class RepoScanner:
 
         scan_time = datetime.now()
 
+        # Reset per-scan caches
+        self._instruction_files_cache = None
+        self._dir_cache = {}
+
         # Load repository config (auto-detection + .ai-proficiency.yaml)
         self.config = load_repo_config(self.repo_path)
 
@@ -509,8 +615,15 @@ class RepoScanner:
         # Perform content validation (Improvements 2-4)
         score.validation = self._validate_content()
 
-        # Calculate overall level and score (using custom thresholds if configured)
-        score.overall_level, score.effective_thresholds, score.default_level = self._calculate_overall_level(score.level_scores)
+        # Analyze 2026 context-engineering signals (gates L6-8 + bonus)
+        behavioral = score.validation.behavioral if score.validation else None
+        score.signals = self._analyze_signals(behavioral)
+
+        # Calculate overall level and score (using custom thresholds if configured).
+        # Signal gates can cap the achieved level for L6-8 (2026 rewire).
+        score.overall_level, score.effective_thresholds, score.default_level = (
+            self._calculate_overall_level(score.level_scores, score.signals)
+        )
 
         # Calculate base score with minimum per level and validation penalty
         validation_penalty = score.validation.validation_penalty if score.validation else 0.0
@@ -520,8 +633,11 @@ class RepoScanner:
             validation_penalty
         )
 
-        # Add cross-reference bonus to overall score (capped at 100)
-        score.overall_score = min(100, base_score + score.cross_references.bonus_points)
+        # Add cross-reference + signal bonuses to overall score (capped at 100)
+        signal_bonus = score.signals.bonus_points if score.signals else 0.0
+        score.overall_score = min(
+            100, base_score + score.cross_references.bonus_points + signal_bonus
+        )
 
         # Generate recommendations (tool-specific)
         score.recommendations = self._generate_recommendations(score)
@@ -707,7 +823,15 @@ class RepoScanner:
         )
 
     def _find_instruction_files(self) -> List[Path]:
-        """Find AI instruction files to scan for cross-references."""
+        """Find AI instruction files to scan for cross-references.
+
+        Memoized per scan run: several passes (validation, signals, success
+        tracking) need this list, and re-globbing the filesystem each time is
+        slow on large or network-backed repositories. The cache is reset at the
+        start of each scan().
+        """
+        if self._instruction_files_cache is not None:
+            return self._instruction_files_cache
 
         files: List[Path] = []
 
@@ -739,6 +863,7 @@ class RepoScanner:
             except (OSError, PermissionError):
                 pass
 
+        self._instruction_files_cache = files
         return files
 
     def _read_file_safe(self, path: Path) -> Optional[str]:
@@ -1554,6 +1679,303 @@ class RepoScanner:
                 pass
         return False
 
+    # =========================================================================
+    # 2026 Context-Engineering Signal Analysis
+    # =========================================================================
+
+    def _analyze_signals(self, behavioral: Optional[BehavioralAnalysis] = None) -> HarnessSignals:
+        """Detect 2026 context-engineering signals; compute L6-8 gates + bonus."""
+        text = self._concat_instruction_text()
+        structural = self._detect_structural_quality()
+
+        hits: Dict[str, SignalHit] = {}
+        for group in SIGNAL_GROUPS:
+            evidence: List[str] = []
+            for pattern in group.keyword_patterns:
+                try:
+                    match = re.search(pattern, text, re.IGNORECASE)
+                except re.error:
+                    continue
+                if match:
+                    token = match.group(0).strip()
+                    if token and token not in evidence:
+                        evidence.append(token)
+
+            # Reinforce select signals with filesystem structural evidence
+            if group.key == "hooks" and structural.hooks_present:
+                for event in structural.hook_events:
+                    if event not in evidence:
+                        evidence.append(event)
+                if not evidence:
+                    evidence.append(".claude/hooks")
+            elif group.key == "dynamic_workflows" and structural.workflows_present:
+                if ".claude/workflows/" not in evidence:
+                    evidence.append(".claude/workflows/")
+            elif group.key == "plugins" and structural.plugins_present:
+                if ".claude-plugin" not in evidence:
+                    evidence.append(".claude-plugin")
+            elif group.key == "eval_loops" and self._has_eval_infra():
+                if ".evals/" not in evidence:
+                    evidence.append(".evals/")
+            elif group.key == "verification" and structural.skills_with_verification > 0:
+                marker = f"{structural.skills_with_verification} verification skill(s)"
+                if marker not in evidence:
+                    evidence.append(marker)
+
+            hits[group.key] = SignalHit(
+                key=group.key,
+                title=group.title,
+                category=group.category,
+                matched=len(evidence) > 0,
+                evidence=evidence[:6],
+                official_reference=group.official_reference,
+            )
+
+        # measured_outcomes is a structural/behavioral signal (metrics, logs,
+        # success tracking) rather than a keyword group, but it gates L8 — surface
+        # it as a hit so reports and the harness MCP tool show it. It is not in
+        # SIGNAL_GROUPS, so it does not contribute to the keyword signal bonus.
+        outcome_evidence: List[str] = []
+        if behavioral and behavioral.outcomes:
+            outcome_evidence = [k for k, v in behavioral.outcomes.indicators.items() if v]
+        hits["measured_outcomes"] = SignalHit(
+            key="measured_outcomes",
+            title="Measured Outcomes",
+            category="harness",
+            matched=bool(behavioral and behavioral.level_8_ready),
+            evidence=outcome_evidence[:6],
+            official_reference=GATE_REQUIREMENT_REFERENCES.get("measured_outcomes", ""),
+        )
+
+        gates, gate_missing = self._compute_signal_gates(hits, structural, behavioral)
+        bonus = self._compute_signal_bonus(hits, structural)
+
+        return HarnessSignals(
+            hits=hits,
+            structural=structural,
+            bonus_points=bonus,
+            gates=gates,
+            gate_missing=gate_missing,
+        )
+
+    def _concat_instruction_text(self) -> str:
+        """Concatenate instruction + skill + hook/workflow text for signal scanning."""
+        parts: List[str] = []
+        for path in self._find_instruction_files():
+            content = self._read_file_safe(path)
+            if content:
+                parts.append(content)
+
+        # Include hook/workflow scripts for richer keyword detection.
+        # Cap the number of files read per directory to bound work/memory on
+        # pathological repos (each file is already size-capped by _read_file_safe).
+        max_files_per_dir = 50
+        for sub in (".claude/hooks", ".claude/workflows"):
+            directory = self.repo_path / sub
+            if directory.is_dir():
+                try:
+                    read = 0
+                    for item in sorted(directory.rglob("*")):
+                        if read >= max_files_per_dir:
+                            break
+                        if item.is_file():
+                            content = self._read_file_safe(item)
+                            if content:
+                                parts.append(content)
+                                read += 1
+                except (OSError, PermissionError):
+                    pass
+
+        # Include settings (hook configuration lives here)
+        for rel in (".claude/settings.json", ".claude/settings.local.json"):
+            path = self.repo_path / rel
+            if path.is_file():
+                content = self._read_file_safe(path)
+                if content:
+                    parts.append(content)
+
+        return "\n".join(parts)
+
+    def _detect_structural_quality(self) -> StructuralQuality:
+        """Detect structural quality across the 6 primitives (2026)."""
+        sq = StructuralQuality()
+
+        # --- Skills: frontmatter, executable content, verification ---
+        skill_files = self._find_skill_files()
+        sq.skills_count = len(skill_files)
+        for skill in skill_files:
+            content = self._read_file_safe(skill)
+            if not content:
+                continue
+            if content.lstrip().startswith("---"):
+                sq.skills_with_frontmatter += 1
+            # Executable / data content = non-.md files alongside the skill
+            try:
+                has_exec = any(
+                    item.is_file() and item.suffix.lower() not in ("", ".md")
+                    for item in skill.parent.rglob("*")
+                )
+            except (OSError, PermissionError):
+                has_exec = False
+            if has_exec:
+                sq.skills_with_executable_content += 1
+            lowered = content.lower()
+            if any(term in lowered for term in ("verif", "assert", "validate", "eval", "test")):
+                sq.skills_with_verification += 1
+
+        # --- Hooks: settings.json + .claude/hooks + event keywords ---
+        hooks_present = False
+        hooks_dir = self.repo_path / ".claude" / "hooks"
+        if hooks_dir.is_dir():
+            try:
+                hooks_present = any(hooks_dir.iterdir())
+            except (OSError, PermissionError):
+                hooks_present = False
+
+        settings_text = ""
+        for rel in (".claude/settings.json", ".claude/settings.local.json"):
+            path = self.repo_path / rel
+            if path.is_file():
+                content = self._read_file_safe(path)
+                if content:
+                    settings_text += content
+        if '"hooks"' in settings_text:
+            hooks_present = True
+
+        hook_events: Set[str] = set()
+        for event in (
+            "PreToolUse", "PostToolUse", "SessionStart", "Stop",
+            "SubagentStop", "UserPromptSubmit", "PreCompact", "Notification",
+        ):
+            if event in settings_text:
+                hook_events.add(event)
+                hooks_present = True
+        sq.hooks_present = hooks_present
+        sq.hook_events = sorted(hook_events)
+
+        # --- Subagents: agent definition files ---
+        sq.subagents_count = self._count_subagent_files()
+
+        # --- Workflows: .claude/workflows with files ---
+        wf_dir = self.repo_path / ".claude" / "workflows"
+        if wf_dir.is_dir():
+            try:
+                sq.workflows_present = any(item.is_file() for item in wf_dir.iterdir())
+            except (OSError, PermissionError):
+                sq.workflows_present = False
+
+        # --- Plugins: .claude-plugin manifest anywhere ---
+        sq.plugins_present = self._has_plugin_manifest()
+
+        return sq
+
+    def _count_subagent_files(self) -> int:
+        """Count unique subagent definition files across known locations."""
+        agent_dirs = [
+            self.repo_path / ".claude" / "agents",
+            self.repo_path / ".github" / "agents",
+            self.repo_path / "agents",
+        ]
+        seen: Set[str] = set()
+        for agent_dir in agent_dirs:
+            if agent_dir.is_dir():
+                try:
+                    for f in agent_dir.glob("*.md"):
+                        if f.is_file():
+                            seen.add(str(f.resolve()))
+                except (OSError, PermissionError):
+                    pass
+        return len(seen)
+
+    def _has_plugin_manifest(self) -> bool:
+        """True if a Claude plugin/marketplace manifest exists anywhere relevant."""
+        direct = [
+            self.repo_path / ".claude-plugin" / "plugin.json",
+            self.repo_path / ".claude-plugin" / "marketplace.json",
+        ]
+        if any(p.is_file() for p in direct):
+            return True
+        for base in (self.repo_path / ".claude" / "plugins", self.repo_path / "plugins"):
+            if base.is_dir():
+                try:
+                    for name in ("plugin.json", "marketplace.json"):
+                        for manifest in base.rglob(name):
+                            if manifest.is_file():
+                                return True
+                except (OSError, PermissionError):
+                    pass
+        return False
+
+    def _has_eval_infra(self) -> bool:
+        """True if an eval/regression directory with cases exists."""
+        for rel in (".evals", "evals"):
+            directory = self.repo_path / rel
+            if directory.is_dir():
+                try:
+                    if any(directory.rglob("*.md")):
+                        return True
+                except (OSError, PermissionError):
+                    pass
+        return False
+
+    def _compute_signal_gates(
+        self,
+        hits: Dict[str, SignalHit],
+        structural: StructuralQuality,
+        behavioral: Optional[BehavioralAnalysis],
+    ) -> tuple:
+        """Resolve L6-8 gate requirements.
+
+        Returns (gates, gate_missing). gates[level] is True only when ALL of that
+        level's requirements are satisfied. Because _calc_level_with_thresholds
+        walks the ladder monotonically (a failed gate at level N breaks the loop),
+        the requirements are effectively cumulative: a repo cannot reach L7/L8
+        while its L6 gate is unmet, even if higher signals are present.
+        """
+        def matched(key: str) -> bool:
+            hit = hits.get(key)
+            return bool(hit and hit.matched)
+
+        # Resolved once; the eval-infra directory check is reused below.
+        has_eval_infra = self._has_eval_infra()
+
+        resolved: Dict[str, bool] = {
+            # Verification (L6) is verification *discipline* in instructions/skills —
+            # distinct from L7 eval-loop infrastructure (.evals), so it does NOT
+            # fall back to has_eval_infra.
+            "structured_skills": structural.skills_structured,
+            "hooks": structural.hooks_present or matched("hooks"),
+            "subagents": structural.subagents_count >= 2,
+            "verification": matched("verification"),
+            "eval_loops": matched("eval_loops") or has_eval_infra,
+            "telemetry": matched("telemetry"),
+            "maintenance_hygiene": matched("maintenance_hygiene"),
+            "orchestration": structural.workflows_present or matched("dynamic_workflows"),
+            "plugins": structural.plugins_present or matched("plugins"),
+            "measured_outcomes": bool(behavioral and behavioral.level_8_ready),
+        }
+
+        gates: Dict[int, bool] = {}
+        gate_missing: Dict[int, List[str]] = {}
+        for level, requirements in LEVEL_GATE_REQUIREMENTS.items():
+            missing = [req for req in requirements if not resolved.get(req, False)]
+            gates[level] = len(missing) == 0
+            gate_missing[level] = missing
+        return gates, gate_missing
+
+    def _compute_signal_bonus(
+        self, hits: Dict[str, SignalHit], structural: StructuralQuality
+    ) -> float:
+        """Bounded bonus (0-10) from matched signals + structural quality."""
+        signal_points = 0.0
+        for key, hit in hits.items():
+            if hit.matched:
+                group = SIGNAL_GROUPS_BY_KEY.get(key)
+                if group:
+                    signal_points += group.weight
+        structural_points = structural.structural_score / 4.0  # up to ~2.5 pts
+        return min(10.0, signal_points + structural_points)
+
     # Default thresholds for level advancement (percentage coverage required)
     DEFAULT_THRESHOLDS: Dict[int, int] = {
         3: 15,   # Comprehensive context
@@ -1564,13 +1986,21 @@ class RepoScanner:
         8: 5,    # Custom orchestration (frontier)
     }
 
-    def _calculate_overall_level(self, level_scores: Dict[int, LevelScore]) -> tuple:
+    def _calculate_overall_level(
+        self,
+        level_scores: Dict[int, LevelScore],
+        signals: Optional[HarnessSignals] = None,
+    ) -> tuple:
         """
         Calculate the overall maturity level (1-8) and return effective thresholds.
 
+        Levels 6-8 are additionally gated on 2026 context-engineering signals
+        (when ``signals`` is provided): file coverage alone is no longer enough —
+        the matching primitives/harness/orchestration signals must also be present.
+
         Returns:
             tuple: (overall_level, effective_thresholds, default_level)
-            - overall_level: Level achieved with effective thresholds
+            - overall_level: Level achieved with effective thresholds + signal gates
             - effective_thresholds: Dict of thresholds used (custom if configured)
             - default_level: Level that would be achieved with default thresholds (None if no custom)
         """
@@ -1593,23 +2023,40 @@ class RepoScanner:
         if not has_core_file:
             return 1, thresholds, None  # No core AI file = Level 1
 
+        # Signal gates for L6-8 (None => no gating, backward compatible)
+        gates = signals.gates if signals else None
+
         # Calculate level with effective thresholds
-        current_level = self._calc_level_with_thresholds(level_scores, thresholds)
+        current_level = self._calc_level_with_thresholds(level_scores, thresholds, gates)
 
         # Calculate default level if custom thresholds are in use
         default_level = None
         if has_custom:
-            default_level = self._calc_level_with_thresholds(level_scores, self.DEFAULT_THRESHOLDS)
+            default_level = self._calc_level_with_thresholds(
+                level_scores, self.DEFAULT_THRESHOLDS, gates
+            )
 
         return current_level, thresholds, default_level
 
-    def _calc_level_with_thresholds(self, level_scores: Dict[int, LevelScore], thresholds: Dict[int, int]) -> int:
-        """Calculate level using given thresholds."""
+    def _calc_level_with_thresholds(
+        self,
+        level_scores: Dict[int, LevelScore],
+        thresholds: Dict[int, int],
+        gates: Optional[Dict[int, bool]] = None,
+    ) -> int:
+        """Calculate level using given thresholds and optional L6-8 signal gates."""
         current_level = 2
         for level_num in range(3, 9):
             level_score = level_scores.get(level_num)
             threshold = thresholds.get(level_num, 5)
-            if level_score and level_score.coverage_percent >= threshold:
+            coverage_ok = bool(level_score and level_score.coverage_percent >= threshold)
+
+            # Signal gate (only constrains levels present in the gates dict, i.e. 6-8)
+            gate_ok = True
+            if gates is not None and level_num in gates:
+                gate_ok = gates[level_num]
+
+            if coverage_ok and gate_ok:
                 current_level = level_num
             else:
                 break
@@ -2365,9 +2812,49 @@ class RepoScanner:
         }
 
         handler = handlers.get(score.overall_level)
-        if handler:
-            return handler()
-        return []
+        recs = handler() if handler else []
+
+        # Append 2026 signal-gap recommendations (verification, hooks, harness,
+        # dynamic workflows, maintenance hygiene) grounded in official docs.
+        recs.extend(self._signal_gap_recommendations(score))
+        return recs
+
+    def _signal_gap_recommendations(self, score: RepoScore) -> List[str]:
+        """Recommend the missing 2026 signals needed to reach the next level."""
+        recs: List[str] = []
+        signals = score.signals
+        if not signals or self._should_skip(score.config, "signals"):
+            return recs
+
+        emoji = {
+            "structured_skills": "📚",
+            "hooks": "🪝",
+            "subagents": "🤝",
+            "verification": "✅",
+            "eval_loops": "🧪",
+            "telemetry": "📈",
+            "maintenance_hygiene": "🧹",
+            "orchestration": "🪢",
+            "plugins": "🧩",
+            "measured_outcomes": "📊",
+        }
+
+        # Surface gate gaps for the current level (if any) and the next level.
+        next_level = min(score.overall_level + 1, 8)
+        targets = sorted({lvl for lvl in (score.overall_level, next_level) if lvl in (6, 7, 8)})
+
+        seen: Set[str] = set()
+        for level in targets:
+            for req in signals.gate_missing.get(level, []):
+                if req in seen:
+                    continue
+                seen.add(req)
+                label = GATE_REQUIREMENT_LABELS.get(req, req)
+                ref = GATE_REQUIREMENT_REFERENCES.get(req, "")
+                icon = emoji.get(req, "➤")
+                suffix = f" See {ref}" if ref else ""
+                recs.append(f"{icon} For Level {level}: add {label}.{suffix}")
+        return recs
 
 
 def scan_multiple_repos(repo_paths: List[str], verbose: bool = False) -> List[RepoScore]:

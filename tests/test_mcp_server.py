@@ -22,6 +22,11 @@ from measure_ai_proficiency.mcp_server import (
     validate_file_quality_handler,
     scan_github_repo_handler,
     scan_github_org_handler,
+    check_harness_orchestration_quality_handler,
+    scan_for_maintenance_hygiene_handler,
+    get_dynamic_workflow_recommendations_handler,
+    curricula_alignment_handler,
+    cheapest_primitive_decision_tree_report_handler,
 )
 from measure_ai_proficiency.scanner import RepoScanner, RepoScore
 
@@ -350,14 +355,15 @@ class TestGitHubHandlers:
             lambda: True
         )
 
-        # Create a mock RepoScore
-        scanner = RepoScanner(tmp_path)
-        mock_score = scanner.scan()
+        # github_scanner.scan_github_repo returns a TEMP DIR PATH (not a RepoScore).
+        # The handler wraps it with RepoScanner and cleans it up afterward.
+        repo_dir = tmp_path / "ghrepo"
+        repo_dir.mkdir()
+        (repo_dir / "CLAUDE.md").write_text("# Repo\n" + "x" * 200)
 
-        # Mock the scan_github_repo function
         monkeypatch.setattr(
             "measure_ai_proficiency.mcp_server.scan_github_repo",
-            lambda repo: mock_score
+            lambda repo: repo_dir
         )
 
         result = await scan_github_repo_handler("owner/repo")
@@ -367,6 +373,8 @@ class TestGitHubHandlers:
         assert "repo_name" in data
         assert "overall_level" in data
         assert "overall_score" in data
+        # Handler sets repo_path to the GitHub repo identifier
+        assert data["repo_path"] == "owner/repo"
 
     @pytest.mark.asyncio
     async def test_scan_github_repo_error(self, monkeypatch):
@@ -401,14 +409,14 @@ class TestGitHubHandlers:
             lambda: True
         )
 
-        # Create mock RepoScores
-        scanner = RepoScanner(tmp_path)
-        mock_score = scanner.scan()
+        # github_scanner.scan_github_org returns List[(repo_name, temp_dir_path)].
+        # The handler wraps each temp dir with RepoScanner and cleans them up.
+        d1 = tmp_path / "r1"; d1.mkdir(); (d1 / "CLAUDE.md").write_text("# r1\n" + "x" * 200)
+        d2 = tmp_path / "r2"; d2.mkdir(); (d2 / "CLAUDE.md").write_text("# r2\n" + "x" * 200)
 
-        # Mock the scan_github_org function to return a list of scores
         monkeypatch.setattr(
             "measure_ai_proficiency.mcp_server.scan_github_org",
-            lambda org, limit=None: [mock_score, mock_score]
+            lambda org, limit=None: [("owner/r1", d1), ("owner/r2", d2)]
         )
 
         result = await scan_github_org_handler("org-name", limit=10)
@@ -447,3 +455,101 @@ class TestGitHubHandlers:
         data = json.loads(result[0].text)
         assert "error" in data
         assert "org" in data
+
+
+def _make_rich_repo(root):
+    """Minimal rich fixture for the 2026 signal MCP tools."""
+    (root / "CLAUDE.md").write_text(
+        "# Project\nWe verify with adversarial review and clean-context verifiers.\n"
+        "Telemetry and observability scorecards. Audit CLAUDE.md for drift (sentinel canary).\n"
+        "Dynamic workflows orchestrate parallel subagents.\n"
+        "See the Anthropic Academy and the Google 5-day AI Agents course.\n" + "x" * 200
+    )
+    skill = root / ".claude" / "skills" / "foo"
+    skill.mkdir(parents=True)
+    (skill / "SKILL.md").write_text("---\nname: foo\ndescription: d\n---\n# Foo\nVerify outputs.\n")
+    (skill / "run.py").write_text("print('x')\n")
+    (root / ".claude" / "settings.json").write_text('{"hooks": {"PreToolUse": []}}\n')
+    wf = root / ".claude" / "workflows"
+    wf.mkdir(parents=True)
+    (wf / "m.md").write_text("# wf\n")
+
+
+class TestSignalTools:
+    """Tests for the 2026 context-engineering MCP tools."""
+
+    @pytest.mark.asyncio
+    async def test_check_harness_orchestration_quality(self, tmp_path, monkeypatch):
+        monkeypatch.setattr(
+            "measure_ai_proficiency.mcp_server.get_current_repo", lambda: tmp_path
+        )
+        _make_rich_repo(tmp_path)
+        result = await check_harness_orchestration_quality_handler()
+        assert len(result) == 1 and result[0].type == "text"
+        data = json.loads(result[0].text)
+        assert "structural_quality" in data
+        assert "harness_signals" in data
+        assert "level_gates" in data
+        assert set(data["level_gates"].keys()) == {"L6", "L7", "L8"}
+
+    @pytest.mark.asyncio
+    async def test_scan_for_maintenance_hygiene(self, tmp_path, monkeypatch):
+        monkeypatch.setattr(
+            "measure_ai_proficiency.mcp_server.get_current_repo", lambda: tmp_path
+        )
+        _make_rich_repo(tmp_path)
+        result = await scan_for_maintenance_hygiene_handler()
+        data = json.loads(result[0].text)
+        assert "maintenance_hygiene_detected" in data
+        assert data["maintenance_hygiene_detected"] is True
+        assert "signals" in data
+
+    @pytest.mark.asyncio
+    async def test_get_dynamic_workflow_recommendations(self, tmp_path, monkeypatch):
+        monkeypatch.setattr(
+            "measure_ai_proficiency.mcp_server.get_current_repo", lambda: tmp_path
+        )
+        _make_rich_repo(tmp_path)
+        result = await get_dynamic_workflow_recommendations_handler()
+        data = json.loads(result[0].text)
+        assert data["workflows_present"] is True
+        assert "official_docs" in data
+        assert "code.claude.com/docs/en/workflows" in data["official_docs"]
+        assert isinstance(data["recommendations"], list)
+
+    @pytest.mark.asyncio
+    async def test_curricula_alignment(self, tmp_path, monkeypatch):
+        monkeypatch.setattr(
+            "measure_ai_proficiency.mcp_server.get_current_repo", lambda: tmp_path
+        )
+        _make_rich_repo(tmp_path)
+        result = await curricula_alignment_handler()
+        data = json.loads(result[0].text)
+        assert data["curricula_referenced"] is True
+        assert "recommended_courses" in data
+        assert len(data["recommended_courses"]) >= 2
+
+    @pytest.mark.asyncio
+    async def test_cheapest_primitive_decision_tree(self, tmp_path, monkeypatch):
+        monkeypatch.setattr(
+            "measure_ai_proficiency.mcp_server.get_current_repo", lambda: tmp_path
+        )
+        _make_rich_repo(tmp_path)
+        result = await cheapest_primitive_decision_tree_report_handler()
+        data = json.loads(result[0].text)
+        assert "decision_tree" in data
+        assert len(data["decision_tree"]) == 5
+        assert data["primitives_present"]["skills"] is True
+        assert data["primitives_present"]["workflows"] is True
+
+    @pytest.mark.asyncio
+    async def test_signal_tools_on_bare_repo(self, tmp_path, monkeypatch):
+        """Signal tools should not error on a bare repo and report gaps."""
+        monkeypatch.setattr(
+            "measure_ai_proficiency.mcp_server.get_current_repo", lambda: tmp_path
+        )
+        (tmp_path / "CLAUDE.md").write_text("# Project\n" + "x" * 100)
+        result = await scan_for_maintenance_hygiene_handler()
+        data = json.loads(result[0].text)
+        assert data["maintenance_hygiene_detected"] is False
+        assert len(data["recommendations"]) >= 1
