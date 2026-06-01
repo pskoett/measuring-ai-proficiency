@@ -160,8 +160,8 @@ GitHub CLI Requirements:
         "--prove-exec",
         action="store_true",
         help="Like --prove, but ALSO executes allowlisted documented commands (the `--help` "
-             "probe only) in a hardened sandbox. Hooks are always validate-only (never "
-             "executed). Local repos only; never runs for --github-repo/--github-org. "
+             "probe only) and probes safe repo-local hook scripts with synthetic events in "
+             "a hardened sandbox. Local repos only; never runs for --github-repo/--github-org. "
              "Repo code is untrusted input — use deliberately.",
     )
 

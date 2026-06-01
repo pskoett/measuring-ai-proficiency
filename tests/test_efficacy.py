@@ -11,12 +11,10 @@ Security-critical invariants covered:
 import tempfile
 from pathlib import Path
 
-import pytest
-
 from measure_ai_proficiency import RepoScanner
 
 
-def _make_repo(root: Path, *, missing_hook: bool = True) -> None:
+def _make_repo(root: Path, *, missing_hook: bool = True, guard_hook: bool = False) -> None:
     """Fixture: documented commands + wired hooks (one present, one missing) + a skill."""
     (root / "CLAUDE.md").write_text(
         "# Project\n## Commands\n"
@@ -26,18 +24,33 @@ def _make_repo(root: Path, *, missing_hook: bool = True) -> None:
     )
     claude = root / ".claude"
     (claude / "hooks").mkdir(parents=True)
-    (claude / "hooks" / "format.sh").write_text("echo formatted\n")
+    if guard_hook:
+        (claude / "hooks" / "guard.sh").write_text(
+            '#!/bin/sh\n'
+            'payload="$(cat)"\n'
+            'echo "$payload" | grep -q \'"rm -rf /"\' && exit 2\n'
+            "exit 0\n"
+        )
+        hook_cmd = "bash .claude/hooks/guard.sh"
+    else:
+        (claude / "hooks" / "format.sh").write_text("echo formatted\n")
+        hook_cmd = "bash .claude/hooks/format.sh"
     hooks_json = (
         '{"hooks":{'
-        '"PreToolUse":[{"matcher":"Write","hooks":[{"type":"command","command":"bash .claude/hooks/format.sh"}]}]'
+        f'"PreToolUse":[{{"matcher":"Write","hooks":[{{"type":"command","command":"{hook_cmd}"}}]}}]'
     )
     if missing_hook:
-        hooks_json += ',"Stop":[{"hooks":[{"type":"command","command":"bash .claude/hooks/missing.sh"}]}]'
+        hooks_json += (
+            ',"Stop":[{"hooks":[{"type":"command",'
+            '"command":"bash .claude/hooks/missing.sh"}]}]'
+        )
     hooks_json += "}}\n"
     (claude / "settings.json").write_text(hooks_json)
     skill = claude / "skills" / "foo"
     skill.mkdir(parents=True)
-    (skill / "SKILL.md").write_text("---\nname: foo\ndescription: does foo when needed\n---\n# Foo\n")
+    (skill / "SKILL.md").write_text(
+        "---\nname: foo\ndescription: does foo when needed\n---\n# Foo\n"
+    )
 
 
 class TestEfficacyDefaults:
@@ -123,17 +136,24 @@ class TestEfficacySecurity:
             assert eff.executed is False
             assert any("remote" in w.lower() or "disabled" in w.lower() for w in eff.warnings)
 
-    def test_exec_does_not_run_interpreters_or_hooks(self):
-        """Under --prove-exec, shells/interpreters are NOT allowlisted (not executed),
-        and hooks are never executed (validate-only)."""
+    def test_exec_runs_safe_hook_scripts_but_not_interpreters(self):
+        """Under --prove-exec, command allowlist still blocks interpreters, but safe
+        repo-local hook scripts are probed with synthetic events."""
         with tempfile.TemporaryDirectory() as tmp:
-            _make_repo(Path(tmp))
+            _make_repo(Path(tmp), missing_hook=False, guard_hook=True)
             sc = RepoScanner(tmp)
             eff = sc.prove(sc.scan(), execute=True, is_remote=False)
             assert eff.executed is True
             cmds = {c.name: c for c in eff.provers["commands"].checks}
             # python3 resolves but is intentionally NOT allowlisted -> never executed
             assert "exit=" not in cmds["python3"].evidence
-            # hooks are validate-only even under exec (never executed)
-            for c in eff.provers["hooks"].checks:
-                assert "exit=" not in c.evidence and "ran" not in c.evidence
+            pre = [c for c in eff.provers["hooks"].checks if c.name.startswith("PreToolUse")]
+            assert pre and any("synthetic bad-case exit=" in c.evidence for c in pre)
+
+    def test_exec_guard_hook_blocks_synthetic_bad_case(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            _make_repo(Path(tmp), missing_hook=False, guard_hook=True)
+            sc = RepoScanner(tmp)
+            eff = sc.prove(sc.scan(), execute=True, is_remote=False)
+            pre = [c for c in eff.provers["hooks"].checks if c.name.startswith("PreToolUse")]
+            assert pre and all(c.status == "pass" for c in pre)

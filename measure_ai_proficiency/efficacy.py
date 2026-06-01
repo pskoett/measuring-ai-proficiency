@@ -13,9 +13,8 @@ SECURITY (see docs/EFFICACY.md for the full threat model):
   CLI `--prove-exec`) and is HARD-BLOCKED for remote / GitHub-scanned repos.
 - Repo content is treated as untrusted input: execution uses an argv list (never via a
   shell), a command allowlist, a scrubbed env, a timeout, and an output cap.
-- Hooks are NEVER executed (only validated for wiring + contained script existence);
-  only the commands prober runs, and only a fixed `<cmd> --help` probe (never the
-  documented arguments).
+- Under `--prove-exec`, hook scripts referenced from `.claude/settings.json` may be
+  run against synthetic events (local repos only) to prove runtime behavior.
 """
 
 import os
@@ -78,6 +77,7 @@ _COMMAND_STOPWORDS = frozenset({
 _INLINE_CODE = re.compile(r"`([^`\n]{2,200})`")
 _FENCED_BLOCK = re.compile(r"```(?:bash|sh|shell|console|zsh)?\n(.*?)```", re.DOTALL)
 _CMD_FIRST_TOKEN = re.compile(r"^[a-z][a-z0-9_.-]{1,40}$")
+_GUARD_HOOK_HINTS = ("guard", "block", "deny", "forbid", "policy", "protect", "security")
 
 
 # =============================================================================
@@ -248,12 +248,12 @@ class EfficacyAnalyzer:
         elif not self.execute:
             result.warnings.append(
                 "Resolve-only pass (no repo code executed). Use --prove-exec to probe "
-                "documented commands with `--help`. (Hooks are always validate-only.)"
+                "documented commands with `--help` and hook scripts with synthetic events."
             )
         else:
             result.warnings.append(
                 "Executing allowlisted documented commands with `--help` only. "
-                "Hooks are validate-only (never executed)."
+                "Hook scripts are probed with synthetic events."
             )
         result.provers["commands"] = self._prove_commands()
         result.provers["hooks"] = self._prove_hooks()
@@ -477,11 +477,6 @@ class EfficacyAnalyzer:
             except (OSError, PermissionError):
                 pass
 
-        # SECURITY: hooks are NEVER executed (their command strings are arbitrary
-        # untrusted shell). We only validate that they are wired and that any
-        # referenced repo-local script actually exists. This holds even under
-        # --prove-exec — running hook command strings safely needs a container,
-        # which is out of scope (see docs/EFFICACY.md).
         for event, command in pairs:
             argv = command.split()
             first = os.path.basename(argv[0]) if argv else ""
@@ -506,9 +501,54 @@ class EfficacyAnalyzer:
                     detail="hook wired but its script is absent",
                 ))
                 continue
+            if (
+                self.execute
+                and referenced is not None
+                and referenced.exists()
+                and self._is_hook_script_safe(referenced)
+            ):
+                guard_like = self._is_guard_hook(event, command, referenced)
+                payload = self._synthetic_hook_event(event, bad_case=guard_like)
+                run = self._run_hook_script_sandboxed(referenced, payload)
+                if run["timed_out"]:
+                    result.checks.append(ArtifactCheck(
+                        name=f"{safe_event}:{safe_first}", kind="hook", status="fail",
+                        evidence="synthetic hook probe timed out",
+                        reproduce_cmd=f"{referenced.relative_to(self.repo_path)} < synthetic-event",
+                    ))
+                    continue
+                if guard_like:
+                    blocked = run["rc"] not in (None, 0)
+                    result.checks.append(ArtifactCheck(
+                        name=f"{safe_event}:{safe_first}", kind="hook",
+                        status="pass" if blocked else "fail",
+                        evidence=f"synthetic bad-case exit={run['rc']}",
+                        reproduce_cmd=(
+                            f"{referenced.relative_to(self.repo_path)} < synthetic-bad-event"
+                        ),
+                        detail=(
+                            "" if blocked else "guard-like hook did not block synthetic bad case"
+                        ),
+                    ))
+                else:
+                    ok = run["rc"] == 0
+                    result.checks.append(ArtifactCheck(
+                        name=f"{safe_event}:{safe_first}", kind="hook",
+                        status="pass" if ok else "fail",
+                        evidence=f"synthetic event exit={run['rc']}",
+                        reproduce_cmd=f"{referenced.relative_to(self.repo_path)} < synthetic-event",
+                    ))
+                continue
+            if self.execute:
+                result.checks.append(ArtifactCheck(
+                    name=f"{safe_event}:{safe_first}", kind="hook", status="skip",
+                    evidence="wired; exec skipped (no safe repo-local script target)",
+                    reproduce_cmd=f"jq '.hooks[\"{safe_event}\"]' .claude/settings.json",
+                ))
+                continue
             result.checks.append(ArtifactCheck(
                 name=f"{safe_event}:{safe_first}", kind="hook", status="pass",
-                evidence="wired in settings (validate-only; hooks are not executed)",
+                evidence="wired in settings (resolve-only; hooks not executed)",
                 reproduce_cmd=f"jq '.hooks[\"{safe_event}\"]' .claude/settings.json",
             ))
 
@@ -525,10 +565,76 @@ class EfficacyAnalyzer:
             ))
 
         if result.checks:
-            result.summary = f"{result.passed}/{result.total_scored} hooks wired/valid (validate-only)"
+            mode = "exec-probed" if self.execute else "wired/valid (resolve-only)"
+            result.summary = f"{result.passed}/{result.total_scored} hooks {mode}"
         else:
             result.summary = "no hooks configured"
         return result
+
+    def _is_hook_script_safe(self, script: Path) -> bool:
+        """Restrict hook execution to repo-local `.claude/hooks/*.(sh|py)` scripts."""
+        try:
+            rel = script.resolve().relative_to(self.repo_path.resolve())
+        except (OSError, ValueError):
+            return False
+        return str(rel).startswith(".claude/hooks/") and script.suffix.lower() in (".sh", ".py")
+
+    def _is_guard_hook(self, event: str, command: str, script: Path) -> bool:
+        if event != "PreToolUse":
+            return False
+        lower = f"{command} {script.name}".lower()
+        return any(h in lower for h in _GUARD_HOOK_HINTS)
+
+    def _synthetic_hook_event(self, event: str, *, bad_case: bool) -> str:
+        data = {
+            "hook_event_name": event,
+            "session_id": "prove-efficacy",
+            "cwd": str(self.repo_path),
+            "tool_name": "Bash",
+            "tool_input": {"command": "echo hello"},
+        }
+        if bad_case and event == "PreToolUse":
+            data["tool_input"] = {"command": "rm -rf /"}
+        return json.dumps(data) + "\n"
+
+    def _run_hook_script_sandboxed(self, script: Path, payload: str) -> dict:
+        """Run a repo-local hook script with synthetic JSON input under scrubbed env."""
+        interp = "python3" if script.suffix.lower() == ".py" else "sh"
+        resolved_interp = shutil.which(interp)
+        if not resolved_interp:
+            return {"rc": None, "timed_out": False, "out": "", "err": f"{interp} not found"}
+        env = {k: os.environ[k] for k in _SAFE_ENV_KEYS if k in os.environ}
+        env["GIT_TERMINAL_PROMPT"] = "0"
+        env["PIP_NO_INPUT"] = "1"
+        env["CI"] = "1"
+        home = tempfile.mkdtemp(prefix="maip-prove-home-")
+        env["HOME"] = home
+        env["NPM_CONFIG_USERCONFIG"] = os.path.join(home, ".npmrc")
+        env["PIP_CONFIG_FILE"] = os.path.join(home, "pip.conf")
+        env["GRADLE_USER_HOME"] = os.path.join(home, ".gradle")
+        try:
+            proc = subprocess.run(
+                [resolved_interp, str(script.resolve())],
+                cwd=str(self.repo_path),
+                env=env,
+                input=payload,
+                capture_output=True,
+                text=True,
+                timeout=_EXEC_TIMEOUT_SECONDS,
+                check=False,
+            )
+            return {
+                "rc": proc.returncode,
+                "timed_out": False,
+                "out": (proc.stdout or "")[:_OUTPUT_CAP_BYTES],
+                "err": (proc.stderr or "")[:_OUTPUT_CAP_BYTES],
+            }
+        except subprocess.TimeoutExpired:
+            return {"rc": None, "timed_out": True, "out": "", "err": "timeout"}
+        except (OSError, ValueError) as e:
+            return {"rc": None, "timed_out": False, "out": "", "err": str(e)}
+        finally:
+            shutil.rmtree(home, ignore_errors=True)
 
     def _resolve_referenced_script(self, argv: List[str]) -> Optional[Path]:
         """If a hook command points at a repo-local script file, return its path."""

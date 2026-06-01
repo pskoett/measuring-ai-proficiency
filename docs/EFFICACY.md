@@ -18,7 +18,7 @@ measure-ai-proficiency --prove --context-window 1000000   # custom budget window
 | Prover | Resolve-only (`--prove`) | With `--prove-exec` |
 |--------|--------------------------|---------------------|
 | **Commands** | Documented CLI commands resolve on `PATH` (`command -v`) | Also runs the allowlisted `<cmd> --help` probe in the sandbox (never the documented args) |
-| **Hooks** | Hooks are wired in `settings.json` / present in `.claude/hooks`, and referenced scripts exist | (same — **hooks are validate-only and never executed**; running arbitrary hook command strings safely needs a container) |
+| **Hooks** | Hooks are wired in `settings.json` / present in `.claude/hooks`, and referenced scripts exist | Safe repo-local `.claude/hooks/*.(sh|py)` targets are run against synthetic events; guard-like `PreToolUse` hooks must block a synthetic bad case |
 | **Context budget** | Always-on token footprint (instruction files + skill frontmatter), % of a reference window, efficiency factor — **deterministic, never executes** | (same) |
 
 Each check reports `pass` / `fail` / `skip` with evidence and a copy-pasteable
@@ -45,7 +45,7 @@ whether what *exists* works).
 | No shell injection | Commands run from an `argv` **list**; never `shell=True`. |
 | Command allowlist | Only basenames in `DEFAULT_COMMAND_ALLOWLIST` (build/test/lint *nouns* — no shells/interpreters) execute, and only the fixed `<cmd> --help` probe runs (never documented args). The probe always runs the `PATH`-resolved binary for the basename. A repo's `.ai-proficiency.yaml` can only **narrow** the allowlist (intersection), never widen it. |
 | Scrubbed env | Only `PATH`/`LANG`/`TMPDIR`/… pass through. `HOME` is **replaced with a throwaway temp dir** per call so user credential files (`~/.npmrc`, `~/.pypirc`, `~/.m2`, …) are never read. No inherited tokens/secrets. |
-| Hooks never execute | Hook command strings are arbitrary untrusted shell, so hooks are **validate-only** (wiring + contained script existence) even under `--prove-exec`. |
+| Hook execution scope | Under `--prove-exec`, only safe repo-local `.claude/hooks/*.(sh|py)` script targets are run (via `sh`/`python3`) with synthetic JSON events. Arbitrary hook command strings are never executed directly. |
 | Timeout | Per-call `_EXEC_TIMEOUT_SECONDS` (15s); timeouts are reported as `fail`. |
 | Output cap | stdout/stderr truncated to `_OUTPUT_CAP_BYTES`. |
 | Path containment | Hook-referenced scripts are resolved and confined strictly inside the repo dir. |
