@@ -95,24 +95,42 @@ Ask your AI assistant:
     ✓ Level 3: Comprehensive      [███|░░░░░░░░░░░░░░░░] 19.0%/15% ✓
     ✓ Level 4: Skills & Automation[██|░░░░░░░░░░░░░░░░░] 14.5%/12% ✓
     ✓ Level 5: Multi-Agent Ready  [██|░░░░░░░░░░░░░░░░░] 13.9%/10% ✓
-    ○ Level 6: Fleet Ready        [░|░░░░░░░░░░░░░░░░░░] 0.0%/8% needs +8%
+    ○ Level 6: Fleet Infrastructure [░░░░░░░░░░░░░░░░░░] 0.0%/8% needs +8%
 
   Validation Warnings:
     📋 TEMPLATE: CLAUDE.md contains template markers (your-org-name)
-    ⚠️ MISSING REF: CLAUDE.md references 'old-file.ts' (deleted)
+    🪶 BLOAT: CLAUDE.md is 2100 words (> 1500) — large always-on files are a
+       permanent context tax; move detail into scoped files/skills
 
-    Penalty: -2.0 points
+    Penalty: -2.7 points
 
-  Behavioral Indicators (Levels 6-8):
-    ✓ CI/CD Agent Integration (L6)
-    ○ Agent Handoffs (L7): 3 agents
-    ○ Measured Outcomes (L8)
+  Context Engineering Signals (2026):
+
+    Structural quality: 8.0/10  (skills:17 hooks:yes subagents:6 workflows:no plugins:no)
+
+    ✓ Verification Discipline — verify, adversarial, asserts
+    ✓ Deterministic Hooks — PreToolUse, PostToolUse
+    ✓ Eval / Regression Loops — .evals/
+    ✓ Anti-Drift Maintenance Hygiene — sentinel, audit
+    ○ Plugin Distribution
+    ○ Measured Outcomes
+
+    ✓ L6 signal gate satisfied
+    ✓ L7 signal gate satisfied
+    ○ L8 signal gate: missing plugins, measured_outcomes
+
+    Signal Bonus: +10.0
 
   Recommendations:
-    → 🎯 FLEET READY: Add fleet infrastructure for parallel agents
-    → 🧠 Set up Beads for persistent memory across sessions
+    → ✅ For Level 8: add plugin distribution (.claude-plugin manifest). See https://docs.claude.com/en/docs/claude-code/plugins
+    → 🪶 Trim your always-on files (CLAUDE.md): every always-loaded line must change
+         behavior, or cut it. See docs/AGENTS_FILE_GUIDANCE.md
     → 🔄 Add workflows/ for multi-step process definitions
 ```
+
+> Note: since v0.6.0, Levels 6–8 require the matching context-engineering **signals**
+> (not just file coverage) — so a repo can have strong signals (L6/L7 gates satisfied)
+> yet still sit at Level 5 until its higher-level file coverage catches up, as above.
 
 ## Installation
 
