@@ -17,7 +17,7 @@ Supports:
 - Tool-specific recommendations
 """
 
-__version__ = "0.6.0"
+__version__ = "0.7.0"
 __author__ = "Peter Skoett"
 
 from .scanner import (
@@ -33,6 +33,13 @@ from .scanner import (
     StructuralQuality,
 )
 from .signals import SignalGroup, SIGNAL_GROUPS, LEVEL_GATE_REQUIREMENTS
+from .efficacy import (
+    EfficacyAnalyzer,
+    EfficacyResult,
+    ProberResult,
+    ArtifactCheck,
+    ContextBudget,
+)
 from .reporter import (
     TerminalReporter,
     JsonReporter,
@@ -63,6 +70,11 @@ __all__ = [
     "SignalGroup",
     "SIGNAL_GROUPS",
     "LEVEL_GATE_REQUIREMENTS",
+    "EfficacyAnalyzer",
+    "EfficacyResult",
+    "ProberResult",
+    "ArtifactCheck",
+    "ContextBudget",
     "TerminalReporter",
     "JsonReporter",
     "MarkdownReporter",

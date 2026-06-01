@@ -77,6 +77,7 @@ The tool scans repositories for files like `CLAUDE.md`, `.cursorrules`, `.github
 - 8-level maturity scoring aligned with Steve Yegge's model
 - **2026 context-engineering signals** (verification, hooks, eval loops, telemetry, anti-drift maintenance hygiene, dynamic-workflow orchestration, plugins, harness engineering, curricula) — grounded in official docs only; see `docs/SIGNALS.md`
 - **L6-L8 are signal-gated**: reaching those levels requires the matching primitives/harness/orchestration signals AND file coverage (not coverage alone)
+- **Context efficacy proving (v0.7.0, `--prove`)**: a report-only Efficacy Score that PROVES artifacts work (documented commands resolve, hooks wired, context token budget); `--prove-exec` runs them in a hardened sandbox (local only, never remote). See `docs/EFFICACY.md`
 - Structural quality scoring of the 6 primitives (skill frontmatter/executable content/verification, hook events, subagents, workflows, plugins)
 - Cross-reference detection between AI instruction files
 - Content quality evaluation (sections, commands, constraints)
@@ -109,6 +110,7 @@ The project now includes an **MCP (Model Context Protocol) server** that makes A
 - `get_dynamic_workflow_recommendations` - Adopt Dynamic Workflows + verification (scoped to detectable artifacts)
 - `curricula_alignment` - Official learning on-ramp references (Anthropic Academy, Google 5-Day AI Agents)
 - `cheapest_primitive_decision_tree_report` - Primitive decision discipline (Skill → MCP → Subagent → Hook → Plugin)
+- `prove_efficacy` - Prove the repo's artifacts work: report-only Efficacy Score + per-artifact evidence (resolve-only by default; sandboxed exec opt-in, never remote)
 
 **Configuration:** Add to `.mcp.json`:
 ```json
@@ -160,7 +162,8 @@ measure_ai_proficiency/
 ├── mcp_server.py      # MCP server for AI assistant integration
 ├── config.py          # Level definitions and file patterns
 ├── signals.py         # 2026 context-engineering signal registry + L6-8 gate requirements (official-doc grounded)
-├── scanner.py         # Repository scanning logic + cross-reference detection + signal analysis + L6-8 gating
+├── efficacy.py        # v0.7.0 context efficacy proving harness (--prove): commands/hooks provers + context-budget + hardened sandbox
+├── scanner.py         # Repository scanning logic + cross-reference detection + signal analysis + L6-8 gating + RepoScanner.prove()
 ├── github_scanner.py  # GitHub CLI integration for remote scanning
 ├── reporter.py        # Output formatting (terminal, JSON, markdown, CSV)
 └── repo_config.py     # Repository configuration and tool auto-detection
@@ -225,6 +228,7 @@ pytest tests/ -v
 - Add new quality indicators: Edit `QUALITY_PATTERNS` in `measure_ai_proficiency/scanner.py`
 - Add a new 2026 signal: Add a `SignalGroup` to `SIGNAL_GROUPS` in `measure_ai_proficiency/signals.py` (keyword patterns + weight + an **official** reference). To gate a level, add its key to `LEVEL_GATE_REQUIREMENTS` and resolve it in `RepoScanner._compute_signal_gates`. Add a regression eval under `.evals/cases/`. See `docs/SIGNALS.md`.
 - Adjust L6-8 gating: Edit `LEVEL_GATE_REQUIREMENTS` (signals.py) and `_compute_signal_gates` (scanner.py). Levels 6-8 require signals AND file coverage; the `gates` dict flows into `_calc_level_with_thresholds`.
+- Add an efficacy prover: add a `_prove_*` method to `EfficacyAnalyzer` in `measure_ai_proficiency/efficacy.py` and call it from `run()`. Execution MUST go through `_run_sandboxed` (allowlist + scrubbed env + timeout, never `shell=True`) and respect the remote-exec block. Add a regression eval. See `docs/EFFICACY.md` (threat model).
 - Add new MCP tools: Add handler in `measure_ai_proficiency/mcp_server.py`, update `list_tools()` and `call_tool()`
 - Writing/auditing agents files (CLAUDE.md/AGENTS.md): keep them concise and behavioral — every always-loaded line must change behavior or be cut. See `docs/AGENTS_FILE_GUIDANCE.md`.
 

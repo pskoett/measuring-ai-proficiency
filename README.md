@@ -16,6 +16,8 @@ This tool scans repositories for context engineering artifacts and calculates a 
 
 Since v0.6.0 it also detects **2026 context-engineering signals** — verification, hooks, eval loops, telemetry, anti-drift maintenance hygiene, dynamic-workflow orchestration, plugins, and harness engineering — and uses them to **gate Levels 6-8** (file coverage alone is no longer enough). It also flags **bloated always-on files** (a permanent context tax). See **[docs/SIGNALS.md](docs/SIGNALS.md)** and **[docs/AGENTS_FILE_GUIDANCE.md](docs/AGENTS_FILE_GUIDANCE.md)** (how to write concise, behavioral CLAUDE.md/AGENTS.md). All detection is grounded in official documentation.
 
+Since v0.7.0 it can also **prove** what your context actually *does*, not just what exists: `measure-ai-proficiency --prove` runs a report-only **efficacy** pass (do documented commands resolve? are hooks wired? what's the always-on token budget?) and reports a separate Efficacy Score with reproducible green/red evidence — resolve-only by default; `--prove-exec` runs commands/hooks in a hardened sandbox (local repos only). See **[docs/EFFICACY.md](docs/EFFICACY.md)**.
+
 ## Quick Start
 
 ```bash
@@ -73,6 +75,7 @@ Ask your AI assistant:
 - `get_dynamic_workflow_recommendations` - Adopt Dynamic Workflows + verification
 - `curricula_alignment` - Official learning on-ramp references
 - `cheapest_primitive_decision_tree_report` - Primitive decision discipline
+- `prove_efficacy` - Prove the repo's artifacts work (Efficacy Score; resolve-only or sandboxed)
 
 📖 **[Full MCP Documentation](docs/MCP.md)** - Setup, examples, troubleshooting
 

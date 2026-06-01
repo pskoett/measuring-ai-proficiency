@@ -49,6 +49,10 @@ class RepoConfig:
     word_threshold_bloat: int = 1500  # Words above which an always-on file is "bloated"
     git_timeout: int = 5  # Git command timeout in seconds
 
+    # Efficacy proving (--prove / --prove-exec)
+    context_window_tokens: int = 200_000  # Reference window for the context-budget prover
+    command_allowlist: Optional[List[str]] = None  # Exec allowlist; can only NARROW the built-in default (intersection), never widen it
+
     # Whether config was loaded from file
     from_file: bool = False
 
@@ -213,6 +217,10 @@ def load_repo_config(repo_path: Path) -> RepoConfig:
                     config.word_threshold_full = int(quality["word_threshold_full"])
                 if "word_threshold_bloat" in quality:
                     config.word_threshold_bloat = int(quality["word_threshold_bloat"])
+                if "context_window_tokens" in quality:
+                    config.context_window_tokens = int(quality["context_window_tokens"])
+                if "command_allowlist" in quality and isinstance(quality["command_allowlist"], list):
+                    config.command_allowlist = [str(c) for c in quality["command_allowlist"]]
                 if "git_timeout" in quality:
                     config.git_timeout = int(quality["git_timeout"])
 

@@ -430,6 +430,35 @@ class TerminalReporter:
                 print(f"    {_color(f'Signal Bonus: +{sig.bonus_points:.1f}', Colors.CYAN)}", file=output)
             print(file=output)
 
+        # Context efficacy (--prove)
+        if score.efficacy and score.efficacy.has_evidence:
+            eff = score.efficacy
+            mode = "executed" if eff.executed else "resolve-only"
+            print(_color(f"  Context Efficacy ({mode}):", Colors.BOLD), file=output)
+            print(file=output)
+            for name, p in eff.provers.items():
+                if not p.checks:
+                    continue
+                print(f"    {name}: {p.summary}", file=output)
+                for c in p.checks[:8]:
+                    icon = "✓" if c.status == "pass" else ("✗" if c.status == "fail" else "○")
+                    color = Colors.GREEN if c.status == "pass" else (Colors.RED if c.status == "fail" else Colors.DIM)
+                    repro = _color(f"  [{c.reproduce_cmd}]", Colors.DIM) if c.reproduce_cmd else ""
+                    print(f"      {_color(icon, color)} {c.name} — {c.evidence}{repro}", file=output)
+            b = eff.context_budget
+            if b and b.always_on_tokens > 0:
+                print(file=output)
+                print(
+                    f"    Context budget: ~{b.always_on_tokens} always-on tokens "
+                    f"({b.pct_of_window:.2f}% of {b.window_tokens}, {b.method})",
+                    file=output,
+                )
+            print(file=output)
+            print(f"    {_color(f'Efficacy Score: {eff.score}/100', Colors.CYAN)}", file=output)
+            for w in eff.warnings:
+                print(f"    {_color(w, Colors.DIM)}", file=output)
+            print(file=output)
+
         # Recommendations
         if score.recommendations:
             print(_color("  Recommendations:", Colors.BOLD), file=output)
@@ -747,6 +776,46 @@ class JsonReporter:
                     "plugins_present": sq.plugins_present,
                 }
 
+        # Add efficacy proving results if present (--prove; report-only)
+        if score.efficacy:
+            eff = score.efficacy
+            result["efficacy"] = {
+                "score": eff.score,
+                "executed": eff.executed,
+                "warnings": eff.warnings,
+                "provers": {
+                    name: {
+                        "summary": p.summary,
+                        "passed": p.passed,
+                        "total_scored": p.total_scored,
+                        "rate": round(p.rate, 3) if p.rate is not None else None,
+                        "checks": [
+                            {
+                                "name": c.name,
+                                "kind": c.kind,
+                                "status": c.status,
+                                "evidence": c.evidence,
+                                "reproduce_cmd": c.reproduce_cmd,
+                                "detail": c.detail,
+                            }
+                            for c in p.checks
+                        ],
+                    }
+                    for name, p in eff.provers.items()
+                },
+            }
+            if eff.context_budget:
+                b = eff.context_budget
+                result["efficacy"]["context_budget"] = {
+                    "always_on_tokens": b.always_on_tokens,
+                    "skill_metadata_tokens": b.skill_metadata_tokens,
+                    "files": b.files,
+                    "window_tokens": b.window_tokens,
+                    "pct_of_window": round(b.pct_of_window, 2),
+                    "efficiency_factor": b.efficiency_factor,
+                    "method": b.method,
+                }
+
         return result
 
     def report_single(self, score: RepoScore, output: TextIO = sys.stdout) -> None:
@@ -1025,6 +1094,32 @@ class MarkdownReporter:
                     print(f"| L{lvl} | {gate} | {missing} |", file=output)
             print(file=output)
 
+        # Context efficacy section (--prove)
+        if score.efficacy and score.efficacy.has_evidence:
+            eff = score.efficacy
+            mode = "executed" if eff.executed else "resolve-only"
+            print(f"## Context Efficacy ({mode})", file=output)
+            print(file=output)
+            print(f"- **Efficacy Score:** {eff.score}/100", file=output)
+            b = eff.context_budget
+            if b and b.always_on_tokens > 0:
+                print(
+                    f"- **Context budget:** ~{b.always_on_tokens} always-on tokens "
+                    f"({b.pct_of_window:.2f}% of {b.window_tokens}, {b.method})",
+                    file=output,
+                )
+            print(file=output)
+            print("| Prover | Artifact | Status | Evidence |", file=output)
+            print("|--------|----------|--------|----------|", file=output)
+            for name, p in eff.provers.items():
+                for c in p.checks:
+                    mark = ":white_check_mark:" if c.status == "pass" else (":x:" if c.status == "fail" else ":o:")
+                    print(f"| {name} | `{c.name}` | {mark} {c.status} | {c.evidence} |", file=output)
+            print(file=output)
+            for w in eff.warnings:
+                print(f"> {w}", file=output)
+            print(file=output)
+
         if score.recommendations:
             print("## Recommendations", file=output)
             print(file=output)
@@ -1128,6 +1223,7 @@ class CsvReporter:
         # with the level_N_coverage columns kept last.
         header = "repo_name,repo_path,overall_level,overall_score,bonus_points,avg_quality,ref_count,resolved_count,validation_penalty,has_stale_files,has_templates,warning_count,ci_agents,handoffs_valid,outcomes_valid"
         header += ",signal_bonus,structural_score,matched_signal_count,l6_gate,l7_gate,l8_gate"
+        header += ",efficacy_score,always_on_tokens,efficacy_executed"
         for i in range(1, 9):
             header += f",level_{i}_coverage"
         print(header, file=output)
@@ -1188,6 +1284,17 @@ class CsvReporter:
                 l7_gate = sig.gates.get(7, False)
                 l8_gate = sig.gates.get(8, False)
 
+            # Efficacy data (--prove); blank when not run
+            efficacy_score = ""
+            always_on_tokens = ""
+            efficacy_executed = ""
+            if score.efficacy and score.efficacy.has_evidence:
+                eff = score.efficacy
+                efficacy_score = f"{eff.score:.1f}"
+                efficacy_executed = str(eff.executed)
+                if eff.context_budget:
+                    always_on_tokens = str(eff.context_budget.always_on_tokens)
+
             line = (
                 f'"{score.repo_name}","{score.repo_path}",{score.overall_level},'
                 f'{score.overall_score:.2f},{bonus:.2f},{avg_quality:.2f},'
@@ -1195,7 +1302,8 @@ class CsvReporter:
                 f'{has_stale},{has_templates},{warning_count},'
                 f'{ci_agents},{handoffs_valid},{outcomes_valid},'
                 f'{signal_bonus:.2f},{structural_score:.2f},{matched_signal_count},'
-                f'{l6_gate},{l7_gate},{l8_gate}'
+                f'{l6_gate},{l7_gate},{l8_gate},'
+                f'{efficacy_score},{always_on_tokens},{efficacy_executed}'
             )
             for cov in coverages:
                 line += f",{cov:.2f}"

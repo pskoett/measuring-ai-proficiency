@@ -77,7 +77,7 @@ After updating the configuration, restart Claude Code to load the MCP server.
 
 ## Available Tools
 
-The MCP server provides 12 tools for AI proficiency analysis (7 core + 5 for the 2026 context-engineering signals — see [SIGNALS.md](SIGNALS.md)):
+The MCP server provides 13 tools for AI proficiency analysis (7 core + 5 for the 2026 context-engineering signals — see [SIGNALS.md](SIGNALS.md) — + 1 efficacy prover, see [EFFICACY.md](EFFICACY.md)):
 
 ### 1. `scan_current_repo`
 
@@ -268,6 +268,15 @@ Check whether the repo references official learning on-ramps.
 Return the cheapest-primitive-first decision tree (Skill → MCP → Subagent → Hook → Plugin/Workflow) and which primitives the repo actually uses.
 
 **Returns:** `decision_tree`, `rule`, `primitives_present`, and the decision-discipline signal.
+
+### 13. `prove_efficacy`
+
+Prove what the current repo's AI artifacts actually do (report-only). See [EFFICACY.md](EFFICACY.md).
+
+**Parameters:**
+- `execute` (boolean, default false): run commands/hooks in a hardened sandbox (local repo only). False = resolve-only (no repo code executed).
+
+**Returns:** `efficacy_score`, `executed`, per-prover `checks` (status + evidence + reproduce_cmd), and `context_budget` (always-on token footprint). Never changes the proficiency level/score.
 
 ## Usage Examples
 

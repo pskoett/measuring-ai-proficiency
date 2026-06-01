@@ -27,6 +27,7 @@ from measure_ai_proficiency.mcp_server import (
     get_dynamic_workflow_recommendations_handler,
     curricula_alignment_handler,
     cheapest_primitive_decision_tree_report_handler,
+    prove_efficacy_handler,
 )
 from measure_ai_proficiency.scanner import RepoScanner, RepoScore
 
@@ -553,3 +554,19 @@ class TestSignalTools:
         data = json.loads(result[0].text)
         assert data["maintenance_hygiene_detected"] is False
         assert len(data["recommendations"]) >= 1
+
+    @pytest.mark.asyncio
+    async def test_prove_efficacy_resolve_only(self, tmp_path, monkeypatch):
+        """prove_efficacy defaults to resolve-only (no repo code executed)."""
+        monkeypatch.setattr(
+            "measure_ai_proficiency.mcp_server.get_current_repo", lambda: tmp_path
+        )
+        (tmp_path / "CLAUDE.md").write_text(
+            "# Project\nRun `python3 --version`.\n" + "x" * 100
+        )
+        result = await prove_efficacy_handler()
+        data = json.loads(result[0].text)
+        assert data["executed"] is False
+        assert "efficacy_score" in data
+        assert "provers" in data
+        assert "context_budget" in data
