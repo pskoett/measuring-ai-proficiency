@@ -327,6 +327,8 @@ class TerminalReporter:
                     print(f"    {_color('⚠️', Colors.RED)} {warning}", file=output)
                 elif warning.startswith("INVALID SKILL:"):
                     print(f"    {_color('❌', Colors.RED)} {warning}", file=output)
+                elif warning.startswith("BLOAT:"):
+                    print(f"    {_color('🪶', Colors.YELLOW)} {warning}", file=output)
                 else:
                     print(f"    → {warning}", file=output)
 
@@ -669,6 +671,16 @@ class JsonReporter:
                     }
                     for path, s in v.skill_validations.items()
                 },
+                "conciseness": {
+                    path: {
+                        "word_count": c.word_count,
+                        "is_always_on": c.is_always_on,
+                        "routing_ref_count": c.routing_ref_count,
+                        "threshold": c.threshold,
+                        "is_bloated": c.is_bloated,
+                    }
+                    for path, c in v.conciseness.items()
+                },
             }
 
             # Add behavioral analysis if present
@@ -913,6 +925,8 @@ class MarkdownReporter:
                         print(f"- :warning: {warning}", file=output)
                     elif warning.startswith("INVALID SKILL:"):
                         print(f"- :x: {warning}", file=output)
+                    elif warning.startswith("BLOAT:"):
+                        print(f"- :feather: {warning}", file=output)
                     else:
                         print(f"- {warning}", file=output)
 

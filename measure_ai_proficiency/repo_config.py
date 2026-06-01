@@ -46,6 +46,7 @@ class RepoConfig:
     min_substantive_bytes: int = 100  # Minimum bytes for a file to be "substantive"
     word_threshold_partial: int = 50  # Words for partial quality points
     word_threshold_full: int = 200  # Words for full quality points
+    word_threshold_bloat: int = 1500  # Words above which an always-on file is "bloated"
     git_timeout: int = 5  # Git command timeout in seconds
 
     # Whether config was loaded from file
@@ -210,6 +211,8 @@ def load_repo_config(repo_path: Path) -> RepoConfig:
                     config.word_threshold_partial = int(quality["word_threshold_partial"])
                 if "word_threshold_full" in quality:
                     config.word_threshold_full = int(quality["word_threshold_full"])
+                if "word_threshold_bloat" in quality:
+                    config.word_threshold_bloat = int(quality["word_threshold_bloat"])
                 if "git_timeout" in quality:
                     config.git_timeout = int(quality["git_timeout"])
 

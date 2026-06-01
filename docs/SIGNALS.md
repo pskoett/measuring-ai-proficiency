@@ -69,6 +69,19 @@ drops accordingly via the per-level minimum scores). The reports and the
 `get_recommendations` output explain exactly which signals are missing, with an
 official-docs link for each.
 
+## Conciseness / context-hygiene (anti-bloat)
+
+Always-loaded "floor" files (`CLAUDE.md`, `AGENTS.md`, copilot-instructions) are a
+**permanent context tax** — large monolithic files degrade results and crowd out
+working context. The scanner flags an always-on file as **bloated** when it exceeds
+`word_threshold_bloat` (default **1500 words**, configurable in `.ai-proficiency.yaml`
+under `quality:`), emits a `BLOAT:` warning, and applies a small validation penalty
+(up to 3 pts, scaled by overage). On-demand **skill bodies are exempt** — progressive
+disclosure means they cost nothing until invoked, so length there is fine. The fix the
+tool nudges toward: keep a thin routing layer in the floor file and push detail into
+scoped/on-demand files (skills, "See X.md" pointers). Grounded in the Claude Code
+memory/best-practices guidance to keep `CLAUDE.md` concise and human-readable.
+
 ## Signal bonus
 
 Matched signals plus structural quality contribute a **bounded bonus (0-10)** to

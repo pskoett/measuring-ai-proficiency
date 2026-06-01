@@ -17,6 +17,7 @@ Managed by `self-improvement-meta` (creates eval cases for promoted learnings) a
 | [EVAL-010](.evals/cases/EVAL-010.md) | June 2026 signal enhancement — dynamic workflows / orchestration (L8 gate) | `measure_ai_proficiency/signals.py` | grep-check | `key="dynamic_workflows"` |
 | [EVAL-011](.evals/cases/EVAL-011.md) | June 2026 signal enhancement — curricula on-ramps | `measure_ai_proficiency/signals.py` | grep-check | `key="curricula"` |
 | [EVAL-012](.evals/cases/EVAL-012.md) | June 2026 rewire — L6-L8 require context-engineering signals, not file coverage alone | `measure_ai_proficiency/scanner.py` | grep-check | `def _compute_signal_gates` |
+| [EVAL-013](.evals/cases/EVAL-013.md) | June 2026 — conciseness/anti-bloat for always-on files (CLAUDE.md/AGENTS.md) | `measure_ai_proficiency/scanner.py` | grep-check | `def _analyze_conciseness` |
 
 ## Retired cases
 

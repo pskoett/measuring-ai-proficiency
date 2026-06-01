@@ -391,6 +391,25 @@ class HarnessSignals:
 
 
 @dataclass
+class ConcisenessAnalysis:
+    """Conciseness / context-hygiene metrics for an always-on instruction file.
+
+    Always-loaded files (CLAUDE.md / AGENTS.md / copilot-instructions) are a
+    permanent context tax: large monolithic files degrade results and crowd out
+    working context. Mature setups keep a thin routing layer and push detail into
+    scoped, on-demand files (skills, "See X.md" pointers). Skill bodies are loaded
+    on demand (progressive disclosure), so they are NOT flagged here.
+    """
+
+    file_path: str
+    word_count: int
+    is_always_on: bool         # True for always-loaded floor files (not on-demand skills)
+    routing_ref_count: int     # links/pointers that offload detail to other files
+    threshold: int             # configured bloat threshold (words)
+    is_bloated: bool           # always-on AND over the threshold
+
+
+@dataclass
 class ValidationResult:
     """Combined validation results for a repository (Improvements 2-4)."""
 
@@ -398,6 +417,7 @@ class ValidationResult:
     alignment_scores: Dict[str, AlignmentScore] = field(default_factory=dict)
     template_analyses: Dict[str, TemplateAnalysis] = field(default_factory=dict)
     skill_validations: Dict[str, SkillValidation] = field(default_factory=dict)
+    conciseness: Dict[str, ConcisenessAnalysis] = field(default_factory=dict)
     stale_references: List[StaleReference] = field(default_factory=list)
     validation_penalty: float = 0.0  # Score reduction for validation issues
     behavioral: Optional[BehavioralAnalysis] = None  # Level 6-8 behavioral analysis
@@ -417,9 +437,22 @@ class ValidationResult:
         )
 
     @property
+    def has_bloat(self) -> bool:
+        return any(c.is_bloated for c in self.conciseness.values())
+
+    @property
     def warnings(self) -> List[str]:
         """Generate warning messages for validation issues."""
         warnings = []
+
+        # Conciseness / context-hygiene warnings (oversized always-on files)
+        for path, c in self.conciseness.items():
+            if c.is_bloated:
+                warnings.append(
+                    f"BLOAT: {path} is {c.word_count} words (> {c.threshold}) — large "
+                    f"always-on files are a permanent context tax; move detail into "
+                    f"scoped files/skills and keep a thin routing layer"
+                )
 
         # Freshness warnings
         for path, freshness in self.freshness_scores.items():
@@ -578,6 +611,12 @@ class RepoScanner:
     @property
     def _word_threshold_full(self) -> int:
         return self.config.word_threshold_full if self.config else 200
+
+    @property
+    def _word_threshold_bloat(self) -> int:
+        # Always-on instruction files beyond this word count are flagged as a
+        # context-engineering bloat / permanent context tax (configurable).
+        return self.config.word_threshold_bloat if self.config else 1500
 
     @property
     def _git_timeout(self) -> int:
@@ -1076,6 +1115,9 @@ class RepoScanner:
             template = self._detect_template_content(content, rel_path)
             result.template_analyses[rel_path] = template
 
+            # Conciseness / context-hygiene (oversized always-on files)
+            result.conciseness[rel_path] = self._analyze_conciseness(content, rel_path)
+
         # Improvement 4: Skill validation
         skill_files = self._find_skill_files()
         for skill_path in skill_files:
@@ -1092,6 +1134,30 @@ class RepoScanner:
         result.behavioral = self._analyze_behavioral_patterns()
 
         return result
+
+    def _analyze_conciseness(self, content: str, rel_path: str) -> ConcisenessAnalysis:
+        """Flag oversized always-on instruction files (context-hygiene / anti-bloat).
+
+        Only the always-loaded "floor" files (CLAUDE.md / AGENTS.md /
+        copilot-instructions, etc.) are subject to the bloat threshold — on-demand
+        skill bodies are exempt by design (progressive disclosure).
+        """
+        word_count = len(content.split())
+        is_always_on = rel_path in INSTRUCTION_FILES
+        # Count references that offload detail to other files (thin routing layer)
+        try:
+            routing_refs = self._extract_path_references(content)
+        except Exception:
+            routing_refs = []
+        threshold = self._word_threshold_bloat
+        return ConcisenessAnalysis(
+            file_path=rel_path,
+            word_count=word_count,
+            is_always_on=is_always_on,
+            routing_ref_count=len(routing_refs),
+            threshold=threshold,
+            is_bloated=is_always_on and word_count > threshold,
+        )
 
     def _get_latest_code_commit_time(self) -> Optional[datetime]:
         """Get the timestamp of the most recent code commit (excluding context files)."""
@@ -1443,6 +1509,7 @@ class RepoScanner:
         - 2 points per stale file (max 6)
         - 1 point per invalid reference (max 4)
         - 2 points if majority of files are templates
+        - up to 3 points for oversized always-on files (context-hygiene / bloat)
 
         Total max penalty: 10 points
         """
@@ -1463,6 +1530,15 @@ class RepoScanner:
             template_count = sum(1 for t in result.template_analyses.values() if t.is_template)
             if template_count > len(result.template_analyses) / 2:
                 penalty += 2.0
+
+        # Penalty for bloated always-on files (context-hygiene). Scales with how far
+        # over the threshold the worst offender is; capped at 3 points.
+        bloat_penalty = 0.0
+        for c in result.conciseness.values():
+            if c.is_bloated and c.threshold > 0:
+                overage = (c.word_count / c.threshold) - 1.0  # 0 at threshold, 1.0 at 2x
+                bloat_penalty = max(bloat_penalty, min(overage * 2.0, 3.0))
+        penalty += bloat_penalty
 
         return min(penalty, 10.0)
 

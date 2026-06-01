@@ -705,3 +705,51 @@ class TestLevelGating:
             # L8 needs measured outcomes (metrics/logs), absent in the fixture
             assert score.signals.gates[8] is False
             assert "measured_outcomes" in score.signals.gate_missing[8]
+
+
+class TestConciseness:
+    """Tests for conciseness / context-hygiene (anti-bloat) detection."""
+
+    def test_bloated_always_on_file_flagged(self):
+        """A very large CLAUDE.md should be flagged as bloated with a penalty."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            Path(tmpdir, "CLAUDE.md").write_text("# Project\n" + ("word " * 3500))
+            score = RepoScanner(tmpdir).scan()
+            c = score.validation.conciseness["CLAUDE.md"]
+            assert c.is_always_on is True
+            assert c.is_bloated is True
+            assert score.validation.has_bloat is True
+            assert any(w.startswith("BLOAT:") for w in score.validation.warnings)
+            assert score.validation.validation_penalty > 0
+
+    def test_concise_always_on_file_not_flagged(self):
+        """A concise CLAUDE.md should not be flagged as bloated."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            Path(tmpdir, "CLAUDE.md").write_text("# Project\n" + ("word " * 120))
+            score = RepoScanner(tmpdir).scan()
+            c = score.validation.conciseness["CLAUDE.md"]
+            assert c.is_always_on is True
+            assert c.is_bloated is False
+            assert score.validation.has_bloat is False
+
+    def test_large_skill_exempt_from_bloat(self):
+        """On-demand skill bodies are exempt from the bloat threshold (progressive disclosure)."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            Path(tmpdir, "CLAUDE.md").write_text("# Project\n" + "x" * 200)
+            skill = Path(tmpdir, ".claude", "skills", "foo")
+            skill.mkdir(parents=True)
+            (skill / "SKILL.md").write_text(
+                "---\nname: foo\ndescription: d\n---\n" + ("word " * 4000)
+            )
+            score = RepoScanner(tmpdir).scan()
+            rel = ".claude/skills/foo/SKILL.md"
+            assert rel in score.validation.conciseness
+            assert score.validation.conciseness[rel].is_always_on is False
+            assert score.validation.conciseness[rel].is_bloated is False
+
+    def test_bloat_threshold_configurable(self):
+        """The bloat threshold default is 1500 words."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            Path(tmpdir, "CLAUDE.md").write_text("# Project\n" + ("word " * 300))
+            score = RepoScanner(tmpdir).scan()
+            assert score.validation.conciseness["CLAUDE.md"].threshold == 1500
