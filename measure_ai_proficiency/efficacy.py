@@ -425,7 +425,8 @@ class EfficacyAnalyzer:
                     evidence=f"`--help` exit={res['rc']}", reproduce_cmd=f"{cmd} --help",
                 ))
         if commands:
-            result.summary = f"{result.passed}/{result.total_scored} documented commands work"
+            verb = "respond to --help" if self.execute else "resolve on PATH"
+            result.summary = f"{result.passed}/{result.total_scored} documented commands {verb}"
         else:
             result.summary = "no documented CLI commands found"
         return result
@@ -488,10 +489,16 @@ class EfficacyAnalyzer:
             safe_first = first if _CMD_FIRST_TOKEN.match(first) else "<cmd>"
             referenced = self._resolve_referenced_script(argv)
             if referenced is not None and not referenced.exists():
+                # Report a repo-relative path so no runner filesystem layout leaks into
+                # the (potentially PR-posted) report.
+                try:
+                    rel_ref = referenced.relative_to(self.repo_path.resolve())
+                except (ValueError, OSError):
+                    rel_ref = referenced.name
                 result.checks.append(ArtifactCheck(
                     name=f"{safe_event}:{safe_first}", kind="hook", status="fail",
-                    evidence=f"hook script missing: {referenced}",
-                    reproduce_cmd=f"test -f {referenced}",
+                    evidence=f"hook script missing: {rel_ref}",
+                    reproduce_cmd=f"test -f {rel_ref}",
                     detail="hook wired but its script is absent",
                 ))
                 continue
@@ -522,6 +529,10 @@ class EfficacyAnalyzer:
     def _resolve_referenced_script(self, argv: List[str]) -> Optional[Path]:
         """If a hook command points at a repo-local script file, return its path."""
         for tok in argv:
+            # Only repo-local script paths are validatable. Reject absolute paths
+            # outright (an absolute operand would also override repo_path in `/`).
+            if os.path.isabs(tok):
+                continue
             if "/" in tok and (tok.endswith(".sh") or tok.endswith(".py") or ".claude/hooks" in tok):
                 # Strip only a leading "./" prefix (NOT lstrip('./'), which would also
                 # eat the leading dot of ".claude/...").

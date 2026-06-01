@@ -843,6 +843,9 @@ async def prove_efficacy_handler() -> list[TextContent]:
 
     def _run():
         score = scanner.scan()
+        # is_remote=False is safe: this handler only ever operates on the local working
+        # directory (get_current_repo() == Path.cwd()), never a GitHub-fetched temp dir.
+        # execute=False also means no repo code runs regardless.
         scanner.prove(score, execute=False, is_remote=False)
         return score
 

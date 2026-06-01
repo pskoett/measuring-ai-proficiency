@@ -36,8 +36,13 @@ jobs:
             const fs = require('fs');
             const marker = '<!-- context-efficacy -->';
             let report = '';
-            try { report = fs.readFileSync('efficacy_report.md', 'utf8'); } catch (e) { report = '_efficacy report unavailable_'; }
-            const body = `${marker}\n## 🔬 Context Efficacy (resolve-only)\n\n${report}`;
+            try { report = fs.readFileSync('efficacy_report.md', 'utf8'); } catch (e) { report = 'efficacy report unavailable'; }
+            // SECURITY: the report is generated from untrusted PR-branch content. Render it
+            // as LITERAL text inside a code fence (never as Markdown/HTML), neutralize any
+            // fence-breakout sequences, and cap the size — prevents content injection into
+            // this PR comment.
+            report = report.replace(/```/g, '`​``').slice(0, 60000);
+            const body = `${marker}\n## 🔬 Context Efficacy (resolve-only)\n\n\`\`\`text\n${report}\n\`\`\``;
             const { owner, repo } = context.repo;
             const issue_number = context.payload.pull_request.number;
             const { data: comments } = await github.rest.issues.listComments({ owner, repo, issue_number });
