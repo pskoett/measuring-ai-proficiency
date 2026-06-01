@@ -77,7 +77,7 @@ After updating the configuration, restart Claude Code to load the MCP server.
 
 ## Available Tools
 
-The MCP server provides 7 tools for AI proficiency analysis:
+The MCP server provides 12 tools for AI proficiency analysis (7 core + 5 for the 2026 context-engineering signals — see [SIGNALS.md](SIGNALS.md)):
 
 ### 1. `scan_current_repo`
 
@@ -228,6 +228,46 @@ Claude: Your CLAUDE.md scores 7.5/10:
 - Needs work: Only 2 constraints, 150 words (aim for 200+)
 ...
 ```
+
+## 2026 Context-Engineering Signal Tools
+
+These tools surface the [2026 signals](SIGNALS.md) that gate Levels 6-8. All are
+grounded in official documentation; static scans detect documented proxies, not
+runtime efficacy.
+
+### 8. `check_harness_orchestration_quality`
+
+Score harness/orchestration maturity for the current repo.
+
+**Returns:**
+- `structural_quality` — the 6-primitive structural score (skills frontmatter/executable/verification, hooks + events, subagents, workflows, plugins)
+- `harness_signals` — verification, eval loops, telemetry, dynamic workflows, harness engineering, primitive discipline (detected + evidence + official reference)
+- `level_gates` — L6/L7/L8 satisfied status + missing requirements (with how-to + reference)
+- `signal_bonus`
+
+### 9. `scan_for_maintenance_hygiene`
+
+Report anti-drift maintenance hygiene (sentinel/canary, audit/detox, steward loops, decay) plus telemetry.
+
+**Returns:** `maintenance_hygiene_detected`, per-signal evidence, and actionable recommendations grounded in official docs.
+
+### 10. `get_dynamic_workflow_recommendations`
+
+Recommend how to adopt Dynamic Workflows + verification patterns, scoped to what is statically detectable (`.claude/workflows`, orchestration scripts, clean-context verifiers).
+
+**Returns:** `workflows_present`, `dynamic_workflow_signal_detected`, `verification_signal_detected`, the L8 orchestration gate status, the official docs URL, and recommendations.
+
+### 11. `curricula_alignment`
+
+Check whether the repo references official learning on-ramps.
+
+**Returns:** `curricula_referenced`, evidence, and the recommended courses (Anthropic Academy; Google 5-Day AI Agents — Day 3 covers Context Engineering).
+
+### 12. `cheapest_primitive_decision_tree_report`
+
+Return the cheapest-primitive-first decision tree (Skill → MCP → Subagent → Hook → Plugin/Workflow) and which primitives the repo actually uses.
+
+**Returns:** `decision_tree`, `rule`, `primitives_present`, and the decision-discipline signal.
 
 ## Usage Examples
 

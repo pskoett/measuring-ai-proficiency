@@ -75,6 +75,9 @@ The tool scans repositories for files like `CLAUDE.md`, `.cursorrules`, `.github
 
 **Key Features:**
 - 8-level maturity scoring aligned with Steve Yegge's model
+- **2026 context-engineering signals** (verification, hooks, eval loops, telemetry, anti-drift maintenance hygiene, dynamic-workflow orchestration, plugins, harness engineering, curricula) — grounded in official docs only; see `docs/SIGNALS.md`
+- **L6-L8 are signal-gated**: reaching those levels requires the matching primitives/harness/orchestration signals AND file coverage (not coverage alone)
+- Structural quality scoring of the 6 primitives (skill frontmatter/executable content/verification, hook events, subagents, workflows, plugins)
 - Cross-reference detection between AI instruction files
 - Content quality evaluation (sections, commands, constraints)
 - Multiple output formats (terminal, JSON, markdown, CSV)
@@ -101,6 +104,11 @@ The project now includes an **MCP (Model Context Protocol) server** that makes A
 - `scan_github_repo` - Analyze remote GitHub repo without cloning
 - `scan_github_org` - Analyze entire GitHub organization
 - `validate_file_quality` - Check quality score of specific file
+- `check_harness_orchestration_quality` - 2026 harness/orchestration maturity + L6-L8 signal gates
+- `scan_for_maintenance_hygiene` - Anti-drift maintenance hygiene (sentinel/canary, audit/detox, steward, decay)
+- `get_dynamic_workflow_recommendations` - Adopt Dynamic Workflows + verification (scoped to detectable artifacts)
+- `curricula_alignment` - Official learning on-ramp references (Anthropic Academy, Google 5-Day AI Agents)
+- `cheapest_primitive_decision_tree_report` - Primitive decision discipline (Skill → MCP → Subagent → Hook → Plugin)
 
 **Configuration:** Add to `.mcp.json`:
 ```json
@@ -151,7 +159,8 @@ measure_ai_proficiency/
 ├── __main__.py        # CLI entry point
 ├── mcp_server.py      # MCP server for AI assistant integration
 ├── config.py          # Level definitions and file patterns
-├── scanner.py         # Repository scanning logic + cross-reference detection
+├── signals.py         # 2026 context-engineering signal registry + L6-8 gate requirements (official-doc grounded)
+├── scanner.py         # Repository scanning logic + cross-reference detection + signal analysis + L6-8 gating
 ├── github_scanner.py  # GitHub CLI integration for remote scanning
 ├── reporter.py        # Output formatting (terminal, JSON, markdown, CSV)
 └── repo_config.py     # Repository configuration and tool auto-detection
@@ -214,7 +223,10 @@ pytest tests/ -v
 - Adjust scoring thresholds: Edit `_calculate_overall_level` in `measure_ai_proficiency/scanner.py`
 - Add new cross-reference patterns: Edit `CROSS_REF_PATTERNS` in `measure_ai_proficiency/scanner.py`
 - Add new quality indicators: Edit `QUALITY_PATTERNS` in `measure_ai_proficiency/scanner.py`
+- Add a new 2026 signal: Add a `SignalGroup` to `SIGNAL_GROUPS` in `measure_ai_proficiency/signals.py` (keyword patterns + weight + an **official** reference). To gate a level, add its key to `LEVEL_GATE_REQUIREMENTS` and resolve it in `RepoScanner._compute_signal_gates`. Add a regression eval under `.evals/cases/`. See `docs/SIGNALS.md`.
+- Adjust L6-8 gating: Edit `LEVEL_GATE_REQUIREMENTS` (signals.py) and `_compute_signal_gates` (scanner.py). Levels 6-8 require signals AND file coverage; the `gates` dict flows into `_calc_level_with_thresholds`.
 - Add new MCP tools: Add handler in `measure_ai_proficiency/mcp_server.py`, update `list_tools()` and `call_tool()`
+- Writing/auditing agents files (CLAUDE.md/AGENTS.md): keep them concise and behavioral — every always-loaded line must change behavior or be cut. See `docs/AGENTS_FILE_GUIDANCE.md`.
 
 ## Scanning Options
 

@@ -12,6 +12,45 @@ import pytest
 
 from measure_ai_proficiency import RepoScanner, RepoScore
 from measure_ai_proficiency.config import LEVELS
+from measure_ai_proficiency.scanner import LevelScore
+from measure_ai_proficiency.signals import SIGNAL_GROUPS, LEVEL_GATE_REQUIREMENTS
+
+
+def _make_rich_signal_repo(root: Path) -> None:
+    """Create a repo fixture exercising the 2026 signal + structural detectors."""
+    (root / "CLAUDE.md").write_text(
+        "# Project\n## Architecture\n"
+        "We practice verification with adversarial review and clean-context verifiers.\n"
+        "Run telemetry and observability scorecards. Audit CLAUDE.md for drift (sentinel canary).\n"
+        "Dynamic workflows orchestrate parallel subagents. Progressive disclosure for skills.\n"
+        "See the Anthropic Academy and the Google 5-day AI Agents course.\n"
+        "Choose the cheapest primitive first; skill vs subagent decisions matter.\n"
+        "This is harness engineering: the machine around the model, with a feedback loop.\n"
+        + "x" * 200
+    )
+    skill_dir = root / ".claude" / "skills" / "foo"
+    skill_dir.mkdir(parents=True)
+    (skill_dir / "SKILL.md").write_text(
+        "---\nname: foo\ndescription: when to do foo\n---\n# Foo\nVerify and assert outputs.\n"
+    )
+    (skill_dir / "run.py").write_text("print('hi')\n")  # executable content
+    agents_dir = root / ".claude" / "agents"
+    agents_dir.mkdir(parents=True)
+    (agents_dir / "reviewer.md").write_text("# reviewer\n")
+    (agents_dir / "planner.md").write_text("# planner\n")
+    hooks_dir = root / ".claude" / "hooks"
+    hooks_dir.mkdir(parents=True)
+    (hooks_dir / "format.sh").write_text("echo hi\n")
+    (root / ".claude" / "settings.json").write_text('{"hooks": {"PreToolUse": []}}\n')
+    wf_dir = root / ".claude" / "workflows"
+    wf_dir.mkdir(parents=True)
+    (wf_dir / "migrate.md").write_text("# migration workflow\n")
+    plugin_dir = root / ".claude-plugin"
+    plugin_dir.mkdir(parents=True)
+    (plugin_dir / "plugin.json").write_text('{"name": "x"}\n')
+    evals_dir = root / ".evals" / "cases"
+    evals_dir.mkdir(parents=True)
+    (evals_dir / "EVAL-001.md").write_text("---\neval-id: EVAL-001\n---\n# case\n")
 
 
 class TestRepoScanner:
@@ -533,3 +572,193 @@ Use `/path/to/file` and `~/config/file`.
             assert score.cross_references.total_count == 0
             assert score.cross_references.source_files_scanned == 0
             assert score.cross_references.bonus_points == 0
+
+
+class TestSignals:
+    """Tests for 2026 context-engineering signal detection."""
+
+    def test_signals_present_on_scan(self):
+        """Every scan should attach a HarnessSignals object with gate keys 6-8."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            Path(tmpdir, "CLAUDE.md").write_text("# Project\n" + "x" * 200)
+            score = RepoScanner(tmpdir).scan()
+            assert score.signals is not None
+            assert set(score.signals.gates.keys()) == {6, 7, 8}
+            assert 0.0 <= score.signals.bonus_points <= 10.0
+
+    def test_rich_repo_matches_all_signal_groups(self):
+        """A rich fixture should match every registered signal group."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            _make_rich_signal_repo(Path(tmpdir))
+            score = RepoScanner(tmpdir).scan()
+            matched = set(score.signals.matched_keys)
+            expected = {g.key for g in SIGNAL_GROUPS}
+            assert expected.issubset(matched), f"missing: {expected - matched}"
+
+    def test_structural_quality_detection(self):
+        """Structural detection should find frontmatter, executable content, hooks, etc."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            _make_rich_signal_repo(Path(tmpdir))
+            sq = RepoScanner(tmpdir).scan().signals.structural
+            assert sq.skills_count >= 1
+            assert sq.skills_with_frontmatter >= 1
+            assert sq.skills_with_executable_content >= 1
+            assert sq.skills_with_verification >= 1
+            assert sq.hooks_present is True
+            assert "PreToolUse" in sq.hook_events
+            assert sq.subagents_count >= 2
+            assert sq.workflows_present is True
+            assert sq.plugins_present is True
+            assert sq.skills_structured is True
+            assert 0.0 <= sq.structural_score <= 10.0
+
+    def test_verification_signal_keyword(self):
+        """Verification keywords in CLAUDE.md should set the verification signal."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            Path(tmpdir, "CLAUDE.md").write_text(
+                "# Project\nAlways verify with adversarial refutation and asserts.\n" + "x" * 200
+            )
+            score = RepoScanner(tmpdir).scan()
+            assert score.signals.hits["verification"].matched is True
+
+    def test_no_false_positive_signals_on_bare_repo(self):
+        """A bare CLAUDE.md should not trip orchestration/plugin/maintenance signals."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            Path(tmpdir, "CLAUDE.md").write_text("# Project\nA simple project.\n" + "x" * 100)
+            score = RepoScanner(tmpdir).scan()
+            assert score.signals.hits["dynamic_workflows"].matched is False
+            assert score.signals.hits["plugins"].matched is False
+            assert score.signals.hits["maintenance_hygiene"].matched is False
+
+    def test_signal_bonus_adds_to_score(self):
+        """Signal bonus should be reflected in overall_score (vs a bare repo)."""
+        with tempfile.TemporaryDirectory() as bare, tempfile.TemporaryDirectory() as rich:
+            Path(bare, "CLAUDE.md").write_text("# Project\n" + "x" * 200)
+            bare_score = RepoScanner(bare).scan()
+            _make_rich_signal_repo(Path(rich))
+            rich_score = RepoScanner(rich).scan()
+            assert rich_score.signals.bonus_points > bare_score.signals.bonus_points
+
+
+class TestLevelGating:
+    """Tests for the L6-L8 signal-gate rewire."""
+
+    def _full_coverage_levels(self):
+        """Synthetic level scores with high coverage for levels 3-8."""
+        scores = {}
+        for level in range(1, 9):
+            scores[level] = LevelScore(
+                level=level,
+                name=f"Level {level}",
+                description="",
+                total_patterns=10,
+                coverage_percent=50.0,
+            )
+        return scores
+
+    def test_gate_caps_level_when_signal_missing(self):
+        """A failing L6 gate must cap the achieved level at 5 despite full coverage."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            scanner = RepoScanner(tmpdir)
+            level_scores = self._full_coverage_levels()
+            gates = {6: False, 7: False, 8: False}
+            capped = scanner._calc_level_with_thresholds(
+                level_scores, scanner.DEFAULT_THRESHOLDS, gates
+            )
+            assert capped == 5
+
+    def test_no_gates_reaches_level_8(self):
+        """Without gates (backward compatible), full coverage reaches level 8."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            scanner = RepoScanner(tmpdir)
+            level_scores = self._full_coverage_levels()
+            assert scanner._calc_level_with_thresholds(
+                level_scores, scanner.DEFAULT_THRESHOLDS, None
+            ) == 8
+
+    def test_l6_gate_passes_l7_blocks(self):
+        """If L6 gate passes but L7 fails, level caps at 6."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            scanner = RepoScanner(tmpdir)
+            level_scores = self._full_coverage_levels()
+            gates = {6: True, 7: False, 8: False}
+            assert scanner._calc_level_with_thresholds(
+                level_scores, scanner.DEFAULT_THRESHOLDS, gates
+            ) == 6
+
+    def test_compute_gates_reports_missing_requirements(self):
+        """A bare repo should report all L6 requirements as missing."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            Path(tmpdir, "CLAUDE.md").write_text("# Project\n" + "x" * 200)
+            score = RepoScanner(tmpdir).scan()
+            missing_6 = set(score.signals.gate_missing[6])
+            assert set(LEVEL_GATE_REQUIREMENTS[6]).issubset(missing_6)
+            assert score.signals.gates[6] is False
+
+    def test_rich_repo_satisfies_l6_and_l7_gates(self):
+        """The rich fixture should satisfy the L6 and L7 signal gates."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            _make_rich_signal_repo(Path(tmpdir))
+            score = RepoScanner(tmpdir).scan()
+            assert score.signals.gates[6] is True
+            assert score.signals.gates[7] is True
+            # L8 needs measured outcomes (metrics/logs), absent in the fixture
+            assert score.signals.gates[8] is False
+            assert "measured_outcomes" in score.signals.gate_missing[8]
+
+
+class TestConciseness:
+    """Tests for conciseness / context-hygiene (anti-bloat) detection."""
+
+    def test_bloated_always_on_file_flagged(self):
+        """A very large CLAUDE.md should be flagged as bloated with a penalty."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            Path(tmpdir, "CLAUDE.md").write_text("# Project\n" + ("word " * 3500))
+            score = RepoScanner(tmpdir).scan()
+            c = score.validation.conciseness["CLAUDE.md"]
+            assert c.is_always_on is True
+            assert c.is_bloated is True
+            assert score.validation.has_bloat is True
+            assert any(w.startswith("BLOAT:") for w in score.validation.warnings)
+            assert score.validation.validation_penalty > 0
+
+    def test_concise_always_on_file_not_flagged(self):
+        """A concise CLAUDE.md should not be flagged as bloated."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            Path(tmpdir, "CLAUDE.md").write_text("# Project\n" + ("word " * 120))
+            score = RepoScanner(tmpdir).scan()
+            c = score.validation.conciseness["CLAUDE.md"]
+            assert c.is_always_on is True
+            assert c.is_bloated is False
+            assert score.validation.has_bloat is False
+
+    def test_large_skill_exempt_from_bloat(self):
+        """On-demand skill bodies are exempt from the bloat threshold (progressive disclosure)."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            Path(tmpdir, "CLAUDE.md").write_text("# Project\n" + "x" * 200)
+            skill = Path(tmpdir, ".claude", "skills", "foo")
+            skill.mkdir(parents=True)
+            (skill / "SKILL.md").write_text(
+                "---\nname: foo\ndescription: d\n---\n" + ("word " * 4000)
+            )
+            score = RepoScanner(tmpdir).scan()
+            rel = ".claude/skills/foo/SKILL.md"
+            assert rel in score.validation.conciseness
+            assert score.validation.conciseness[rel].is_always_on is False
+            assert score.validation.conciseness[rel].is_bloated is False
+
+    def test_bloat_threshold_configurable(self):
+        """The bloat threshold default is 1500 words."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            Path(tmpdir, "CLAUDE.md").write_text("# Project\n" + ("word " * 300))
+            score = RepoScanner(tmpdir).scan()
+            assert score.validation.conciseness["CLAUDE.md"].threshold == 1500
+
+    def test_bloat_emits_actionable_recommendation(self):
+        """A bloated file should produce an anti-bloat recommendation with the audit rule."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            Path(tmpdir, "CLAUDE.md").write_text("# Project\n" + ("word " * 3500))
+            score = RepoScanner(tmpdir).scan()
+            joined = " ".join(score.recommendations)
+            assert "always-loaded line must change behavior" in joined
+            assert "AGENTS_FILE_GUIDANCE.md" in joined

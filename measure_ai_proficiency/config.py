@@ -327,9 +327,14 @@ LEVEL_5_PATTERNS = LevelConfig(
 )
 
 # Level 6: Fleet Infrastructure (Yegge Stage 6)
+# 2026 gate: full primitive coverage (structured skills + hooks + subagents)
+# plus verification discipline is REQUIRED to reach this level (see scanner gating).
 LEVEL_6_PATTERNS = LevelConfig(
     name="Level 6: Fleet Infrastructure",
-    description="Advanced memory systems, shared context, and workflow pipelines",
+    description=(
+        "Full primitive coverage — structured skills, deterministic hooks, and "
+        "subagents — plus verification discipline, advanced memory, and shared context"
+    ),
     file_patterns=[
         # Beads memory system
         ".beads/*.md",
@@ -406,9 +411,14 @@ LEVEL_6_PATTERNS = LevelConfig(
 )
 
 # Level 7: Agent Fleet (Yegge Stage 7)
+# 2026 gate: advanced harness — eval/verification loops + telemetry/observability +
+# anti-drift maintenance hygiene — is REQUIRED to reach this level (see scanner gating).
 LEVEL_7_PATTERNS = LevelConfig(
     name="Level 7: Agent Fleet",
-    description="Large agent fleet with governance, scheduling, and multi-agent pipelines",
+    description=(
+        "Advanced harness — eval/verification loops, telemetry/observability, and "
+        "anti-drift maintenance — over a multi-agent fleet with governance and pipelines"
+    ),
     file_patterns=[
         # Governance
         "GOVERNANCE.md",
@@ -471,6 +481,32 @@ LEVEL_7_PATTERNS = LevelConfig(
         ".metrics/agents/*.json",
         ".metrics/agents/*.yaml",
         "metrics/agents/*.md",
+
+        # Verification & eval harness (2026: docs.claude.com hooks/skills, eval loops)
+        ".evals/*.md",
+        ".evals/cases/*.md",
+        ".evals/EVAL_INDEX.md",
+        "evals/*.md",
+        "evals/cases/*.md",
+        "VERIFICATION.md",
+        "EVALS.md",
+        "EVAL.md",
+        "docs/EVALS.md",
+        "agents/VERIFICATION.md",
+
+        # Telemetry & observability (2026: harness engineering signal)
+        "TELEMETRY.md",
+        "OBSERVABILITY.md",
+        "agents/TELEMETRY.md",
+        "agents/OBSERVABILITY.md",
+        "SCORECARD.md",
+        "agents/SCORECARD.md",
+
+        # Anti-drift / maintenance hygiene (2026: living-context practice)
+        "DRIFT.md",
+        "MAINTENANCE.md",
+        "agents/MAINTENANCE.md",
+        "DREAMS.md",
     ],
     directory_patterns=[
         "agents/specialists",
@@ -488,14 +524,22 @@ LEVEL_7_PATTERNS = LevelConfig(
         ".metrics/agents",
         "metrics/agents",
         "pipelines/multi_agent",
+        ".evals",
+        ".evals/cases",
+        "evals",
     ],
     weight=4.0
 )
 
 # Level 8: Custom Orchestration (Yegge Stage 8)
+# 2026 gate: production orchestration ecosystem — dynamic workflows / orchestration
+# scripts + plugin distribution + measured outcomes — is REQUIRED (see scanner gating).
 LEVEL_8_PATTERNS = LevelConfig(
     name="Level 8: Custom Orchestration",
-    description="Custom orchestration, meta-automation, and frontier tooling",
+    description=(
+        "Production orchestration ecosystem — dynamic workflows / external orchestration "
+        "scripts, plugin distribution, and measured outcomes — at the frontier"
+    ),
     file_patterns=[
         # Custom orchestration
         "orchestration.yaml",
@@ -571,6 +615,23 @@ LEVEL_8_PATTERNS = LevelConfig(
         "infra/agents/*.tf",
         "infra/agents/*.yaml",
         "k8s/agents/*.yaml",
+
+        # Dynamic workflows / orchestration scripts
+        # (2026: official Dynamic Workflows — code.claude.com/docs/en/workflows)
+        ".claude/workflows/*.md",
+        ".claude/workflows/*.js",
+        ".claude/workflows/*.ts",
+        ".claude/workflows/*.json",
+        ".claude/workflows/*.py",
+        "workflows/scripts/*.js",
+        "ORCHESTRATION_SCRIPT.md",
+
+        # Plugin distribution (2026: docs.claude.com/.../plugins)
+        ".claude-plugin/plugin.json",
+        ".claude-plugin/marketplace.json",
+        ".claude/plugins/*/plugin.json",
+        ".claude/plugins/*/.claude-plugin/plugin.json",
+        "plugins/*/.claude-plugin/plugin.json",
     ],
     directory_patterns=[
         "orchestration",
@@ -588,6 +649,9 @@ LEVEL_8_PATTERNS = LevelConfig(
         "watchdog",
         "infra/agents",
         "k8s/agents",
+        ".claude/workflows",
+        ".claude-plugin",
+        ".claude/plugins",
     ],
     weight=5.0
 )
