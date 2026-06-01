@@ -1,3 +1,8 @@
+---
+plan-id: plan-298
+status: shipped
+shipped-in: "#298"
+---
 # Plan 298 — Context Efficacy Proving Harness (v0.7.0)
 
 Source issue: #298. Ship vehicle: feature branch → PR → main → v0.7.0 release.
