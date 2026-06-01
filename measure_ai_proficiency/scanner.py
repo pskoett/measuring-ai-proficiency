@@ -12,7 +12,10 @@ import subprocess
 from dataclasses import dataclass, field
 from datetime import datetime
 from pathlib import Path
-from typing import Dict, List, Optional, Set
+from typing import Dict, List, Optional, Set, TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from .efficacy import EfficacyResult
 
 from .config import LEVELS, CORE_AI_FILES, LevelConfig, filter_patterns_for_tools
 from .signals import (
@@ -568,6 +571,7 @@ class RepoScore:
     default_level: Optional[int] = None  # Level with default thresholds (when custom are used)
     validation: Optional[ValidationResult] = None  # Content validation results (Improvements 2-4)
     signals: Optional["HarnessSignals"] = None  # 2026 context-engineering signals (gates L6-8)
+    efficacy: Optional["EfficacyResult"] = None  # Runtime efficacy proving results (--prove; report-only)
 
     @property
     def has_any_ai_files(self) -> bool:
@@ -682,6 +686,37 @@ class RepoScanner:
         score.recommendations = self._generate_recommendations(score)
 
         return score
+
+    def prove(
+        self,
+        score: RepoScore,
+        execute: bool = False,
+        is_remote: bool = False,
+        context_window: Optional[int] = None,
+    ) -> "EfficacyResult":
+        """Run the report-only efficacy proving pass and attach it to the score.
+
+        Opt-in (CLI --prove / --prove-exec). Does NOT change the level or score.
+        Execution is hard-blocked when is_remote=True. Lazy import avoids a cycle.
+        """
+        from .efficacy import EfficacyAnalyzer
+
+        # Ensure repo config is loaded so .ai-proficiency.yaml overrides (allowlist
+        # narrowing, context window) apply even when prove() is called on a fresh
+        # scanner that never ran scan() (e.g. the --org / multi-repo paths).
+        if self.config is None:
+            self.config = load_repo_config(self.repo_path)
+
+        result = EfficacyAnalyzer(
+            self.repo_path,
+            score=score,
+            execute=execute,
+            is_remote=is_remote,
+            config=self.config,
+            context_window=context_window,
+        ).run()
+        score.efficacy = result
+        return result
 
     def _scan_level(self, level_num: int, config: LevelConfig) -> LevelScore:
         """Scan for files matching a specific level's patterns."""

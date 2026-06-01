@@ -18,6 +18,9 @@ Managed by `self-improvement-meta` (creates eval cases for promoted learnings) a
 | [EVAL-011](.evals/cases/EVAL-011.md) | June 2026 signal enhancement — curricula on-ramps | `measure_ai_proficiency/signals.py` | grep-check | `key="curricula"` |
 | [EVAL-012](.evals/cases/EVAL-012.md) | June 2026 rewire — L6-L8 require context-engineering signals, not file coverage alone | `measure_ai_proficiency/scanner.py` | grep-check | `def _compute_signal_gates` |
 | [EVAL-013](.evals/cases/EVAL-013.md) | June 2026 — conciseness/anti-bloat for always-on files (CLAUDE.md/AGENTS.md) | `measure_ai_proficiency/scanner.py` | grep-check | `def _analyze_conciseness` |
+| [EVAL-014](.evals/cases/EVAL-014.md) | v0.7.0 — efficacy proving engine present | `measure_ai_proficiency/efficacy.py` | grep-check | `class EfficacyAnalyzer` |
+| [EVAL-015](.evals/cases/EVAL-015.md) | v0.7.0 security — exec hard-blocked on remote repos | `measure_ai_proficiency/efficacy.py` | grep-check | `bool(execute) and not is_remote` |
+| [EVAL-016](.evals/cases/EVAL-016.md) | v0.7.0 security — sandbox never uses shell=True | `measure_ai_proficiency/efficacy.py` | grep-check (not_found) | `shell=True` |
 
 ## Retired cases
 

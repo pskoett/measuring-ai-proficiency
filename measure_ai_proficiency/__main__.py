@@ -149,6 +149,30 @@ GitHub CLI Requirements:
     )
 
     parser.add_argument(
+        "--prove",
+        action="store_true",
+        help="Run the efficacy proving pass (RESOLVE-ONLY: checks commands resolve, hooks "
+             "are wired, and estimates the always-on context token budget). Reports a "
+             "report-only Efficacy Score; does not change the level/score. Runs no repo code.",
+    )
+
+    parser.add_argument(
+        "--prove-exec",
+        action="store_true",
+        help="Like --prove, but ALSO executes allowlisted documented commands (the `--help` "
+             "probe only) in a hardened sandbox. Hooks are always validate-only (never "
+             "executed). Local repos only; never runs for --github-repo/--github-org. "
+             "Repo code is untrusted input — use deliberately.",
+    )
+
+    parser.add_argument(
+        "--context-window",
+        type=int,
+        metavar="TOKENS",
+        help="Reference context-window size (tokens) for the budget prover (default: 200000)",
+    )
+
+    parser.add_argument(
         "--version",
         action="version",
         version=f"%(prog)s {__version__}",
@@ -170,6 +194,17 @@ GitHub CLI Requirements:
     # Verbose is now the default; use --quiet to suppress
     verbose = not args.quiet
 
+    # Efficacy proving (opt-in). Execution is never allowed on remote/GitHub repos.
+    prove = args.prove or args.prove_exec
+    is_remote = bool(args.github_repo or args.github_org)
+    cw = args.context_window
+    if args.prove_exec and is_remote:
+        print(
+            "Note: --prove-exec ignored for remote scans (execution is disabled for "
+            "GitHub-scanned repos); running resolve-only.",
+            file=sys.stderr,
+        )
+
     # Track temp directories for cleanup
     temp_dirs = []
 
@@ -183,6 +218,8 @@ GitHub CLI Requirements:
             temp_dirs.append(temp_dir)
             scanner = RepoScanner(str(temp_dir), verbose=verbose)
             scores = [scanner.scan()]
+            if prove:
+                scanner.prove(scores[0], execute=False, is_remote=True, context_window=cw)
             # Set repo name for display
             scores[0].repo_path = args.github_repo
 
@@ -199,6 +236,8 @@ GitHub CLI Requirements:
                 temp_dirs.append(temp_dir)
                 scanner = RepoScanner(str(temp_dir), verbose=verbose)
                 score = scanner.scan()
+                if prove:
+                    scanner.prove(score, execute=False, is_remote=True, context_window=cw)
                 # Set repo name for display
                 score.repo_path = repo_name
                 scores.append(score)
@@ -206,6 +245,10 @@ GitHub CLI Requirements:
         elif args.org:
             # Scan local org directory
             scores = scan_github_org(args.org, verbose=verbose)
+            if prove:
+                for s in scores:
+                    RepoScanner(str(s.repo_path), verbose=verbose).prove(
+                        s, execute=args.prove_exec, is_remote=False, context_window=cw)
 
         elif len(args.paths) == 1:
             # Single local repo
@@ -215,10 +258,16 @@ GitHub CLI Requirements:
                 sys.exit(1)
             scanner = RepoScanner(str(repo_path), verbose=verbose)
             scores = [scanner.scan()]
+            if prove:
+                scanner.prove(scores[0], execute=args.prove_exec, is_remote=False, context_window=cw)
 
         else:
             # Multiple local repos
             scores = scan_multiple_repos(args.paths, verbose=verbose)
+            if prove:
+                for s in scores:
+                    RepoScanner(str(s.repo_path), verbose=verbose).prove(
+                        s, execute=args.prove_exec, is_remote=False, context_window=cw)
 
         # Filter by minimum level if specified
         if args.min_level is not None:

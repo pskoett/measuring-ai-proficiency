@@ -228,6 +228,15 @@ async def list_tools() -> list[Tool]:
                 "required": [],
             },
         ),
+        Tool(
+            name="prove_efficacy",
+            description="Prove what the current repo's AI artifacts actually DO (report-only Efficacy Score + per-artifact evidence): documented commands resolve, hooks are wired, and the always-on context token budget. RESOLVE-ONLY (runs no repo code) — executing commands is CLI-only (`measure-ai-proficiency --prove-exec`), never via this tool.",
+            inputSchema={
+                "type": "object",
+                "properties": {},
+                "required": [],
+            },
+        ),
     ]
 
 
@@ -270,6 +279,8 @@ async def call_tool(name: str, arguments: Any) -> list[TextContent]:
             return await curricula_alignment_handler()
         elif name == "cheapest_primitive_decision_tree_report":
             return await cheapest_primitive_decision_tree_report_handler()
+        elif name == "prove_efficacy":
+            return await prove_efficacy_handler()
         else:
             raise ValueError(f"Unknown tool: {name}")
     except Exception as e:
@@ -818,6 +829,61 @@ async def cheapest_primitive_decision_tree_report_handler() -> list[TextContent]
         },
         "progressive_disclosure_reference": "https://docs.claude.com/en/docs/claude-code/skills",
     }
+    return [TextContent(type="text", text=json.dumps(result, indent=2))]
+
+
+async def prove_efficacy_handler() -> list[TextContent]:
+    """Run the report-only, RESOLVE-ONLY efficacy proving pass on the current repo.
+
+    Execution of repo-defined commands is intentionally NOT available via MCP (no
+    human-in-the-loop confirmation here); use the CLI `--prove-exec` for that.
+    """
+    repo_path = get_current_repo()
+    scanner = RepoScanner(repo_path)
+
+    def _run():
+        score = scanner.scan()
+        scanner.prove(score, execute=False, is_remote=False)
+        return score
+
+    score = await asyncio.to_thread(_run)
+    eff = score.efficacy
+    if not eff:
+        return [TextContent(type="text", text=json.dumps(
+            {"error": "Efficacy was not computed for this repository"}, indent=2))]
+
+    result: Dict[str, Any] = {
+        "repo_name": score.repo_name,
+        "efficacy_score": eff.score,
+        "executed": eff.executed,
+        "warnings": eff.warnings,
+        "provers": {
+            name: {
+                "summary": p.summary,
+                "checks": [
+                    {
+                        "name": c.name,
+                        "status": c.status,
+                        "evidence": c.evidence,
+                        "reproduce_cmd": c.reproduce_cmd,
+                    }
+                    for c in p.checks
+                ],
+            }
+            for name, p in eff.provers.items()
+        },
+        "note": "Report-only: does not change the Proficiency Score or level. These are "
+                "static/sandboxed proxies, not a guarantee of full runtime efficacy.",
+    }
+    if eff.context_budget:
+        b = eff.context_budget
+        result["context_budget"] = {
+            "always_on_tokens": b.always_on_tokens,
+            "pct_of_window": round(b.pct_of_window, 2),
+            "window_tokens": b.window_tokens,
+            "efficiency_factor": b.efficiency_factor,
+            "method": b.method,
+        }
     return [TextContent(type="text", text=json.dumps(result, indent=2))]
 
 
