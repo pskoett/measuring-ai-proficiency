@@ -226,6 +226,7 @@ pytest tests/ -v
 - Add a new 2026 signal: Add a `SignalGroup` to `SIGNAL_GROUPS` in `measure_ai_proficiency/signals.py` (keyword patterns + weight + an **official** reference). To gate a level, add its key to `LEVEL_GATE_REQUIREMENTS` and resolve it in `RepoScanner._compute_signal_gates`. Add a regression eval under `.evals/cases/`. See `docs/SIGNALS.md`.
 - Adjust L6-8 gating: Edit `LEVEL_GATE_REQUIREMENTS` (signals.py) and `_compute_signal_gates` (scanner.py). Levels 6-8 require signals AND file coverage; the `gates` dict flows into `_calc_level_with_thresholds`.
 - Add new MCP tools: Add handler in `measure_ai_proficiency/mcp_server.py`, update `list_tools()` and `call_tool()`
+- Writing/auditing agents files (CLAUDE.md/AGENTS.md): keep them concise and behavioral — every always-loaded line must change behavior or be cut. See `docs/AGENTS_FILE_GUIDANCE.md`.
 
 ## Scanning Options
 

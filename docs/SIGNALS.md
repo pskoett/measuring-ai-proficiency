@@ -82,6 +82,11 @@ tool nudges toward: keep a thin routing layer in the floor file and push detail 
 scoped/on-demand files (skills, "See X.md" pointers). Grounded in the Claude Code
 memory/best-practices guidance to keep `CLAUDE.md` concise and human-readable.
 
+The audit rule the bloat recommendation teaches: **every always-loaded line must change
+behavior, or cut it** — ask *"what would go wrong if this line wasn't here?"*. Full
+write-up (including the Karpathy behavioral principles) in
+[AGENTS_FILE_GUIDANCE.md](AGENTS_FILE_GUIDANCE.md).
+
 ## Signal bonus
 
 Matched signals plus structural quality contribute a **bounded bonus (0-10)** to

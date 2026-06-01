@@ -2893,6 +2893,23 @@ class RepoScanner:
         # Append 2026 signal-gap recommendations (verification, hooks, harness,
         # dynamic workflows, maintenance hygiene) grounded in official docs.
         recs.extend(self._signal_gap_recommendations(score))
+
+        # Conciseness / anti-bloat recommendation for oversized always-on files.
+        if score.validation and score.validation.has_bloat and not self._should_skip(score.config, "bloat"):
+            bloated = sorted(
+                (c for c in score.validation.conciseness.values() if c.is_bloated),
+                key=lambda c: c.word_count,
+                reverse=True,
+            )
+            names = ", ".join(c.file_path for c in bloated[:3])
+            recs.append(
+                f"🪶 Trim your always-on files ({names}): they are a permanent context tax, and "
+                f"bloated files make the model ignore your actual instructions. Audit rule: every "
+                f"always-loaded line must change behavior, or cut it — ask \"what would go wrong if "
+                f"this line wasn't here?\". Move detail into on-demand skills (progressive disclosure) "
+                f"and keep a thin routing layer. See docs/AGENTS_FILE_GUIDANCE.md and "
+                f"https://docs.claude.com/en/docs/claude-code/memory"
+            )
         return recs
 
     def _signal_gap_recommendations(self, score: RepoScore) -> List[str]:

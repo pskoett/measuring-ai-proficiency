@@ -753,3 +753,12 @@ class TestConciseness:
             Path(tmpdir, "CLAUDE.md").write_text("# Project\n" + ("word " * 300))
             score = RepoScanner(tmpdir).scan()
             assert score.validation.conciseness["CLAUDE.md"].threshold == 1500
+
+    def test_bloat_emits_actionable_recommendation(self):
+        """A bloated file should produce an anti-bloat recommendation with the audit rule."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            Path(tmpdir, "CLAUDE.md").write_text("# Project\n" + ("word " * 3500))
+            score = RepoScanner(tmpdir).scan()
+            joined = " ".join(score.recommendations)
+            assert "always-loaded line must change behavior" in joined
+            assert "AGENTS_FILE_GUIDANCE.md" in joined

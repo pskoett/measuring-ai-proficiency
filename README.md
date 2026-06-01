@@ -14,7 +14,7 @@ Measure context engineering. Look at whether teams are creating files like `CLAU
 
 This tool scans repositories for context engineering artifacts and calculates a maturity score based on an 8-level model aligned with [Steve Yegge's stages](https://steve-yegge.medium.com/welcome-to-gas-town-4f25ee16dd04).
 
-Since v0.6.0 it also detects **2026 context-engineering signals** — verification, hooks, eval loops, telemetry, anti-drift maintenance hygiene, dynamic-workflow orchestration, plugins, and harness engineering — and uses them to **gate Levels 6-8** (file coverage alone is no longer enough). See **[docs/SIGNALS.md](docs/SIGNALS.md)**. All detection is grounded in official documentation.
+Since v0.6.0 it also detects **2026 context-engineering signals** — verification, hooks, eval loops, telemetry, anti-drift maintenance hygiene, dynamic-workflow orchestration, plugins, and harness engineering — and uses them to **gate Levels 6-8** (file coverage alone is no longer enough). It also flags **bloated always-on files** (a permanent context tax). See **[docs/SIGNALS.md](docs/SIGNALS.md)** and **[docs/AGENTS_FILE_GUIDANCE.md](docs/AGENTS_FILE_GUIDANCE.md)** (how to write concise, behavioral CLAUDE.md/AGENTS.md). All detection is grounded in official documentation.
 
 ## Quick Start
 
