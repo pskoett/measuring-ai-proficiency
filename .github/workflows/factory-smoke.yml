@@ -34,7 +34,7 @@ jobs:
       GH_TOKEN: ${{ secrets.GH_AW_AGENT_TOKEN || secrets.GITHUB_TOKEN }}
       GH_AW_REPO: ${{ github.repository }}
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
         with:
           sparse-checkout: scripts
           sparse-checkout-cone-mode: false
